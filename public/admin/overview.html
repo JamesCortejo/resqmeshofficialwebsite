@@ -8,35 +8,76 @@
   <title>Admin Overview - ResQMesh</title>
 
   <link rel="stylesheet" href="/admin/css/login.css">
-  <link rel="stylesheet" href="/admin/css/overview.css">
+  <link rel="stylesheet" href="/admin/css/admin-loader.css">
+  <link rel="stylesheet" href="/admin/css/app-shell.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
-<body class="admin-login-page">
-  <main class="overview-shell">
-    <header class="overview-header">
-      <a href="/resqmeshadmin/overview" class="admin-logo-link" aria-label="ResQMesh admin overview">
-        <img src="/assets/logo-icon.png" alt="ResQMesh Logo" class="admin-logo-icon">
-        <div>
-          <span class="admin-logo-title">RESQ-MESH</span>
-          <span class="admin-logo-subtitle">Admin Overview</span>
-        </div>
-      </a>
-      <a href="/resqmeshadmin" class="back-link">
-        <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-        Back to login
-      </a>
-    </header>
-
-    <section class="overview-panel" aria-labelledby="overview-title">
-      <span class="admin-kicker">
-        <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
-        Valencia City Emergency Network
+<body class="admin-login-page admin-loading">
+  <div class="admin-loader" aria-live="polite" aria-label="Loading ResQMesh admin">
+    <div class="admin-loader-content">
+      <span class="admin-loader-mark" aria-hidden="true"></span>
+      <span>
+        <span class="admin-loader-title">ResQMesh Admin</span>
+        <span class="admin-loader-subtitle">Preparing admin workspace</span>
       </span>
-      <h1 id="overview-title">Overview</h1>
-      <p>This admin workspace is ready for future controls.</p>
+    </div>
+  </div>
+
+  <main class="admin-app-shell">
+    <aside class="admin-sidebar" aria-label="Admin navigation">
+      <div>
+        <a href="/resqmeshadmin/overview" class="admin-logo-link" aria-label="ResQMesh admin overview">
+          <img src="/assets/logo-icon.png" alt="ResQMesh Logo" class="admin-logo-icon">
+          <div>
+            <span class="admin-logo-title">RESQ-MESH</span>
+            <span class="admin-logo-subtitle">Admin Console</span>
+          </div>
+        </a>
+
+        <div class="admin-sidebar-group">
+          <span class="admin-sidebar-label">Navigation</span>
+          <nav class="admin-nav">
+            <a href="/resqmeshadmin/overview" class="admin-nav-link is-active" aria-current="page">
+              <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+              <span>Overview</span>
+            </a>
+            <a href="/resqmeshadmin/accounts" class="admin-nav-link">
+              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+              <span>Accounts Manager</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+
+      <p class="admin-sidebar-footnote">Administrative tools for the ResQMesh emergency network.</p>
+    </aside>
+
+    <section class="admin-app-main">
+      <header class="admin-topbar">
+        <div class="admin-topbar-copy">
+          <span class="admin-kicker">
+            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+            Valencia City Emergency Network
+          </span>
+          <h1 class="admin-topbar-title">Overview</h1>
+          <p class="admin-topbar-desc">A shared operations workspace for monitoring and future control tools.</p>
+        </div>
+
+        <div class="admin-topbar-actions">
+          <button type="button" class="admin-notification-button" aria-label="Notifications">
+            <i class="fa-regular fa-bell" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+
+      <section class="admin-content-panel" aria-labelledby="overview-panel-title">
+        <h2 id="overview-panel-title">Admin Overview</h2>
+        <p>This page is ready for overview widgets, network summaries, and administrative activity panels.</p>
+      </section>
     </section>
   </main>
+  <script src="/admin/js/admin-loader.js"></script>
 </body>
 
 </html>

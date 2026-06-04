@@ -93,6 +93,7 @@ async function ensureAdminStatusAllowed() {
       first_name_enc TEXT NOT NULL,
       middle_name_enc TEXT,
       last_name_enc TEXT NOT NULL,
+      birth_date_enc TEXT,
       username_enc TEXT NOT NULL,
       username_lookup_hash TEXT NOT NULL UNIQUE,
       street_address_enc TEXT NOT NULL,
@@ -118,13 +119,89 @@ async function ensureAdminStatusAllowed() {
       back_id_mime_type TEXT NOT NULL,
       back_id_original_size INTEGER NOT NULL,
       back_id_encrypted_size INTEGER NOT NULL,
+      review_reason_enc TEXT,
+      reviewed_at TEXT,
       status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'admin')),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
-    INSERT INTO users
-    SELECT * FROM users_legacy_status;
+    INSERT INTO users (
+      id,
+      user_code,
+      first_name_enc,
+      middle_name_enc,
+      last_name_enc,
+      birth_date_enc,
+      username_enc,
+      username_lookup_hash,
+      street_address_enc,
+      barangay_enc,
+      occupation_enc,
+      blood_type_enc,
+      medical_complications_enc,
+      allergies_enc,
+      email_enc,
+      email_lookup_hash,
+      phone_enc,
+      password_hash,
+      id_type_enc,
+      id_number_enc,
+      id_number_lookup_hash,
+      front_id_image_path,
+      front_id_original_name,
+      front_id_mime_type,
+      front_id_original_size,
+      front_id_encrypted_size,
+      back_id_image_path,
+      back_id_original_name,
+      back_id_mime_type,
+      back_id_original_size,
+      back_id_encrypted_size,
+      review_reason_enc,
+      reviewed_at,
+      status,
+      created_at,
+      updated_at
+    )
+    SELECT
+      id,
+      user_code,
+      first_name_enc,
+      middle_name_enc,
+      last_name_enc,
+      birth_date_enc,
+      username_enc,
+      username_lookup_hash,
+      street_address_enc,
+      barangay_enc,
+      occupation_enc,
+      blood_type_enc,
+      medical_complications_enc,
+      allergies_enc,
+      email_enc,
+      email_lookup_hash,
+      phone_enc,
+      password_hash,
+      id_type_enc,
+      id_number_enc,
+      id_number_lookup_hash,
+      front_id_image_path,
+      front_id_original_name,
+      front_id_mime_type,
+      front_id_original_size,
+      front_id_encrypted_size,
+      back_id_image_path,
+      back_id_original_name,
+      back_id_mime_type,
+      back_id_original_size,
+      back_id_encrypted_size,
+      review_reason_enc,
+      reviewed_at,
+      status,
+      created_at,
+      updated_at
+    FROM users_legacy_status;
 
     DROP TABLE users_legacy_status;
 
@@ -151,6 +228,7 @@ async function initializeDatabase() {
       first_name_enc TEXT NOT NULL,
       middle_name_enc TEXT,
       last_name_enc TEXT NOT NULL,
+      birth_date_enc TEXT,
       username_enc TEXT NOT NULL,
       username_lookup_hash TEXT NOT NULL UNIQUE,
       street_address_enc TEXT NOT NULL,
@@ -176,6 +254,8 @@ async function initializeDatabase() {
       back_id_mime_type TEXT NOT NULL,
       back_id_original_size INTEGER NOT NULL,
       back_id_encrypted_size INTEGER NOT NULL,
+      review_reason_enc TEXT,
+      reviewed_at TEXT,
       status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'admin')),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -192,6 +272,18 @@ async function initializeDatabase() {
       ON users (id_number_lookup_hash)
       WHERE id_number_lookup_hash IS NOT NULL
     `);
+  }
+
+  if (!(await columnExists('users', 'birth_date_enc'))) {
+    await run('ALTER TABLE users ADD COLUMN birth_date_enc TEXT');
+  }
+
+  if (!(await columnExists('users', 'review_reason_enc'))) {
+    await run('ALTER TABLE users ADD COLUMN review_reason_enc TEXT');
+  }
+
+  if (!(await columnExists('users', 'reviewed_at'))) {
+    await run('ALTER TABLE users ADD COLUMN reviewed_at TEXT');
   }
 
   await ensureAdminStatusAllowed();

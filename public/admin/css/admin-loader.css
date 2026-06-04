@@ -1,0 +1,73 @@
+.admin-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  background: rgba(244, 247, 251, 0.62);
+  backdrop-filter: blur(8px);
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease;
+}
+
+body:not(.admin-loading) .admin-loader {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.admin-loader-content {
+  display: flex;
+  min-width: 240px;
+  align-items: center;
+  gap: 0.9rem;
+  border: 1px solid rgba(231, 75, 50, 0.2);
+  border-radius: var(--admin-radius-md);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: var(--admin-shadow);
+  padding: 1rem 1.15rem;
+}
+
+.admin-loader-mark {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 3px solid rgba(231, 75, 50, 0.16);
+  border-top-color: var(--admin-primary);
+  border-radius: 50%;
+  animation: admin-loader-spin 0.85s linear infinite;
+}
+
+.admin-loader-title,
+.admin-loader-subtitle {
+  display: block;
+}
+
+.admin-loader-title {
+  color: var(--admin-ink);
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.admin-loader-subtitle {
+  color: var(--admin-muted);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+}
+
+@keyframes admin-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-loader-mark {
+    animation: none;
+  }
+}

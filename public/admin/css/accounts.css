@@ -1,0 +1,616 @@
+.accounts-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.35rem;
+}
+
+.accounts-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.accounts-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  color: var(--admin-primary);
+  padding: 0 0.85rem;
+}
+
+.accounts-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--admin-ink);
+  font: 700 0.92rem 'Inter', system-ui, -apple-system, sans-serif;
+  outline: none;
+  padding: 0.75rem 0;
+}
+
+.accounts-search input::placeholder {
+  color: var(--admin-muted);
+  font-weight: 600;
+}
+
+.accounts-search:focus-within {
+  border-color: rgba(231, 75, 50, 0.46);
+  box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
+}
+
+.accounts-sort-button {
+  flex: 0 0 auto;
+}
+
+.admin-secondary-button,
+.account-view-button,
+.account-icon-button,
+.account-approve-button,
+.account-decline-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--admin-radius-md);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 800;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.admin-secondary-button {
+  min-height: 42px;
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  background: #ffffff;
+  color: var(--admin-primary-hover);
+  cursor: pointer;
+  padding: 0.7rem 0.95rem;
+}
+
+.admin-secondary-button:hover,
+.account-view-button:hover {
+  border-color: rgba(231, 75, 50, 0.35);
+  background: var(--admin-soft);
+  box-shadow: 0 10px 20px rgba(231, 75, 50, 0.1);
+}
+
+.admin-secondary-button:disabled,
+.account-approve-button:disabled,
+.account-decline-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.accounts-status-message {
+  border: 1px solid rgba(100, 113, 127, 0.18);
+  border-radius: var(--admin-radius-md);
+  background: #f8fafc;
+  color: var(--admin-muted);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+  padding: 1rem;
+}
+
+.accounts-status-message[data-tone="error"] {
+  border-color: rgba(215, 51, 51, 0.24);
+  background: #fff2f2;
+  color: var(--admin-error);
+}
+
+.accounts-status-message[data-tone="warning"] {
+  border-color: rgba(231, 75, 50, 0.28);
+  background: var(--admin-soft);
+  color: var(--admin-primary-hover);
+}
+
+.accounts-table-wrap {
+  max-height: min(54vh, 560px);
+  overflow: auto;
+  border: 1px solid rgba(220, 227, 234, 0.9);
+  border-radius: var(--admin-radius-md);
+}
+
+.accounts-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--admin-ink);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.92rem;
+}
+
+.accounts-table th,
+.accounts-table td {
+  border-bottom: 1px solid rgba(220, 227, 234, 0.78);
+  padding: 1rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.accounts-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: var(--admin-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.accounts-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.accounts-pagination-summary {
+  color: var(--admin-muted);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.accounts-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.accounts-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.accounts-table tbody tr {
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.accounts-table tbody tr:hover {
+  background: #fffaf8;
+  box-shadow: inset 3px 0 0 var(--admin-primary);
+}
+
+.account-primary-text,
+.account-muted-text {
+  display: block;
+}
+
+.account-primary-text {
+  color: var(--admin-ink);
+  font-weight: 800;
+}
+
+.account-muted-text {
+  color: var(--admin-muted);
+  font-size: 0.82rem;
+  margin-top: 0.15rem;
+}
+
+.account-status-pill {
+  display: inline-flex;
+  border: 1px solid rgba(231, 75, 50, 0.2);
+  border-radius: 999px;
+  background: var(--admin-soft);
+  color: var(--admin-primary-hover);
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0.45rem 0.65rem;
+  text-transform: uppercase;
+}
+
+.accounts-action-heading,
+.accounts-action-cell {
+  text-align: right;
+}
+
+.account-view-button {
+  min-height: 38px;
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  background: #ffffff;
+  color: var(--admin-primary-hover);
+  cursor: pointer;
+  padding: 0.55rem 0.8rem;
+}
+
+.account-modal-open {
+  overflow: hidden;
+}
+
+.account-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+}
+
+.account-modal.is-open {
+  display: block;
+}
+
+.account-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(23, 33, 43, 0.34);
+  backdrop-filter: blur(4px);
+}
+
+.account-modal-dialog {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(1120px, calc(100% - 1.5rem));
+  max-height: calc(100vh - 2rem);
+  margin: 1rem auto;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-panel);
+  box-shadow: var(--admin-shadow);
+}
+
+.account-modal-header,
+.account-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(220, 227, 234, 0.86);
+  padding: 1.2rem 1.35rem;
+}
+
+.account-modal-actions {
+  border-top: 1px solid rgba(220, 227, 234, 0.86);
+  border-bottom: 0;
+}
+
+.account-modal-kicker {
+  display: block;
+  color: var(--admin-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.account-modal-header h2 {
+  color: var(--admin-ink);
+  font-size: 1.55rem;
+  line-height: 1.1;
+  margin-top: 0.2rem;
+}
+
+.account-icon-button {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(220, 227, 234, 0.9);
+  background: #ffffff;
+  color: var(--admin-muted);
+  cursor: pointer;
+}
+
+.account-icon-button:hover {
+  color: var(--admin-primary-hover);
+  background: var(--admin-soft);
+}
+
+.account-modal-body {
+  overflow: auto;
+  padding: 1.35rem;
+}
+
+.account-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.account-detail-section,
+.account-id-section {
+  border: 1px solid rgba(220, 227, 234, 0.86);
+  border-radius: var(--admin-radius-md);
+  background:
+    linear-gradient(180deg, rgba(255, 243, 239, 0.28), rgba(255, 255, 255, 0) 46%),
+    #ffffff;
+  padding: 1rem;
+}
+
+.account-detail-section h3,
+.account-id-section h3 {
+  color: var(--admin-ink);
+  font-size: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.account-detail-section dl {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.account-detail-item {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.account-detail-item dt {
+  color: var(--admin-muted);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.account-detail-item dd {
+  min-width: 0;
+  color: var(--admin-ink);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.account-id-section {
+  margin-top: 1rem;
+}
+
+.account-id-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.account-id-card {
+  overflow: hidden;
+  border: 1px solid rgba(220, 227, 234, 0.86);
+  border-radius: var(--admin-radius-md);
+  background: #f8fafc;
+}
+
+.account-id-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background: #eef3f7;
+}
+
+.account-id-card figcaption {
+  display: grid;
+  gap: 0.15rem;
+  color: var(--admin-muted);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.82rem;
+  padding: 0.85rem;
+}
+
+.account-id-card figcaption strong {
+  color: var(--admin-ink);
+  font-size: 0.92rem;
+}
+
+.account-action-message {
+  flex: 1 1 auto;
+  min-height: 1.2rem;
+  color: var(--admin-muted);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.account-review-confirmation {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  border-radius: var(--admin-radius-md);
+  background: #fffaf8;
+  padding: 0.95rem;
+}
+
+.account-review-copy {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.account-review-copy strong {
+  color: var(--admin-ink);
+}
+
+.account-review-copy span {
+  color: var(--admin-muted);
+  font-size: 0.84rem;
+}
+
+.account-decline-reason {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.account-decline-reason span {
+  color: var(--admin-muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.account-decline-reason textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: var(--admin-radius-md);
+  color: var(--admin-ink);
+  font: 700 0.9rem 'Inter', system-ui, -apple-system, sans-serif;
+  outline: none;
+  padding: 0.75rem;
+}
+
+.account-decline-reason textarea:focus {
+  border-color: rgba(231, 75, 50, 0.46);
+  box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
+}
+
+.account-review-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.account-action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  flex: 0 0 auto;
+}
+
+.account-approve-button,
+.account-decline-button {
+  min-height: 42px;
+  border: 0;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0.7rem 1rem;
+}
+
+.account-approve-button {
+  background: #21895b;
+}
+
+.account-approve-button:hover {
+  background: #197348;
+  box-shadow: 0 10px 20px rgba(33, 137, 91, 0.18);
+}
+
+.account-decline-button {
+  background: var(--admin-error);
+}
+
+.account-decline-button:hover {
+  background: #b72a2a;
+  box-shadow: 0 10px 20px rgba(215, 51, 51, 0.18);
+}
+
+@media (max-width: 640px) {
+  .accounts-panel-header,
+  .accounts-toolbar,
+  .accounts-pagination,
+  .account-modal-header,
+  .account-modal-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-secondary-button,
+  .accounts-search,
+  .accounts-pagination-actions,
+  .account-action-buttons,
+  .account-approve-button,
+  .account-decline-button {
+    width: 100%;
+  }
+
+  .accounts-table-wrap {
+    max-height: 56vh;
+    border: 0;
+    overflow: auto;
+  }
+
+  .accounts-table,
+  .accounts-table thead,
+  .accounts-table tbody,
+  .accounts-table th,
+  .accounts-table td,
+  .accounts-table tr {
+    display: block;
+  }
+
+  .accounts-table thead {
+    display: none;
+  }
+
+  .accounts-pagination-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .accounts-table tbody {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .accounts-table tr {
+    border: 1px solid rgba(220, 227, 234, 0.86);
+    border-radius: var(--admin-radius-md);
+    background: #ffffff;
+    padding: 0.85rem;
+  }
+
+  .accounts-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid rgba(220, 227, 234, 0.7);
+    padding: 0.7rem 0;
+    text-align: right;
+  }
+
+  .accounts-table td::before {
+    content: attr(data-label);
+    color: var(--admin-muted);
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .accounts-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .accounts-action-cell {
+    text-align: right;
+  }
+
+  .account-view-button {
+    width: auto;
+  }
+
+  .account-detail-grid,
+  .account-id-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-detail-item {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
+  .account-action-buttons {
+    flex-direction: column;
+  }
+
+  .account-review-confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}

@@ -8,6 +8,7 @@ const USER_STATUSES = {
 const REQUIRED_REGISTRATION_FIELDS = [
   'firstName',
   'lastName',
+  'birthDate',
   'username',
   'streetAddress',
   'barangay',

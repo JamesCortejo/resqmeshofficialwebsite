@@ -28,6 +28,7 @@ async function createUser(user) {
       first_name_enc,
       middle_name_enc,
       last_name_enc,
+      birth_date_enc,
       username_enc,
       username_lookup_hash,
       street_address_enc,
@@ -54,12 +55,13 @@ async function createUser(user) {
       back_id_original_size,
       back_id_encrypted_size,
       status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     user.userCode,
     user.firstNameEnc,
     user.middleNameEnc,
     user.lastNameEnc,
+    user.birthDateEnc,
     user.usernameEnc,
     user.usernameLookupHash,
     user.streetAddressEnc,

@@ -37,6 +37,9 @@ app.get('/resqmeshadmin', (req, res) => {
 app.get('/resqmeshadmin/overview', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'overview.html'));
 });
+app.get('/resqmeshadmin/accounts', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'accounts.html'));
+});
 
 // Start Server
 async function startServer() {

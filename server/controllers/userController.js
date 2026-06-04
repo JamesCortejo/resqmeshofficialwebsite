@@ -28,6 +28,37 @@ function isValidPhone(phone) {
   return /^(09|\+639)\d{9}$/.test(phone);
 }
 
+function parseBirthDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) {
+    return null;
+  }
+
+  const [year, month, day] = String(value).split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function ageFromBirthDate(date) {
+  const now = new Date();
+  let age = now.getFullYear() - date.getUTCFullYear();
+  const monthDiff = now.getMonth() - date.getUTCMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getUTCDate())) {
+    age -= 1;
+  }
+
+  return age;
+}
+
 function safeUserResponse(user) {
   return {
     id: user.id,
@@ -59,6 +90,31 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Please provide a valid Philippine mobile number.'
+      });
+    }
+
+    const birthDate = parseBirthDate(req.body.birthDate);
+
+    if (!birthDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid birthdate.'
+      });
+    }
+
+    const today = new Date();
+
+    if (birthDate > today) {
+      return res.status(400).json({
+        success: false,
+        message: 'Birthdate cannot be in the future.'
+      });
+    }
+
+    if (ageFromBirthDate(birthDate) < 18) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must be at least 18 years old to register.'
       });
     }
 
@@ -110,6 +166,7 @@ exports.registerUser = async (req, res) => {
       firstNameEnc: encryptText(req.body.firstName),
       middleNameEnc: encryptText(req.body.middleName),
       lastNameEnc: encryptText(req.body.lastName),
+      birthDateEnc: encryptText(req.body.birthDate),
       usernameEnc: encryptText(req.body.username),
       usernameLookupHash,
       streetAddressEnc: encryptText(req.body.streetAddress),

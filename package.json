@@ -4,12 +4,14 @@
   "description": "ResQMesh - Offline emergency messaging device portal",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "seed:pending": "node server/scripts/seedPendingAccounts.js"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
     "multer": "^2.1.1",
+    "nodemailer": "^8.0.10",
     "sharp": "^0.34.5",
     "sqlite3": "^6.0.1"
   },
