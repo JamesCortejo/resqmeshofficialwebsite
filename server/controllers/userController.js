@@ -2,6 +2,7 @@ const { REQUIRED_REGISTRATION_FIELDS } = require('../models/userModel');
 const { encryptText, lookupHash } = require('../services/encryptionService');
 const { hashPassword } = require('../services/passwordService');
 const { convertAndEncryptIdImage } = require('../services/imageService');
+const { notifyPendingRegistrationCreated } = require('../services/notificationService');
 const {
   generateUserCode,
   createUser,
@@ -185,6 +186,8 @@ exports.registerUser = async (req, res) => {
       frontIdImage,
       backIdImage
     });
+
+    notifyPendingRegistrationCreated(createdUser);
 
     return res.status(201).json({
       success: true,

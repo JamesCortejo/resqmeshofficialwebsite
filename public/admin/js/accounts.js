@@ -16,12 +16,16 @@
   const actionMessage = document.getElementById('accountActionMessage');
   const approveButton = document.getElementById('approveAccountButton');
   const declineButton = document.getElementById('declineAccountButton');
+  const reviewToast = document.getElementById('adminReviewToast');
+  const reviewToastIcon = document.getElementById('adminReviewToastIcon');
+  const reviewToastMessage = document.getElementById('adminReviewToastMessage');
 
   let selectedAccountId = null;
   let pendingAccounts = [];
   let sortDirection = 'desc';
   let currentPage = 1;
   let pendingReviewAction = '';
+  let reviewToastTimer = null;
   const pageSize = 10;
 
   function escapeHtml(value) {
@@ -75,6 +79,22 @@
     statusMessage.textContent = message;
     statusMessage.dataset.tone = tone || 'neutral';
     statusMessage.hidden = false;
+  }
+
+  function showReviewToast(message, tone) {
+    window.clearTimeout(reviewToastTimer);
+    reviewToastMessage.textContent = message;
+    reviewToast.dataset.tone = tone || 'success';
+    reviewToastIcon.innerHTML = tone === 'warning'
+      ? '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>'
+      : '<i class="fa-solid fa-check" aria-hidden="true"></i>';
+    reviewToast.classList.add('is-visible');
+    reviewToast.setAttribute('aria-hidden', 'false');
+
+    reviewToastTimer = window.setTimeout(() => {
+      reviewToast.classList.remove('is-visible');
+      reviewToast.setAttribute('aria-hidden', 'true');
+    }, 4200);
   }
 
   function searchText(account) {
@@ -367,9 +387,9 @@
       await loadPendingAccounts();
 
       if (warning) {
-        setStatus(warning, 'warning');
+        showReviewToast(warning, 'warning');
       } else {
-        setStatus(successMessage);
+        showReviewToast(successMessage, 'success');
       }
     } catch (error) {
       actionMessage.textContent = error.message;

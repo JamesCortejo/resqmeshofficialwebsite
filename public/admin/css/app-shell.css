@@ -118,6 +118,7 @@
 }
 
 .admin-topbar-actions {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -134,7 +135,7 @@
   background: var(--admin-panel);
   color: var(--admin-primary);
   box-shadow: 0 12px 24px rgba(23, 33, 43, 0.08);
-  cursor: default;
+  cursor: pointer;
 }
 
 .admin-content-panel {

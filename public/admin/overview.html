@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/admin/css/login.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
   <link rel="stylesheet" href="/admin/css/app-shell.css">
+  <link rel="stylesheet" href="/admin/css/admin-notifications.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -65,8 +66,9 @@
         </div>
 
         <div class="admin-topbar-actions">
-          <button type="button" class="admin-notification-button" aria-label="Notifications">
+          <button type="button" class="admin-notification-button" id="adminNotificationButton" aria-label="Notifications" aria-expanded="false">
             <i class="fa-regular fa-bell" aria-hidden="true"></i>
+            <span class="admin-notification-badge" id="adminNotificationBadge" hidden>0</span>
           </button>
         </div>
       </header>
@@ -78,6 +80,7 @@
     </section>
   </main>
   <script src="/admin/js/admin-loader.js"></script>
+  <script src="/admin/js/admin-notifications.js"></script>
 </body>
 
 </html>

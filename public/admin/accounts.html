@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/admin/css/login.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
   <link rel="stylesheet" href="/admin/css/app-shell.css">
+  <link rel="stylesheet" href="/admin/css/admin-notifications.css">
   <link rel="stylesheet" href="/admin/css/accounts.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -66,8 +67,9 @@
         </div>
 
         <div class="admin-topbar-actions">
-          <button type="button" class="admin-notification-button" aria-label="Notifications">
+          <button type="button" class="admin-notification-button" id="adminNotificationButton" aria-label="Notifications" aria-expanded="false">
             <i class="fa-regular fa-bell" aria-hidden="true"></i>
+            <span class="admin-notification-badge" id="adminNotificationBadge" hidden>0</span>
           </button>
         </div>
       </header>
@@ -94,8 +96,6 @@
             <span id="sortAccountsLabel">Newest first</span>
           </button>
         </div>
-
-        <div class="accounts-status-message" id="accountsStatusMessage" role="status">Loading pending accounts...</div>
 
         <div class="accounts-table-wrap" id="accountsTableWrap" hidden>
           <table class="accounts-table">
@@ -126,6 +126,7 @@
             </button>
           </div>
         </div>
+        <div class="accounts-list-empty" id="accountsStatusMessage" role="status" hidden>Loading pending accounts...</div>
       </section>
     </section>
   </main>
@@ -163,7 +164,15 @@
     </section>
   </div>
 
+  <div class="admin-review-toast" id="adminReviewToast" role="status" aria-live="polite" aria-hidden="true">
+    <span class="admin-review-toast-icon" id="adminReviewToastIcon">
+      <i class="fa-solid fa-check" aria-hidden="true"></i>
+    </span>
+    <span class="admin-review-toast-message" id="adminReviewToastMessage">Account status updated.</span>
+  </div>
+
   <script src="/admin/js/admin-loader.js"></script>
+  <script src="/admin/js/admin-notifications.js"></script>
   <script src="/admin/js/accounts.js"></script>
 </body>
 

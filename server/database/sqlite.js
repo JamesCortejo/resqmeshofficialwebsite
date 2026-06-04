@@ -263,6 +263,23 @@ async function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_users_status ON users (status);
     CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      related_entity_type TEXT,
+      related_entity_id INTEGER,
+      related_entity_code TEXT,
+      metadata_json TEXT,
+      read_at TEXT,
+      hidden_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications (created_at);
+    CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON notifications (read_at);
   `);
 
   if (!(await columnExists('users', 'id_number_lookup_hash'))) {
@@ -286,6 +303,10 @@ async function initializeDatabase() {
     await run('ALTER TABLE users ADD COLUMN reviewed_at TEXT');
   }
 
+  if (!(await columnExists('notifications', 'hidden_at'))) {
+    await run('ALTER TABLE notifications ADD COLUMN hidden_at TEXT');
+  }
+
   await ensureAdminStatusAllowed();
 
   await exec(`
@@ -293,6 +314,9 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_id_number_lookup_hash
     ON users (id_number_lookup_hash);
+    CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications (created_at);
+    CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON notifications (read_at);
+    CREATE INDEX IF NOT EXISTS idx_notifications_hidden_at ON notifications (hidden_at);
   `);
 }
 

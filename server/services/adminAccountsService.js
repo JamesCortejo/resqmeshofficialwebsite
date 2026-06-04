@@ -4,6 +4,7 @@ const config = require('../config/env');
 const { USER_STATUSES } = require('../models/userModel');
 const { decryptBuffer, decryptText, encryptText } = require('./encryptionService');
 const { sendApprovalEmail, sendDeclineEmail } = require('./emailService');
+const { notifyRegistrationReviewed } = require('./notificationService');
 const {
   listPendingAccounts,
   getPendingAccountById,
@@ -216,6 +217,8 @@ async function updateAccountReviewStatus(id, status, reason = '') {
       console.error('Review email failed:', error);
       emailWarning = 'Account status was updated, but the email notification could not be sent.';
     }
+
+    notifyRegistrationReviewed(account, status);
 
     return {
       ...account,
