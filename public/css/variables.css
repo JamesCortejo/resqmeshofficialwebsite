@@ -1,0 +1,33 @@
+/* CSS Variables - Design Tokens */
+:root {
+  /* Colors */
+  --color-bg-dark: #0b0b0b;
+  --color-bg-card: #141414;
+  --color-bg-input: #1a1a1a;
+  --color-primary: #e74b32;       /* Emergency Signal Orange/Red */
+  --color-primary-hover: #f1614b;
+  --color-secondary: #595959;     /* Slate Gray */
+  --color-text-light: #ffffff;
+  --color-text-muted: #b3b3b3;
+  --color-text-dark: #121212;
+  --color-error: #ff4d4d;
+  --color-success: #2ecc71;
+  --color-border: #333333;
+  --color-border-focus: #e74b32;
+  
+  /* Typography */
+  --font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Cabinet Grotesk', 'Outfit', sans-serif;
+  
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  
+  /* Layout */
+  --max-width: 1200px;
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 16px;
+  --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --box-shadow-hover: 0 8px 30px rgba(231, 75, 50, 0.15);
+}

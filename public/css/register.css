@@ -1,0 +1,267 @@
+/* Multi-step Form Layout */
+.register-container {
+  max-width: 800px;
+  margin: 4rem auto;
+  padding: 0 1.5rem;
+}
+
+.register-card {
+  padding: 3rem;
+}
+
+/* Steps Progress Indicator */
+.steps-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3.5rem;
+  position: relative;
+}
+
+.steps-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--color-border);
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+/* Progress fill bar */
+.steps-progress-bar {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 2px;
+  background-color: var(--color-primary);
+  transform: translateY(-50%);
+  z-index: 2;
+  transition: width var(--transition-normal);
+  width: 0%;
+}
+
+.step-indicator {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-bg-dark);
+  border: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  position: relative;
+  z-index: 3;
+  transition: all var(--transition-normal);
+}
+
+.step-indicator.active {
+  border-color: var(--color-primary);
+  color: var(--color-text-light);
+  box-shadow: 0 0 15px rgba(231, 75, 50, 0.4);
+}
+
+.step-indicator.completed {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+  color: var(--color-text-light);
+}
+
+.step-label {
+  position: absolute;
+  top: 48px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  transition: color var(--transition-normal);
+}
+
+.step-indicator.active .step-label {
+  color: var(--color-text-light);
+}
+
+.step-indicator.completed .step-label {
+  color: var(--color-primary);
+}
+
+/* Form Fields Grid styling */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-grid-full {
+  grid-column: span 2;
+}
+
+/* File Upload Box & Preview Area */
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.preview-container {
+  position: relative;
+  margin-top: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: 0.5rem;
+  background-color: var(--color-bg-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+  border-radius: var(--border-radius-sm);
+}
+
+.preview-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(231, 75, 50, 0.9);
+  color: var(--color-text-light);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+  transition: background-color var(--transition-fast);
+}
+
+.preview-remove-btn:hover {
+  background-color: #ff4d4d;
+}
+
+.preview-filename {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 0.5rem;
+  text-align: center;
+  word-break: break-all;
+}
+
+/* Form Navigation Controls */
+.form-navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 2rem;
+}
+
+/* Success Card Style */
+.success-card {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.success-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: rgba(46, 204, 113, 0.1);
+  border: 2px solid var(--color-success);
+  color: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  margin: 0 auto 2rem auto;
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.2);
+}
+
+.success-title {
+  font-size: 2.2rem;
+  margin-bottom: 1rem;
+}
+
+.success-message {
+  font-size: 1.15rem;
+  color: var(--color-text-muted);
+  max-width: 500px;
+  margin: 0 auto 2.5rem auto;
+  line-height: 1.6;
+}
+
+/* Responsive Registration form */
+@media (max-width: 768px) {
+  .register-container {
+    margin: 2.5rem auto;
+    padding: 0 1rem;
+  }
+
+  .register-card {
+    padding: 2rem 1.5rem;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-grid-full {
+    grid-column: span 1;
+  }
+  
+  .upload-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .step-label {
+    display: none; /* Hide labels on mobile to prevent overlapping */
+  }
+  
+  .steps-container {
+    margin-bottom: 2rem;
+  }
+
+  .form-navigation {
+    flex-direction: column-reverse;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+  }
+
+  .success-card {
+    padding: 3rem 1.5rem;
+  }
+
+  .success-title {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-container {
+    padding: 0 0.875rem;
+  }
+
+  .register-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .step-indicator {
+    width: 34px;
+    height: 34px;
+  }
+}

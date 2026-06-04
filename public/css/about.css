@@ -1,0 +1,163 @@
+/* About Header */
+.about-hero {
+  text-align: center;
+  padding: 6rem 0 4rem 0;
+}
+
+.about-title {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.about-subtitle {
+  font-size: 1.2rem;
+  color: var(--color-primary);
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+}
+
+/* Technology Highlight */
+.tech-highlight {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+  margin: 4rem 0;
+}
+
+.tech-content h2 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Mesh Diagram wrapper */
+.mesh-diagram-card {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mesh-svg-wrapper {
+  width: 100%;
+  max-width: 450px;
+  height: auto;
+  margin: 2rem 0;
+}
+
+.mesh-node {
+  fill: var(--color-bg-dark);
+  stroke: var(--color-secondary);
+  stroke-width: 2px;
+  transition: all var(--transition-normal);
+}
+
+.mesh-node:hover, .mesh-node.gateway {
+  stroke: var(--color-primary);
+  fill: rgba(231, 75, 50, 0.1);
+  filter: drop-shadow(0 0 8px rgba(231, 75, 50, 0.4));
+}
+
+.mesh-line {
+  stroke: var(--color-border);
+  stroke-width: 1.5px;
+  stroke-dasharray: 4;
+  animation: dash 30s linear infinite;
+}
+
+.mesh-line.active {
+  stroke: var(--color-primary);
+  stroke-width: 2px;
+  stroke-dasharray: none;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+/* Team Grid */
+.team-section {
+  padding: 5rem 0;
+  text-align: center;
+}
+
+.team-grid {
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 3.5rem;
+}
+
+.team-card {
+  text-align: center;
+}
+
+.team-avatar {
+  width: 100px;
+  height: 100px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--color-secondary);
+  border-radius: 50%;
+  margin: 0 auto 1.5rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  font-size: 2rem;
+}
+
+.team-card:hover .team-avatar {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 15px rgba(231, 75, 50, 0.2);
+}
+
+.team-role {
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive About */
+@media (max-width: 768px) {
+  .about-hero {
+    padding: 4rem 0 2rem 0;
+  }
+
+  .tech-highlight {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    margin: 2rem 0;
+  }
+
+  .mesh-diagram-card {
+    padding: 1.5rem;
+  }
+
+  .mesh-diagram-card > div:last-child {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .team-grid {
+    grid-template-columns: 1fr;
+    margin-top: 2rem;
+  }
+
+  .team-section {
+    padding: 3rem 0;
+  }
+  
+  .about-title {
+    font-size: clamp(2rem, 10vw, 2.4rem);
+  }
+
+  .about-subtitle {
+    font-size: 1rem;
+  }
+}

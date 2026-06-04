@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Get in touch with the ResQMesh team or reach the Valencia City, Bukidnon Emergency Response Hotlines.">
+  <title>Contact Us - ResQMesh Offline Emergency Network</title>
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/contact.css">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar" id="navbar">
+    <div class="container navbar-container">
+      <a href="/" class="logo-link">
+        <img src="assets/logo-icon.png" alt="ResQMesh Logo" class="logo-img">
+        <div class="logo-text-container">
+          <span class="logo-title">RESQ-MESH</span>
+          <span class="logo-subtitle">Valencia City, Bukidnon</span>
+        </div>
+      </a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <ul class="nav-menu" id="nav-menu">
+        <li><a href="/" class="nav-link">Home</a></li>
+        <li><a href="/about" class="nav-link">About Us</a></li>
+        <li><a href="/contact" class="nav-link active">Contact Us</a></li>
+        <li><a href="/register" class="nav-link">Registration</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Contact Page Grid -->
+  <section class="container contact-section">
+    <div class="contact-grid">
+      
+      <!-- Info Left Side -->
+      <div class="contact-info-container">
+        <div class="contact-header">
+          <h1>Get In Touch</h1>
+          <p>Have questions about device distribution, node installations, or administrative verification? Reach out to our technical team or local coordinators.</p>
+        </div>
+        
+        <!-- Emergency Hotlines Specific to Valencia City -->
+        <div class="hotlines-card">
+          <h3 class="hotline-title">
+            <span><i class="fa-solid fa-phone-volume"></i></span> Valencia City Emergency Hotlines
+          </h3>
+          <ul class="hotline-list">
+            <li class="hotline-item">
+              <span>Valencia City CDRRMO (Disaster Office)</span>
+              <span class="hotline-num">0917-703-9111</span>
+            </li>
+            <li class="hotline-item">
+              <span>City Police Station</span>
+              <span class="hotline-num">0917-548-5222</span>
+            </li>
+            <li class="hotline-item">
+              <span>Bureau of Fire Protection (BFP)</span>
+              <span class="hotline-num">0917-702-8344</span>
+            </li>
+            <li class="hotline-item">
+              <span>Red Cross Bukidnon Chapter</span>
+              <span class="hotline-num">(088) 828-2022</span>
+            </li>
+          </ul>
+        </div>
+
+        <ul class="contact-details-list">
+          <li class="contact-detail-item">
+            <span class="contact-detail-icon"><i class="fa-solid fa-location-dot"></i></span>
+            <div class="contact-detail-text">
+              <h4>Operations Office</h4>
+              <p>Valencia City Hall Complex, Sayre Highway, Valencia City, Bukidnon, 8709</p>
+            </div>
+          </li>
+          <li class="contact-detail-item">
+            <span class="contact-detail-icon"><i class="fa-solid fa-envelope"></i></span>
+            <div class="contact-detail-text">
+              <h4>General Inquiry Email</h4>
+              <p>support@resqmesh.net</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Form Right Side -->
+      <div class="card contact-form-card">
+        <h3 class="contact-form-title">Send a Message</h3>
+        <div id="contact-alert-container"></div>
+        
+        <form id="contact-form">
+          <div class="form-group">
+            <label for="name" class="form-label">Full Name <span class="required-indicator">*</span></label>
+            <input type="text" id="name" class="form-control" placeholder="Enter your full name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="email" class="form-label">Email Address <span class="required-indicator">*</span></label>
+            <input type="email" id="email" class="form-control" placeholder="Enter your email address" required>
+          </div>
+
+          <div class="form-group">
+            <label for="subject" class="form-label">Subject</label>
+            <select id="subject" class="form-control">
+              <option value="node-inquiry">Node Registration & Placement</option>
+              <option value="device-hardware">Hardware Troubleshooting</option>
+              <option value="partnership">Barangay Partnership</option>
+              <option value="other">General Feedback</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="message" class="form-label">Message <span class="required-indicator">*</span></label>
+            <textarea id="message" class="form-control" rows="5" placeholder="Type your inquiry here..." required></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Send Message</button>
+        </form>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <img src="assets/logo-full.png" alt="ResQMesh Full Logo" class="footer-logo-img">
+          <p class="footer-desc">Providing localized, peer-to-peer crisis messaging solutions for the community of Valencia City, Bukidnon.</p>
+        </div>
+        <div>
+          <h4 class="footer-heading">Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="/" class="footer-link">Home</a></li>
+            <li><a href="/about" class="footer-link">About Us</a></li>
+            <li><a href="/contact" class="footer-link">Contact Us</a></li>
+            <li><a href="/register" class="footer-link">Registration</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-heading">Local Services</h4>
+          <ul class="footer-links">
+            <li><a href="/contact" class="footer-link">Valencia CDRRMO</a></li>
+            <li><a href="/contact" class="footer-link">Emergency Hotlines</a></li>
+            <li><a href="/about" class="footer-link">LoRa Mesh Network Map</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-copyright">&copy; 2026 ResQMesh. Localized Capstone Project. Valencia City, Bukidnon.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile navigation toggle
+    const toggleBtn = document.getElementById('nav-toggle');
+    const navMenu = document.getElementById('nav-menu');
+    
+    toggleBtn.addEventListener('click', () => {
+      navMenu.classList.toggle('active');
+    });
+
+    // Handle Contact Form Submission (Mock)
+    const contactForm = document.getElementById('contact-form');
+    const alertContainer = document.getElementById('contact-alert-container');
+
+    contactForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      // Clear inputs
+      contactForm.reset();
+      
+      // Render success alert
+      alertContainer.innerHTML = `
+        <div class="alert alert-warning" style="background-color: rgba(46, 204, 113, 0.1); border-color: rgba(46, 204, 113, 0.3); color: #ffffff; margin-bottom: 2rem;">
+          <span style="color: var(--color-success); font-size: 1.2rem;">&#10004;</span>
+          <div>
+            <strong style="color: var(--color-success); display: block; margin-bottom: 3px;">Message Sent Successfully!</strong>
+            Our technical team will review your inquiry and reach out via email.
+          </div>
+        </div>
+      `;
+      
+      // Scroll to alert
+      alertContainer.scrollIntoView({ behavior: 'smooth' });
+    });
+  </script>
+</body>
+</html>
