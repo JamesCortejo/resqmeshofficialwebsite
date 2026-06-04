@@ -7,22 +7,31 @@
   <title>Contact Us - ResQMesh Offline Emergency Network</title>
   
   <!-- CSS Stylesheets -->
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/contact.css">
+  <link rel="stylesheet" href="/site/css/variables.css">
+  <link rel="stylesheet" href="/site/css/base.css">
+  <link rel="stylesheet" href="/site/css/layout.css">
+  <link rel="stylesheet" href="/site/css/components.css">
+  <link rel="stylesheet" href="/site/css/contact.css">
   
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="site-loading">
+  <div class="site-loader" aria-live="polite" aria-label="Loading ResQMesh">
+    <div class="site-loader-content">
+      <span class="site-loader-mark" aria-hidden="true"></span>
+      <span>
+        <span class="site-loader-title">ResQMesh</span>
+        <span class="site-loader-subtitle">Preparing emergency network portal</span>
+      </span>
+    </div>
+  </div>
 
   <!-- Navigation Bar -->
   <nav class="navbar" id="navbar">
     <div class="container navbar-container">
       <a href="/" class="logo-link">
-        <img src="assets/logo-icon.png" alt="ResQMesh Logo" class="logo-img">
+        <img src="/assets/logo-icon.png" alt="ResQMesh Logo" class="logo-img">
         <div class="logo-text-container">
           <span class="logo-title">RESQ-MESH</span>
           <span class="logo-subtitle">Valencia City, Bukidnon</span>
@@ -137,7 +146,7 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <img src="assets/logo-full.png" alt="ResQMesh Full Logo" class="footer-logo-img">
+          <img src="/assets/logo-full.png" alt="ResQMesh Full Logo" class="footer-logo-img">
           <p class="footer-desc">Providing localized, peer-to-peer crisis messaging solutions for the community of Valencia City, Bukidnon.</p>
         </div>
         <div>
@@ -171,6 +180,10 @@
     
     toggleBtn.addEventListener('click', () => {
       navMenu.classList.toggle('active');
+    });
+
+    window.addEventListener('load', () => {
+      setTimeout(() => document.body.classList.remove('site-loading'), 300);
     });
 
     // Handle Contact Form Submission (Mock)

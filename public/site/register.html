@@ -7,11 +7,11 @@
   <title>Account Registration - ResQMesh Offline Emergency Network</title>
   
   <!-- CSS Stylesheets -->
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/register.css">
+  <link rel="stylesheet" href="/site/css/variables.css">
+  <link rel="stylesheet" href="/site/css/base.css">
+  <link rel="stylesheet" href="/site/css/layout.css">
+  <link rel="stylesheet" href="/site/css/components.css">
+  <link rel="stylesheet" href="/site/css/register.css">
 
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -21,13 +21,22 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body>
+<body class="site-loading">
+  <div class="site-loader" aria-live="polite" aria-label="Loading ResQMesh">
+    <div class="site-loader-content">
+      <span class="site-loader-mark" aria-hidden="true"></span>
+      <span>
+        <span class="site-loader-title">ResQMesh</span>
+        <span class="site-loader-subtitle">Preparing emergency network portal</span>
+      </span>
+    </div>
+  </div>
 
   <!-- Navigation Bar -->
   <nav class="navbar" id="navbar">
     <div class="container navbar-container">
       <a href="/" class="logo-link">
-        <img src="assets/logo-icon.png" alt="ResQMesh Logo" class="logo-img">
+        <img src="/assets/logo-icon.png" alt="ResQMesh Logo" class="logo-img">
         <div class="logo-text-container">
           <span class="logo-title">RESQ-MESH</span>
           <span class="logo-subtitle">Valencia City, Bukidnon</span>
@@ -53,7 +62,7 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <img src="assets/logo-full.png" alt="ResQMesh Full Logo" class="footer-logo-img">
+          <img src="/assets/logo-full.png" alt="ResQMesh Full Logo" class="footer-logo-img">
           <p class="footer-desc">Providing localized, peer-to-peer crisis messaging solutions for the community of Valencia City, Bukidnon.</p>
         </div>
         <div>
@@ -88,6 +97,10 @@
     toggleBtn.addEventListener('click', () => {
       navMenu.classList.toggle('active');
     });
+
+    window.addEventListener('load', () => {
+      setTimeout(() => document.body.classList.remove('site-loading'), 300);
+    });
   </script>
 
   <!-- React Application Core Logic -->
@@ -107,6 +120,9 @@
     function ResQMeshRegistration() {
       const [currentStep, setCurrentStep] = useState(1);
       const [submitted, setSubmitted] = useState(false);
+      const [isSubmitting, setIsSubmitting] = useState(false);
+      const [submitError, setSubmitError] = useState('');
+      const [registrationCode, setRegistrationCode] = useState('');
       
       // Form fields state
       const [formData, setFormData] = useState({
@@ -283,10 +299,58 @@
         }));
       };
 
-      const handleSubmit = (e) => {
+      const handleSubmit = async (e) => {
         e.preventDefault();
-        if (validateStep3()) {
+        setSubmitError('');
+
+        if (!validateStep3()) {
+          return;
+        }
+
+        const payload = new FormData();
+        const textFields = [
+          'firstName',
+          'middleName',
+          'lastName',
+          'username',
+          'streetAddress',
+          'barangay',
+          'occupation',
+          'bloodType',
+          'medicalComplications',
+          'allergies',
+          'email',
+          'phone',
+          'password',
+          'idType',
+          'idNumber'
+        ];
+
+        textFields.forEach((field) => {
+          payload.append(field, formData[field] || '');
+        });
+
+        payload.append('frontIdImageFile', formData.frontIdImageFile);
+        payload.append('backIdImageFile', formData.backIdImageFile);
+
+        try {
+          setIsSubmitting(true);
+          const response = await fetch('/api/users/register', {
+            method: 'POST',
+            body: payload
+          });
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.message || 'Registration failed. Please try again.');
+          }
+
+          setRegistrationCode(result.data?.userCode || '');
           setSubmitted(true);
+        } catch (error) {
+          setSubmitError(error.message);
+        } finally {
+          setIsSubmitting(false);
         }
       };
 
@@ -302,6 +366,11 @@
               <p class="success-message">
                 Registration submitted. Please verify your account and wait for admin approval.
               </p>
+              {registrationCode && (
+                <p class="success-message">
+                  Your registration code is <strong class="text-primary">{registrationCode}</strong>.
+                </p>
+              )}
               <a href="/" class="btn btn-primary">Return to Homepage</a>
             </div>
           </main>
@@ -333,6 +402,12 @@
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
+              {submitError && (
+                <div class="alert alert-warning">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span>{submitError}</span>
+                </div>
+              )}
               
               {/* STEP 1: PERSONAL INFORMATION */}
               {currentStep === 1 && (
@@ -654,8 +729,8 @@
                     Next &rarr;
                   </button>
                 ) : (
-                  <button type="submit" class="btn btn-primary" style={{ backgroundColor: 'var(--color-success)' }}>
-                    Submit Registration
+                  <button type="submit" class="btn btn-primary" disabled={isSubmitting} style={{ backgroundColor: 'var(--color-success)' }}>
+                    {isSubmitting ? 'Submitting...' : 'Submit Registration'}
                   </button>
                 )}
               </div>

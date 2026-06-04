@@ -18,6 +18,8 @@ pids
 *.pid
 *.seed
 *.pid.lock
+data/
+storage/
 
 # Coverage and build output
 coverage/

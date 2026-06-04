@@ -1,62 +1,147 @@
-/**
- * User Controller
- * Handles incoming API requests for registration and verification management.
- */
-const User = require('../models/userModel');
+const { REQUIRED_REGISTRATION_FIELDS } = require('../models/userModel');
+const { encryptText, lookupHash } = require('../services/encryptionService');
+const { hashPassword } = require('../services/passwordService');
+const { convertAndEncryptIdImage } = require('../services/imageService');
+const {
+  generateUserCode,
+  createUser,
+  findByLookupHashes,
+  listUserSummaries
+} = require('../repositories/userRepository');
 
-// Mock Database Store
-const mockDb = [];
+function firstFile(files, fieldName) {
+  return files && files[fieldName] && files[fieldName][0];
+}
 
-exports.registerUser = (req, res) => {
+function missingFields(body) {
+  return REQUIRED_REGISTRATION_FIELDS.filter((field) => {
+    const value = body[field];
+    return value === undefined || value === null || String(value).trim() === '';
+  });
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidPhone(phone) {
+  return /^(09|\+639)\d{9}$/.test(phone);
+}
+
+function safeUserResponse(user) {
+  return {
+    id: user.id,
+    userCode: user.userCode,
+    status: user.status,
+    createdAt: user.createdAt
+  };
+}
+
+exports.registerUser = async (req, res) => {
   try {
-    const { 
-      firstName, middleName, lastName, username, 
-      streetAddress, barangay, occupation, bloodType, 
-      medicalComplications, allergies, email, phone, password, idType 
-    } = req.body;
+    const missing = missingFields(req.body);
 
-    // Server-side validation logic placeholder
-    if (!firstName || !lastName || !username || !barangay || !email || !phone || !password || !idType) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Required fields are missing.' 
+    if (missing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missing.join(', ')}.`
       });
     }
 
-    // Hash password placeholder (e.g. bcrypt.hash)
-    const passwordHash = `hashed_${password}`;
+    if (!isValidEmail(req.body.email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address.'
+      });
+    }
 
-    // Mock file paths for uploaded documents
-    const idImageRef = req.files && req.files.idImage ? req.files.idImage[0].path : 'uploads/mock-id.png';
-    const selfieImageRef = req.files && req.files.selfieImage ? req.files.selfieImage[0].path : 'uploads/mock-selfie.png';
+    if (!isValidPhone(req.body.phone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid Philippine mobile number.'
+      });
+    }
 
-    const newUser = new User({
-      firstName,
-      middleName,
-      lastName,
-      username,
-      streetAddress,
-      barangay,
-      occupation,
-      bloodType,
-      medicalComplications,
-      allergies,
-      email,
-      phone,
-      passwordHash,
-      idType,
-      idImageRef,
-      selfieImageRef
+    if (String(req.body.password).length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters long.'
+      });
+    }
+
+    const frontIdImageFile = firstFile(req.files, 'frontIdImageFile');
+    const backIdImageFile = firstFile(req.files, 'backIdImageFile');
+
+    if (!frontIdImageFile || !backIdImageFile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Front and back ID images are required.'
+      });
+    }
+
+    const usernameLookupHash = lookupHash(req.body.username);
+    const emailLookupHash = lookupHash(req.body.email);
+    const idNumberLookupHash = lookupHash(req.body.idNumber);
+    const existingUser = await findByLookupHashes(usernameLookupHash, emailLookupHash, idNumberLookupHash);
+
+    if (existingUser) {
+      let duplicateField = 'email';
+
+      if (existingUser.usernameLookupHash === usernameLookupHash) {
+        duplicateField = 'username';
+      } else if (existingUser.idNumberLookupHash === idNumberLookupHash) {
+        duplicateField = 'ID number';
+      }
+
+      return res.status(409).json({
+        success: false,
+        message: `A registration with this ${duplicateField} already exists.`
+      });
+    }
+
+    const userCode = await generateUserCode();
+    const [frontIdImage, backIdImage] = await Promise.all([
+      convertAndEncryptIdImage(frontIdImageFile, userCode, 'front'),
+      convertAndEncryptIdImage(backIdImageFile, userCode, 'back')
+    ]);
+
+    const createdUser = await createUser({
+      userCode,
+      firstNameEnc: encryptText(req.body.firstName),
+      middleNameEnc: encryptText(req.body.middleName),
+      lastNameEnc: encryptText(req.body.lastName),
+      usernameEnc: encryptText(req.body.username),
+      usernameLookupHash,
+      streetAddressEnc: encryptText(req.body.streetAddress),
+      barangayEnc: encryptText(req.body.barangay),
+      occupationEnc: encryptText(req.body.occupation),
+      bloodTypeEnc: encryptText(req.body.bloodType),
+      medicalComplicationsEnc: encryptText(req.body.medicalComplications),
+      allergiesEnc: encryptText(req.body.allergies),
+      emailEnc: encryptText(req.body.email),
+      emailLookupHash,
+      phoneEnc: encryptText(req.body.phone),
+      passwordHash: hashPassword(req.body.password),
+      idTypeEnc: encryptText(req.body.idType),
+      idNumberEnc: encryptText(req.body.idNumber),
+      idNumberLookupHash,
+      frontIdImage,
+      backIdImage
     });
-
-    mockDb.push(newUser);
 
     return res.status(201).json({
       success: true,
       message: 'Registration submitted. Please verify your account and wait for admin approval.',
-      data: newUser
+      data: safeUserResponse(createdUser)
     });
   } catch (error) {
+    if (error && error.code === 'SQLITE_CONSTRAINT') {
+      return res.status(409).json({
+        success: false,
+        message: 'A registration with this username, email, or ID number already exists.'
+      });
+    }
+
     console.error('Registration controller error:', error);
     return res.status(500).json({
       success: false,
@@ -65,11 +150,20 @@ exports.registerUser = (req, res) => {
   }
 };
 
-exports.getRegistrants = (req, res) => {
-  // Placeholder to display all registrants in administrative panel (to be implemented later)
-  return res.json({
-    success: true,
-    count: mockDb.length,
-    data: mockDb
-  });
+exports.getRegistrants = async (req, res) => {
+  try {
+    const users = await listUserSummaries();
+
+    return res.json({
+      success: true,
+      count: users.length,
+      data: users
+    });
+  } catch (error) {
+    console.error('Registrant listing error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load registrants.'
+    });
+  }
 };
