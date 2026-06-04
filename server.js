@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const userRoutes = require('./server/routes/userRoutes');
+const adminRoutes = require('./server/routes/adminRoutes');
 const { initializeDatabase } = require('./server/database/sqlite');
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // MVC API Routes
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Route for specific pages
 app.get('/', (req, res) => {
@@ -31,6 +33,9 @@ app.get('/register', (req, res) => {
 });
 app.get('/resqmeshadmin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
+});
+app.get('/resqmeshadmin/overview', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'overview.html'));
 });
 
 // Start Server

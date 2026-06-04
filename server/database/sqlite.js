@@ -6,6 +6,7 @@ const config = require('../config/env');
 fs.mkdirSync(path.dirname(config.databasePath), { recursive: true });
 
 const db = new sqlite3.Database(config.databasePath);
+db.configure('busyTimeout', 5000);
 
 function run(sql, params = []) {
   return new Promise((resolve, reject) => {
@@ -64,6 +65,74 @@ async function columnExists(tableName, columnName) {
   return columns.some((column) => column.name === columnName);
 }
 
+async function getTableSql(tableName) {
+  const row = await get(
+    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
+    [tableName]
+  );
+
+  return row && row.sql ? row.sql : '';
+}
+
+async function ensureAdminStatusAllowed() {
+  const usersTableSql = await getTableSql('users');
+
+  if (usersTableSql.includes("'admin'")) {
+    return;
+  }
+
+  await exec(`
+    PRAGMA foreign_keys = OFF;
+    BEGIN TRANSACTION;
+
+    ALTER TABLE users RENAME TO users_legacy_status;
+
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_code TEXT NOT NULL UNIQUE,
+      first_name_enc TEXT NOT NULL,
+      middle_name_enc TEXT,
+      last_name_enc TEXT NOT NULL,
+      username_enc TEXT NOT NULL,
+      username_lookup_hash TEXT NOT NULL UNIQUE,
+      street_address_enc TEXT NOT NULL,
+      barangay_enc TEXT NOT NULL,
+      occupation_enc TEXT NOT NULL,
+      blood_type_enc TEXT NOT NULL,
+      medical_complications_enc TEXT,
+      allergies_enc TEXT,
+      email_enc TEXT NOT NULL,
+      email_lookup_hash TEXT NOT NULL UNIQUE,
+      phone_enc TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      id_type_enc TEXT NOT NULL,
+      id_number_enc TEXT NOT NULL,
+      id_number_lookup_hash TEXT NOT NULL UNIQUE,
+      front_id_image_path TEXT NOT NULL,
+      front_id_original_name TEXT NOT NULL,
+      front_id_mime_type TEXT NOT NULL,
+      front_id_original_size INTEGER NOT NULL,
+      front_id_encrypted_size INTEGER NOT NULL,
+      back_id_image_path TEXT NOT NULL,
+      back_id_original_name TEXT NOT NULL,
+      back_id_mime_type TEXT NOT NULL,
+      back_id_original_size INTEGER NOT NULL,
+      back_id_encrypted_size INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'admin')),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    INSERT INTO users
+    SELECT * FROM users_legacy_status;
+
+    DROP TABLE users_legacy_status;
+
+    COMMIT;
+    PRAGMA foreign_keys = ON;
+  `);
+}
+
 async function initializeDatabase() {
   await exec(`
     PRAGMA foreign_keys = ON;
@@ -107,7 +176,7 @@ async function initializeDatabase() {
       back_id_mime_type TEXT NOT NULL,
       back_id_original_size INTEGER NOT NULL,
       back_id_encrypted_size INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined')),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'admin')),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -124,6 +193,15 @@ async function initializeDatabase() {
       WHERE id_number_lookup_hash IS NOT NULL
     `);
   }
+
+  await ensureAdminStatusAllowed();
+
+  await exec(`
+    CREATE INDEX IF NOT EXISTS idx_users_status ON users (status);
+    CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_id_number_lookup_hash
+    ON users (id_number_lookup_hash);
+  `);
 }
 
 module.exports = {

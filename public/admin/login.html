@@ -83,7 +83,7 @@
       errorElement.textContent = errorMessage;
     }
 
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', async (event) => {
       event.preventDefault();
 
       const username = usernameInput.value.trim();
@@ -100,8 +100,25 @@
         return;
       }
 
-      message.classList.add('is-visible');
-      message.textContent = 'Admin authentication is not connected yet.';
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || 'Invalid admin credentials.');
+        }
+
+        window.location.href = result.redirectTo || '/resqmeshadmin/overview';
+      } catch (error) {
+        message.classList.add('is-visible');
+        message.textContent = error.message;
+      }
     });
 
     [usernameInput, passwordInput].forEach((input) => {

@@ -1,7 +1,8 @@
 const USER_STATUSES = {
   PENDING: 'pending',
   APPROVED: 'approved',
-  DECLINED: 'declined'
+  DECLINED: 'declined',
+  ADMIN: 'admin'
 };
 
 const REQUIRED_REGISTRATION_FIELDS = [
