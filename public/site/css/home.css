@@ -152,6 +152,344 @@
   margin-bottom: 2rem;
 }
 
+/* CDRRMO Valencia Content */
+.cdrrmo-section {
+  padding: 6rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.cdrrmo-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(231, 75, 50, 0.08), transparent 38%),
+    radial-gradient(circle at 82% 18%, rgba(231, 75, 50, 0.13), transparent 28%);
+  pointer-events: none;
+}
+
+.cdrrmo-section .container,
+.updates-section .container {
+  position: relative;
+  z-index: 1;
+}
+
+.section-kicker {
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.section-kicker-line {
+  width: 32px;
+  height: 2px;
+  background: var(--color-primary);
+}
+
+.cdrrmo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.82fr);
+  align-items: center;
+  gap: 4rem;
+}
+
+.cdrrmo-copy h2,
+.updates-header h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.cdrrmo-copy p {
+  max-width: 680px;
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+
+.cdrrmo-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.response-visual {
+  min-height: 420px;
+  border: 1px solid rgba(231, 75, 50, 0.24);
+  border-radius: var(--border-radius-lg);
+  background:
+    linear-gradient(145deg, rgba(20, 20, 20, 0.92), rgba(12, 12, 12, 0.95)),
+    repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(255, 255, 255, 0.03) 29px),
+    repeating-linear-gradient(90deg, transparent, transparent 28px, rgba(255, 255, 255, 0.03) 29px);
+  box-shadow: var(--box-shadow);
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.response-map {
+  position: absolute;
+  inset: 1.5rem;
+}
+
+.map-node {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(231, 75, 50, 0.42);
+  border-radius: 50%;
+  background: rgba(11, 11, 11, 0.86);
+  color: var(--color-primary);
+  font-size: 1.35rem;
+  box-shadow: 0 0 28px rgba(231, 75, 50, 0.18);
+}
+
+.node-primary {
+  left: 44%;
+  top: 38%;
+  width: 72px;
+  height: 72px;
+  font-size: 1.6rem;
+}
+
+.node-a { left: 10%; top: 18%; }
+.node-b { right: 8%; top: 20%; }
+.node-c { left: 16%; bottom: 36%; }
+
+.map-link {
+  position: absolute;
+  z-index: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(231, 75, 50, 0.75), transparent);
+  transform-origin: left center;
+}
+
+.link-a {
+  left: 25%;
+  top: 30%;
+  width: 190px;
+  transform: rotate(18deg);
+}
+
+.link-b {
+  left: 54%;
+  top: 42%;
+  width: 160px;
+  transform: rotate(-23deg);
+}
+
+.link-c {
+  left: 26%;
+  bottom: 47%;
+  width: 145px;
+  transform: rotate(-14deg);
+}
+
+.response-visual-card {
+  position: absolute;
+  z-index: 4;
+  left: 1.5rem;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--border-radius-md);
+  background: #141414;
+  backdrop-filter: blur(10px);
+  padding: 1rem;
+}
+
+.response-visual-card strong {
+  display: block;
+  color: var(--color-text-light);
+  margin-bottom: 0.25rem;
+}
+
+.response-visual-card p {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.response-status-dot {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  margin-top: 0.32rem;
+  border-radius: 50%;
+  background: var(--color-success);
+  box-shadow: 0 0 18px rgba(46, 204, 113, 0.75);
+}
+
+.preparedness-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 3rem;
+}
+
+.preparedness-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  background: rgba(20, 20, 20, 0.82);
+  padding: 1.5rem;
+}
+
+.preparedness-icon {
+  color: var(--color-primary);
+  display: inline-flex;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.preparedness-card h3 {
+  font-size: 1.16rem;
+}
+
+.preparedness-card p {
+  font-size: 0.95rem;
+  margin-bottom: 0;
+}
+
+/* Latest Updates */
+.updates-section {
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  background: #080808;
+  padding: 6rem 0;
+}
+
+.updates-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.updates-header p {
+  max-width: 720px;
+  margin-bottom: 0;
+}
+
+.updates-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  color: var(--color-text-light);
+  font-weight: 700;
+}
+
+.updates-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.facebook-frame-shell,
+.updates-source-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-bg-card);
+  box-shadow: var(--box-shadow);
+}
+
+.facebook-frame-shell {
+  min-height: 520px;
+  padding: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.facebook-timeline {
+  width: 100%;
+  max-width: 500px;
+  min-height: 520px;
+  margin: 0 auto;
+  display: block;
+  border-radius: var(--border-radius-md);
+  background: #fff;
+}
+
+.facebook-fallback {
+  display: none;
+  position: absolute;
+  inset: 1rem;
+  place-items: center;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  border: 1px dashed rgba(231, 75, 50, 0.35);
+  border-radius: var(--border-radius-md);
+  background: rgba(10, 10, 10, 0.92);
+  padding: 2rem;
+}
+
+.facebook-frame-shell.show-fallback .facebook-fallback {
+  display: grid;
+}
+
+.facebook-frame-shell.show-fallback .facebook-timeline {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.facebook-fallback-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(231, 75, 50, 0.1);
+  color: var(--color-primary);
+  font-size: 1.55rem;
+  margin-bottom: 1rem;
+}
+
+.facebook-fallback p {
+  max-width: 430px;
+}
+
+.updates-source-card {
+  padding: 1.35rem;
+}
+
+.updates-source-card h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.updates-source-card a {
+  display: block;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-light);
+  font-weight: 700;
+  padding: 1rem 0;
+}
+
+.updates-source-card a:hover {
+  color: var(--color-primary);
+}
+
+.updates-source-card span {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
 /* Animations */
 @keyframes pulse {
   0% { transform: scale(0.9); opacity: 0.6; }
@@ -188,6 +526,16 @@
   
   .features-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cdrrmo-grid,
+  .updates-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .updates-source-card {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
 
@@ -233,6 +581,56 @@
   .warning-title {
     font-size: 1.4rem;
   }
+
+  .cdrrmo-section,
+  .updates-section {
+    padding: 4rem 0;
+  }
+
+  .cdrrmo-grid {
+    gap: 2rem;
+  }
+
+  .cdrrmo-actions {
+    width: 100%;
+  }
+
+  .response-visual {
+    min-height: 340px;
+  }
+
+  .map-node {
+    width: 48px;
+    height: 48px;
+    font-size: 1.1rem;
+  }
+
+  .node-primary {
+    width: 60px;
+    height: 60px;
+  }
+
+  .preparedness-grid {
+    grid-template-columns: 1fr;
+    margin-top: 2rem;
+  }
+
+  .updates-header {
+    display: block;
+  }
+
+  .updates-link {
+    margin-top: 1.25rem;
+  }
+
+  .facebook-frame-shell {
+    min-height: 480px;
+    padding: 0.75rem;
+  }
+
+  .facebook-timeline {
+    min-height: 480px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -243,5 +641,29 @@
   .hero-badge {
     font-size: 0.75rem;
     padding: 0.35rem 0.9rem;
+  }
+
+  .response-visual {
+    min-height: 300px;
+  }
+
+  .response-visual-card {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+  }
+
+  .link-a,
+  .link-b {
+    width: 120px;
+  }
+
+  .link-c {
+    display: none;
+  }
+
+  .facebook-frame-shell {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
   }
 }

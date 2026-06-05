@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="ResQMesh is an offline emergency messaging device using LoRa modules, localized for Valencia City, Bukidnon, Philippines. Connect during natural disasters when networks are down.">
+  <meta name="description"
+    content="ResQMesh is an offline emergency messaging device using LoRa modules, localized for Valencia City, Bukidnon, Philippines. Connect during natural disasters when networks are down.">
   <title>ResQMesh - Valencia City Offline Emergency Communication Network</title>
-  
+
   <!-- CSS Stylesheets -->
   <link rel="stylesheet" href="/site/css/variables.css">
   <link rel="stylesheet" href="/site/css/base.css">
   <link rel="stylesheet" href="/site/css/layout.css">
   <link rel="stylesheet" href="/site/css/components.css">
   <link rel="stylesheet" href="/site/css/home.css">
-  
+
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body class="site-loading">
   <div class="site-loader" aria-live="polite" aria-label="Loading ResQMesh">
     <div class="site-loader-content">
@@ -37,11 +40,11 @@
           <span class="logo-subtitle">Valencia City, Bukidnon</span>
         </div>
       </a>
-      
+
       <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu">
         <i class="fa-solid fa-bars"></i>
       </button>
-      
+
       <ul class="nav-menu" id="nav-menu">
         <li><a href="/" class="nav-link active">Home</a></li>
         <li><a href="/about" class="nav-link">About Us</a></li>
@@ -61,7 +64,8 @@
         </div>
         <h1 class="hero-title">Offline Emergency Messaging for Valencia City</h1>
         <p class="hero-desc">
-          ResQMesh is a decentralized capstone project providing critical, infrastructure-free communication using high-efficiency LoRa modules. Stay connected when cellular grids fail during emergencies.
+          ResQMesh is a decentralized capstone project providing critical, infrastructure-free communication using
+          high-efficiency LoRa modules. Stay connected when cellular grids fail during emergencies.
         </p>
         <div class="hero-cta">
           <a href="/register" class="btn btn-primary">Register Account</a>
@@ -74,17 +78,132 @@
     </div>
   </header>
 
-  <!-- Warning Box / Notice -->
-  <section class="container">
-    <div class="warning-box">
-      <div class="warning-header">
-        <span class="warning-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
-        <h2 class="warning-title">Important Verification Notice</h2>
+
+  <!-- CDRRMO Valencia Section -->
+  <section class="cdrrmo-section" aria-labelledby="cdrrmo-title">
+    <div class="container">
+      <div class="section-kicker">
+        <span class="section-kicker-line"></span>
+        Local Emergency Coordination
       </div>
-      <p class="warning-desc">
-        To maintain network security and coordinate authentic rescue operations within <strong>Valencia City, Bukidnon</strong>, all residents and responders must register their devices and complete ID verification before receiving access to the communication system. Ensure your profile is verified to participate in the local emergency mesh nodes.
-      </p>
-      <a href="/register" class="btn btn-primary">Start Registration &rarr;</a>
+      <div class="cdrrmo-grid">
+        <div class="cdrrmo-copy">
+          <h2 id="cdrrmo-title">Connected With Valencia City Disaster Response</h2>
+          <p>
+            ResQMesh is designed around local emergency coordination needs in Valencia City, Bukidnon. The system
+            supports verified residents and responders with offline messaging when floods, earthquakes, power outages,
+            or network disruptions make normal communication unreliable.
+          </p>
+          <p>
+            The official City of Valencia departments directory lists the City Disaster Risk Reduction and Management
+            Office as a local department and provides <a
+              href="mailto:cdrrmovalencia@gmail.com">cdrrmovalencia@gmail.com</a> as its public contact email.
+          </p>
+          <div class="cdrrmo-actions">
+            <a href="https://cityofvalencia.gov.ph/departments-and-offices/" class="btn btn-primary" target="_blank"
+              rel="noopener noreferrer">
+              View City Directory
+            </a>
+            <a href="/contact" class="btn btn-secondary">Emergency Contacts</a>
+          </div>
+        </div>
+
+        <div class="response-visual" aria-label="ResQMesh emergency response illustration">
+          <div class="response-map">
+            <span class="map-node node-primary"><i class="fa-solid fa-house-signal"></i></span>
+            <span class="map-node node-a"><i class="fa-solid fa-user-shield"></i></span>
+            <span class="map-node node-b"><i class="fa-solid fa-truck-medical"></i></span>
+            <span class="map-node node-c"><i class="fa-solid fa-tower-broadcast"></i></span>
+            <span class="map-link link-a"></span>
+            <span class="map-link link-b"></span>
+            <span class="map-link link-c"></span>
+          </div>
+          <div class="response-visual-card">
+            <span class="response-status-dot"></span>
+            <div>
+              <strong>Offline coordination layer</strong>
+              <p>Local mesh nodes keep critical messages moving when public networks are unavailable.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preparedness-grid">
+        <article class="preparedness-card">
+          <span class="preparedness-icon"><i class="fa-solid fa-cloud-showers-heavy"></i></span>
+          <h3>Flood Alerts</h3>
+          <p>Support fast community warnings and evacuation coordination during heavy rainfall and rising water events.
+          </p>
+        </article>
+        <article class="preparedness-card">
+          <span class="preparedness-icon"><i class="fa-solid fa-map-location-dot"></i></span>
+          <h3>Location-Aware Reports</h3>
+          <p>Help responders receive concise reports with coordinates and identity-verified sender details.</p>
+        </article>
+        <article class="preparedness-card">
+          <span class="preparedness-icon"><i class="fa-solid fa-battery-three-quarters"></i></span>
+          <h3>Low-Power Readiness</h3>
+          <p>Keep emergency text communication available for extended outages through LoRa-based devices.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Updates Section -->
+  <section class="updates-section" aria-labelledby="updates-title">
+    <div class="container">
+      <div class="updates-header">
+        <div>
+          <div class="section-kicker">
+            <span class="section-kicker-line"></span>
+            Public Updates
+          </div>
+          <h2 id="updates-title">Latest CDRRMO Valencia Updates</h2>
+          <p>
+            Follow public advisories and community safety updates from CDRRMO Valencia. Facebook controls this embedded
+            timeline, so availability may depend on browser privacy settings and the public page configuration.
+          </p>
+        </div>
+        <a href="https://www.facebook.com/cdrrmovalencia" class="updates-link" target="_blank"
+          rel="noopener noreferrer">
+          Open Facebook <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        </a>
+      </div>
+
+      <div class="updates-panel">
+        <div class="facebook-frame-shell">
+          <iframe class="facebook-timeline" title="CDRRMO Valencia Facebook updates"
+            src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fcdrrmovalencia&tabs=timeline&width=500&height=520&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=false"
+            width="500" height="520" style="border:none;overflow:hidden" scrolling="no" frameborder="0"
+            allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
+          </iframe>
+          <div class="facebook-fallback" id="facebook-fallback">
+            <span class="facebook-fallback-icon"><i class="fa-brands fa-facebook-f"></i></span>
+            <h3>Facebook updates may be blocked</h3>
+            <p>If the timeline does not load, open the public page directly to view the newest advisories and posts.</p>
+            <a href="https://www.facebook.com/cdrrmovalencia" class="btn btn-primary" target="_blank"
+              rel="noopener noreferrer">View Updates on Facebook</a>
+          </div>
+        </div>
+
+        <aside class="updates-source-card" aria-label="CDRRMO source references">
+          <h3>Recent public references</h3>
+          <a href="https://rmn.ph/state-of-calamity-planong-ipatupad-sa-valencia-city-bukidnon-matapos-ang-malawakang-pagbaha/"
+            target="_blank" rel="noopener noreferrer">
+            Valencia CDRRMO flood response coverage
+            <span>RMN Networks</span>
+          </a>
+          <a href="https://malaybalay.bomboradyo.com/valencia-city-disaster-risk-reduction-and-management-office-nagpatuman-mandatory-forced-evacuation-sa-mga-residenti-duol-sa-panlibatuhan-creek/"
+            target="_blank" rel="noopener noreferrer">
+            Mandatory evacuation advisory coverage
+            <span>Bombo Radyo Malaybalay</span>
+          </a>
+          <a href="https://cityofvalencia.gov.ph/departments-and-offices/" target="_blank" rel="noopener noreferrer">
+            Official Valencia City departments directory
+            <span>City of Valencia</span>
+          </a>
+        </aside>
+      </div>
     </div>
   </section>
 
@@ -95,25 +214,28 @@
       <p class="text-center" style="max-width: 600px; margin: 0 auto 3rem auto;">
         Our custom-engineered system bypasses cellular networks, creating a resilient local communication channel.
       </p>
-      
+
       <div class="grid features-grid">
         <!-- Feature 1 -->
         <div class="card feature-card">
           <div class="feature-icon-wrapper"><i class="fa-solid fa-tower-broadcast"></i></div>
           <h3>Zero Infrastructure</h3>
-          <p>Operates entirely independently of cellular, satellite, fiber, or internet networks, relying on peer-to-peer device nodes.</p>
+          <p>Operates entirely independently of cellular, satellite, fiber, or internet networks, relying on
+            peer-to-peer device nodes.</p>
         </div>
         <!-- Feature 2 -->
         <div class="card feature-card">
           <div class="feature-icon-wrapper"><i class="fa-solid fa-route"></i></div>
           <h3>LoRa Mesh Power</h3>
-          <p>Uses Long Range modules to transmit text coordinates and distress signals across kilometers using dynamic multi-hop routing.</p>
+          <p>Uses Long Range modules to transmit text coordinates and distress signals across kilometers using dynamic
+            multi-hop routing.</p>
         </div>
         <!-- Feature 3 -->
         <div class="card feature-card">
           <div class="feature-icon-wrapper"><i class="fa-solid fa-shield-heart"></i></div>
           <h3>Disaster Resilient</h3>
-          <p>Optimized for low power consumption, enabling devices to stay operational on small backup batteries for days during outages.</p>
+          <p>Optimized for low power consumption, enabling devices to stay operational on small backup batteries for
+            days during outages.</p>
         </div>
       </div>
     </div>
@@ -125,7 +247,8 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <img src="/assets/logo-full.png" alt="ResQMesh Full Logo" class="footer-logo-img">
-          <p class="footer-desc">Providing localized, peer-to-peer crisis messaging solutions for the community of Valencia City, Bukidnon.</p>
+          <p class="footer-desc">Providing localized, peer-to-peer crisis messaging solutions for the community of
+            Valencia City, Bukidnon.</p>
         </div>
         <div>
           <h4 class="footer-heading">Navigation</h4>
@@ -152,18 +275,7 @@
   </footer>
 
   <!-- JavaScript -->
-  <script>
-    // Mobile navigation toggle
-    const toggleBtn = document.getElementById('nav-toggle');
-    const navMenu = document.getElementById('nav-menu');
-    
-    toggleBtn.addEventListener('click', () => {
-      navMenu.classList.toggle('active');
-    });
-
-    window.addEventListener('load', () => {
-      setTimeout(() => document.body.classList.remove('site-loading'), 300);
-    });
-  </script>
+  <script src="/site/js/home.js"></script>
 </body>
+
 </html>
