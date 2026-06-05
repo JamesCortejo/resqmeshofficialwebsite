@@ -62,7 +62,52 @@ function sendDeclineEmail(user, reason) {
   });
 }
 
+function sendSuspensionEmail(user, reason) {
+  const text = plainTextMessage([
+    `Hello ${user.fullName || user.username},`,
+    '',
+    'Your ResQMesh account has been suspended after admin review.',
+    `Registration code: ${user.userCode}`,
+    '',
+    'Reason:',
+    reason,
+    '',
+    'Please contact the ResQMesh admin team if you need assistance with your account.',
+    '',
+    'ResQMesh Admin'
+  ]);
+
+  return transporter.sendMail({
+    from: sender(),
+    to: user.email,
+    subject: 'ResQMesh account suspended',
+    text
+  });
+}
+
+function sendReactivationEmail(user) {
+  const text = plainTextMessage([
+    `Hello ${user.fullName || user.username},`,
+    '',
+    'Your ResQMesh account has been activated again.',
+    `Registration code: ${user.userCode}`,
+    '',
+    'You may now use your ResQMesh account.',
+    '',
+    'ResQMesh Admin'
+  ]);
+
+  return transporter.sendMail({
+    from: sender(),
+    to: user.email,
+    subject: 'ResQMesh account activated',
+    text
+  });
+}
+
 module.exports = {
   sendApprovalEmail,
-  sendDeclineEmail
+  sendDeclineEmail,
+  sendSuspensionEmail,
+  sendReactivationEmail
 };

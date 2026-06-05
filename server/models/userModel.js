@@ -2,6 +2,7 @@ const USER_STATUSES = {
   PENDING: 'pending',
   APPROVED: 'approved',
   DECLINED: 'declined',
+  SUSPENDED: 'suspended',
   ADMIN: 'admin'
 };
 

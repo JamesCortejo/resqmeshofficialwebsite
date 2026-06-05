@@ -1,3 +1,12 @@
+.accounts-manager-stack {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.accounts-control-panel {
+  max-height: none;
+}
+
 .accounts-panel-header {
   display: flex;
   align-items: flex-start;
@@ -48,7 +57,8 @@
   box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
 }
 
-.accounts-sort-button {
+.accounts-sort-button,
+.accounts-status-filter-button {
   flex: 0 0 auto;
 }
 
@@ -237,6 +247,12 @@
   line-height: 1;
   padding: 0.45rem 0.65rem;
   text-transform: uppercase;
+}
+
+.account-status-pill[data-status="suspended"] {
+  border-color: rgba(215, 51, 51, 0.24);
+  background: #fff2f2;
+  color: var(--admin-error);
 }
 
 .accounts-action-heading,
@@ -436,6 +452,17 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 0.9rem;
   font-weight: 800;
+}
+
+.account-view-only-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(33, 137, 91, 0.18);
+  border-radius: var(--admin-radius-md);
+  background: rgba(33, 137, 91, 0.08);
+  color: #197348;
+  padding: 0.75rem 0.9rem;
 }
 
 .account-review-confirmation {

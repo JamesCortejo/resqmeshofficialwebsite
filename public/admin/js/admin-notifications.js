@@ -239,6 +239,11 @@
     }
   });
 
+  window.ResQMeshAdminNotifications = {
+    refresh: refreshNotifications,
+    refreshCount: refreshCountOnly
+  };
+
   refreshNotifications();
   window.setInterval(() => {
     if (panel.classList.contains('is-open')) {

@@ -74,11 +74,40 @@ async function getTableSql(tableName) {
   return row && row.sql ? row.sql : '';
 }
 
-async function ensureAdminStatusAllowed() {
+async function listLegacyUserTables() {
+  return all(`
+    SELECT name
+    FROM sqlite_master
+    WHERE type = 'table' AND name LIKE 'users_legacy%'
+    ORDER BY name
+  `);
+}
+
+async function warnAboutLegacyUserTables() {
+  const legacyTables = await listLegacyUserTables();
+
+  if (legacyTables.length === 0) {
+    return;
+  }
+
+  console.warn(
+    `Legacy user migration tables found and ignored by the app: ${legacyTables.map((table) => table.name).join(', ')}`
+  );
+}
+
+async function ensureAllowedUserStatuses() {
   const usersTableSql = await getTableSql('users');
 
-  if (usersTableSql.includes("'admin'")) {
+  if (usersTableSql.includes("'admin'") && usersTableSql.includes("'suspended'")) {
     return;
+  }
+
+  const blockingLegacyTable = await getTableSql('users_legacy_status');
+
+  if (blockingLegacyTable) {
+    throw new Error(
+      'Cannot rebuild users status constraint because users_legacy_status already exists. Run npm run audit:users and review the legacy table before restarting.'
+    );
   }
 
   await exec(`
@@ -121,7 +150,7 @@ async function ensureAdminStatusAllowed() {
       back_id_encrypted_size INTEGER NOT NULL,
       review_reason_enc TEXT,
       reviewed_at TEXT,
-      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'admin')),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'suspended', 'admin')),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -256,7 +285,7 @@ async function initializeDatabase() {
       back_id_encrypted_size INTEGER NOT NULL,
       review_reason_enc TEXT,
       reviewed_at TEXT,
-      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'admin')),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'suspended', 'admin')),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -307,7 +336,8 @@ async function initializeDatabase() {
     await run('ALTER TABLE notifications ADD COLUMN hidden_at TEXT');
   }
 
-  await ensureAdminStatusAllowed();
+  await ensureAllowedUserStatuses();
+  await warnAboutLegacyUserTables();
 
   await exec(`
     CREATE INDEX IF NOT EXISTS idx_users_status ON users (status);

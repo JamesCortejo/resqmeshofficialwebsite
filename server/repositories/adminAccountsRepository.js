@@ -56,6 +56,35 @@ function listPendingAccounts() {
   `, [USER_STATUSES.PENDING]);
 }
 
+function listActiveAccounts() {
+  return all(`
+    SELECT
+      id,
+      user_code AS userCode,
+      first_name_enc AS firstNameEnc,
+      middle_name_enc AS middleNameEnc,
+      last_name_enc AS lastNameEnc,
+      username_enc AS usernameEnc,
+      email_enc AS emailEnc,
+      phone_enc AS phoneEnc,
+      status,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM users
+    WHERE status IN (?, ?)
+    ORDER BY created_at DESC
+  `, [USER_STATUSES.APPROVED, USER_STATUSES.SUSPENDED]);
+}
+
+function getReviewableAccountById(id) {
+  return get(`
+    SELECT ${DETAIL_SELECT}
+    FROM users
+    WHERE id = ? AND status IN (?, ?, ?)
+    LIMIT 1
+  `, [id, USER_STATUSES.PENDING, USER_STATUSES.APPROVED, USER_STATUSES.SUSPENDED]);
+}
+
 function getPendingAccountById(id) {
   return get(`
     SELECT ${DETAIL_SELECT}
@@ -86,9 +115,24 @@ function updatePendingAccountStatus(id, status, reviewReasonEnc) {
   `, [status, reviewReasonEnc, id, USER_STATUSES.PENDING]);
 }
 
+function updateAccountAccessStatus(id, status, reviewReasonEnc, currentStatus) {
+  return run(`
+    UPDATE users
+    SET
+      status = ?,
+      review_reason_enc = ?,
+      reviewed_at = CURRENT_TIMESTAMP,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND status = ?
+  `, [status, reviewReasonEnc, id, currentStatus]);
+}
+
 module.exports = {
   listPendingAccounts,
+  listActiveAccounts,
+  getReviewableAccountById,
   getPendingAccountById,
   getAccountStatusById,
-  updatePendingAccountStatus
+  updatePendingAccountStatus,
+  updateAccountAccessStatus
 };

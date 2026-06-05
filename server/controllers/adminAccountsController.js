@@ -1,8 +1,10 @@
 const {
   getPendingAccountSummaries,
-  getPendingAccountDetails,
-  getPendingAccountIdImage,
-  updateAccountReviewStatus
+  getActiveAccountSummaries,
+  getReviewableAccountDetails,
+  getReviewableAccountIdImage,
+  updateAccountReviewStatus,
+  updateAccountAccessReviewStatus
 } = require('../services/adminAccountsService');
 
 function parseId(value) {
@@ -37,6 +39,20 @@ exports.listPending = async (req, res) => {
   }
 };
 
+exports.listActive = async (req, res) => {
+  try {
+    const accounts = await getActiveAccountSummaries();
+
+    return res.json({
+      success: true,
+      count: accounts.length,
+      data: accounts
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load active accounts.');
+  }
+};
+
 exports.getDetails = async (req, res) => {
   try {
     const id = parseId(req.params.id);
@@ -48,12 +64,12 @@ exports.getDetails = async (req, res) => {
       });
     }
 
-    const account = await getPendingAccountDetails(id);
+    const account = await getReviewableAccountDetails(id);
 
     if (!account) {
       return res.status(404).json({
         success: false,
-        message: 'Pending account not found.'
+        message: 'Reviewable account not found.'
       });
     }
 
@@ -77,12 +93,12 @@ exports.getIdImage = async (req, res) => {
       });
     }
 
-    const image = await getPendingAccountIdImage(id, req.params.side);
+    const image = await getReviewableAccountIdImage(id, req.params.side);
 
     if (!image) {
       return res.status(404).json({
         success: false,
-        message: 'Pending account image not found.'
+        message: 'Reviewable account image not found.'
       });
     }
 
@@ -117,5 +133,32 @@ exports.updateStatus = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to update account status.');
+  }
+};
+
+exports.updateAccessStatus = async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid account id.'
+      });
+    }
+
+    const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
+    const reason = req.body && req.body.reason ? String(req.body.reason) : '';
+    const account = await updateAccountAccessReviewStatus(id, status, reason);
+    const action = account.status === 'suspended' ? 'suspended' : 'activated';
+
+    return res.json({
+      success: true,
+      message: `Account ${account.userCode} has been ${action}.`,
+      warning: account.emailWarning || '',
+      data: account
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to update account access status.');
   }
 };

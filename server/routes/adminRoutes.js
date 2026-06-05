@@ -13,8 +13,10 @@ router.patch('/notifications/:id/read', adminNotificationsController.markRead);
 router.delete('/notifications/:id', adminNotificationsController.deleteOne);
 router.delete('/notifications', adminNotificationsController.clearAll);
 router.get('/accounts/pending', adminAccountsController.listPending);
+router.get('/accounts/active', adminAccountsController.listActive);
 router.get('/accounts/:id', adminAccountsController.getDetails);
 router.get('/accounts/:id/id/:side', adminAccountsController.getIdImage);
+router.patch('/accounts/:id/access-status', adminAccountsController.updateAccessStatus);
 router.patch('/accounts/:id/status', adminAccountsController.updateStatus);
 
 module.exports = router;

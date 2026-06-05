@@ -3,13 +3,25 @@ const path = require('path');
 const config = require('../config/env');
 const { USER_STATUSES } = require('../models/userModel');
 const { decryptBuffer, decryptText, encryptText } = require('./encryptionService');
-const { sendApprovalEmail, sendDeclineEmail } = require('./emailService');
-const { notifyRegistrationReviewed } = require('./notificationService');
+const {
+  sendApprovalEmail,
+  sendDeclineEmail,
+  sendSuspensionEmail,
+  sendReactivationEmail
+} = require('./emailService');
+const {
+  notifyRegistrationReviewed,
+  notifyAccountSuspended,
+  notifyAccountActivated
+} = require('./notificationService');
 const {
   listPendingAccounts,
+  listActiveAccounts,
+  getReviewableAccountById,
   getPendingAccountById,
   getAccountStatusById,
-  updatePendingAccountStatus
+  updatePendingAccountStatus,
+  updateAccountAccessStatus
 } = require('../repositories/adminAccountsRepository');
 
 function fullName(row) {
@@ -124,13 +136,43 @@ function reviewEmailUser(row) {
   };
 }
 
+function verifyStatusUpdateIntegrity(before, after, actionLabel) {
+  if (after && after.id === before.id && after.userCode === before.userCode) {
+    return;
+  }
+
+  console.error(`${actionLabel} integrity check failed:`, {
+    before: {
+      id: before && before.id,
+      userCode: before && before.userCode,
+      status: before && before.status
+    },
+    after: after
+      ? {
+        id: after.id,
+        userCode: after.userCode,
+        status: after.status
+      }
+      : null
+  });
+
+  const error = new Error('Account status update integrity check failed.');
+  error.statusCode = 500;
+  throw error;
+}
+
 async function getPendingAccountSummaries() {
   const rows = await listPendingAccounts();
   return rows.map(summaryResponse);
 }
 
-async function getPendingAccountDetails(id) {
-  const row = await getPendingAccountById(id);
+async function getActiveAccountSummaries() {
+  const rows = await listActiveAccounts();
+  return rows.map(summaryResponse);
+}
+
+async function getReviewableAccountDetails(id) {
+  const row = await getReviewableAccountById(id);
 
   if (!row) {
     return null;
@@ -139,14 +181,14 @@ async function getPendingAccountDetails(id) {
   return detailResponse(row);
 }
 
-async function getPendingAccountIdImage(id, side) {
+async function getReviewableAccountIdImage(id, side) {
   if (!['front', 'back'].includes(side)) {
     const error = new Error('Invalid ID image side.');
     error.statusCode = 400;
     throw error;
   }
 
-  const row = await getPendingAccountById(id);
+  const row = await getReviewableAccountById(id);
 
   if (!row) {
     return null;
@@ -204,6 +246,8 @@ async function updateAccountReviewStatus(id, status, reason = '') {
 
   if (result.changes > 0) {
     const account = await getAccountStatusById(id);
+    verifyStatusUpdateIntegrity(pendingAccount, account, 'Pending account review');
+
     const emailUser = reviewEmailUser(pendingAccount);
     let emailWarning = '';
 
@@ -239,9 +283,95 @@ async function updateAccountReviewStatus(id, status, reason = '') {
   throw error;
 }
 
+async function updateAccountAccessReviewStatus(id, status, reason = '') {
+  if (![USER_STATUSES.APPROVED, USER_STATUSES.SUSPENDED].includes(status)) {
+    const error = new Error('Status must be approved or suspended.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const normalizedReason = String(reason || '').trim();
+
+  if (status === USER_STATUSES.SUSPENDED && !normalizedReason) {
+    const error = new Error('Suspension reason is required.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const existing = await getReviewableAccountById(id);
+
+  if (!existing) {
+    const accountStatus = await getAccountStatusById(id);
+
+    if (!accountStatus) {
+      const error = new Error('Account not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const error = new Error(`Account status ${accountStatus.status} cannot be updated through access review.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const expectedCurrentStatus = status === USER_STATUSES.SUSPENDED
+    ? USER_STATUSES.APPROVED
+    : USER_STATUSES.SUSPENDED;
+
+  if (existing.status !== expectedCurrentStatus) {
+    const action = status === USER_STATUSES.SUSPENDED ? 'suspended' : 'activated';
+    const error = new Error(`Only ${expectedCurrentStatus} accounts can be ${action}.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const result = await updateAccountAccessStatus(
+    id,
+    status,
+    status === USER_STATUSES.SUSPENDED ? encryptText(normalizedReason) : null,
+    expectedCurrentStatus
+  );
+
+  if (result.changes === 0) {
+    const error = new Error('Account access status could not be updated.');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const account = await getAccountStatusById(id);
+  verifyStatusUpdateIntegrity(existing, account, 'Account access review');
+
+  const emailUser = reviewEmailUser(existing);
+  let emailWarning = '';
+
+  try {
+    if (status === USER_STATUSES.SUSPENDED) {
+      await sendSuspensionEmail(emailUser, normalizedReason);
+    } else {
+      await sendReactivationEmail(emailUser);
+    }
+  } catch (error) {
+    console.error('Access status email failed:', error);
+    emailWarning = 'Account access status was updated, but the email notification could not be sent.';
+  }
+
+  if (status === USER_STATUSES.SUSPENDED) {
+    await notifyAccountSuspended(account);
+  } else {
+    await notifyAccountActivated(account);
+  }
+
+  return {
+    ...account,
+    emailWarning
+  };
+}
+
 module.exports = {
   getPendingAccountSummaries,
-  getPendingAccountDetails,
-  getPendingAccountIdImage,
-  updateAccountReviewStatus
+  getActiveAccountSummaries,
+  getReviewableAccountDetails,
+  getReviewableAccountIdImage,
+  updateAccountReviewStatus,
+  updateAccountAccessReviewStatus
 };

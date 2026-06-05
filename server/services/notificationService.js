@@ -59,6 +59,30 @@ function notifyRegistrationReviewed(user, status) {
   });
 }
 
+function notifyAccountSuspended(user) {
+  return safeCreateNotification({
+    type: 'account.suspended',
+    title: 'Account suspended',
+    message: `Account ${user.userCode} was suspended.`,
+    relatedEntityType: 'user',
+    relatedEntityId: user.id,
+    relatedEntityCode: user.userCode,
+    metadata: { status: 'suspended' }
+  });
+}
+
+function notifyAccountActivated(user) {
+  return safeCreateNotification({
+    type: 'account.activated',
+    title: 'Account activated',
+    message: `Account ${user.userCode} was activated.`,
+    relatedEntityType: 'user',
+    relatedEntityId: user.id,
+    relatedEntityCode: user.userCode,
+    metadata: { status: 'approved' }
+  });
+}
+
 async function getNotifications() {
   const notifications = await listNotifications();
   return notifications.map(normalizeNotification);
@@ -72,6 +96,8 @@ async function getUnreadNotificationCount() {
 module.exports = {
   notifyPendingRegistrationCreated,
   notifyRegistrationReviewed,
+  notifyAccountSuspended,
+  notifyAccountActivated,
   getNotifications,
   getUnreadNotificationCount,
   markNotificationRead,

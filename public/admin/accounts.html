@@ -74,60 +74,121 @@
         </div>
       </header>
 
-      <section class="admin-content-panel" aria-labelledby="accounts-panel-title">
-        <div class="accounts-panel-header">
-          <div>
-            <h2 id="accounts-panel-title">Pending Accounts</h2>
-            <p>Review new ResQMesh registrations before account verification is approved.</p>
-          </div>
-          <button type="button" class="admin-secondary-button" id="refreshAccountsButton">
-            <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-            <span>Refresh</span>
-          </button>
-        </div>
-
-        <div class="accounts-toolbar" aria-label="Pending account filters">
-          <label class="accounts-search" for="accountsSearchInput">
-            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input type="search" id="accountsSearchInput" placeholder="Search code, name, username, email, or phone">
-          </label>
-          <button type="button" class="admin-secondary-button accounts-sort-button" id="sortAccountsButton" data-sort-direction="desc">
-            <i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i>
-            <span id="sortAccountsLabel">Newest first</span>
-          </button>
-        </div>
-
-        <div class="accounts-table-wrap" id="accountsTableWrap" hidden>
-          <table class="accounts-table">
-            <thead>
-              <tr>
-                <th scope="col">Code</th>
-                <th scope="col">Registrant</th>
-                <th scope="col">Contact</th>
-                <th scope="col">Submitted</th>
-                <th scope="col">Status</th>
-                <th scope="col" class="accounts-action-heading">Action</th>
-              </tr>
-            </thead>
-            <tbody id="pendingAccountsBody"></tbody>
-          </table>
-        </div>
-
-        <div class="accounts-pagination" id="accountsPagination" hidden>
-          <span class="accounts-pagination-summary" id="accountsPaginationSummary">Showing 0 accounts</span>
-          <div class="accounts-pagination-actions">
-            <button type="button" class="admin-secondary-button" id="previousAccountsButton">
-              <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-              <span>Previous</span>
-            </button>
-            <button type="button" class="admin-secondary-button" id="nextAccountsButton">
-              <span>Next</span>
-              <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      <div class="accounts-manager-stack">
+        <section class="admin-content-panel accounts-control-panel" aria-labelledby="pending-accounts-panel-title">
+          <div class="accounts-panel-header">
+            <div>
+              <h2 id="pending-accounts-panel-title">Pending Accounts</h2>
+              <p>Review new ResQMesh registrations before account verification is approved.</p>
+            </div>
+            <button type="button" class="admin-secondary-button" id="refreshPendingAccountsButton">
+              <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+              <span>Refresh</span>
             </button>
           </div>
-        </div>
-        <div class="accounts-list-empty" id="accountsStatusMessage" role="status" hidden>Loading pending accounts...</div>
-      </section>
+
+          <div class="accounts-toolbar" aria-label="Pending account filters">
+            <label class="accounts-search" for="pendingAccountsSearchInput">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input type="search" id="pendingAccountsSearchInput" placeholder="Search code, name, username, email, or phone">
+            </label>
+            <button type="button" class="admin-secondary-button accounts-sort-button" id="sortPendingAccountsButton" data-sort-direction="desc">
+              <i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i>
+              <span id="sortPendingAccountsLabel">Newest first</span>
+            </button>
+          </div>
+
+          <div class="accounts-table-wrap" id="pendingAccountsTableWrap" hidden>
+            <table class="accounts-table">
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">Registrant</th>
+                  <th scope="col">Contact</th>
+                  <th scope="col">Submitted</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="accounts-action-heading">Action</th>
+                </tr>
+              </thead>
+              <tbody id="pendingAccountsTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="accounts-pagination" id="pendingAccountsPagination" hidden>
+            <span class="accounts-pagination-summary" id="pendingAccountsPaginationSummary">Showing 0 pending accounts</span>
+            <div class="accounts-pagination-actions">
+              <button type="button" class="admin-secondary-button" id="previousPendingAccountsButton">
+                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                <span>Previous</span>
+              </button>
+              <button type="button" class="admin-secondary-button" id="nextPendingAccountsButton">
+                <span>Next</span>
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div class="accounts-list-empty" id="pendingAccountsStatusMessage" role="status" hidden>Loading pending accounts...</div>
+        </section>
+
+        <section class="admin-content-panel accounts-control-panel" aria-labelledby="active-accounts-panel-title">
+          <div class="accounts-panel-header">
+            <div>
+              <h2 id="active-accounts-panel-title">Active Accounts</h2>
+              <p>Review currently approved ResQMesh accounts and their verification details.</p>
+            </div>
+            <button type="button" class="admin-secondary-button" id="refreshActiveAccountsButton">
+              <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div class="accounts-toolbar" aria-label="Active account filters">
+            <label class="accounts-search" for="activeAccountsSearchInput">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input type="search" id="activeAccountsSearchInput" placeholder="Search code, name, username, email, or phone">
+            </label>
+            <button type="button" class="admin-secondary-button accounts-sort-button" id="sortActiveAccountsButton" data-sort-direction="desc">
+              <i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i>
+              <span id="sortActiveAccountsLabel">Newest first</span>
+            </button>
+            <button type="button" class="admin-secondary-button accounts-status-filter-button" id="toggleActiveStatusFilterButton" data-status-filter="approved">
+              <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+              <span id="activeStatusFilterLabel">Active accounts</span>
+            </button>
+          </div>
+
+          <div class="accounts-table-wrap" id="activeAccountsTableWrap" hidden>
+            <table class="accounts-table">
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">Registrant</th>
+                  <th scope="col">Contact</th>
+                  <th scope="col">Submitted</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="accounts-action-heading">Action</th>
+                </tr>
+              </thead>
+              <tbody id="activeAccountsTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="accounts-pagination" id="activeAccountsPagination" hidden>
+            <span class="accounts-pagination-summary" id="activeAccountsPaginationSummary">Showing 0 active accounts</span>
+            <div class="accounts-pagination-actions">
+              <button type="button" class="admin-secondary-button" id="previousActiveAccountsButton">
+                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                <span>Previous</span>
+              </button>
+              <button type="button" class="admin-secondary-button" id="nextActiveAccountsButton">
+                <span>Next</span>
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div class="accounts-list-empty" id="activeAccountsStatusMessage" role="status" hidden>Loading active accounts...</div>
+        </section>
+      </div>
     </section>
   </main>
 
@@ -173,6 +234,9 @@
 
   <script src="/admin/js/admin-loader.js"></script>
   <script src="/admin/js/admin-notifications.js"></script>
+  <script src="/admin/js/accounts-shared.js"></script>
+  <script src="/admin/js/accounts-pending.js"></script>
+  <script src="/admin/js/accounts-active.js"></script>
   <script src="/admin/js/accounts.js"></script>
 </body>
 
