@@ -23,9 +23,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- Load React, ReactDOM and Babel for JSX compilation in browser -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js" crossorigin="anonymous"></script>
 </head>
 <body class="site-loading">
   <div class="site-loader" aria-live="polite" aria-label="Loading ResQMesh">
@@ -61,7 +61,22 @@
   </nav>
 
   <!-- React root container -->
-  <div id="register-root"></div>
+  <div id="register-root" aria-live="polite">
+    <main class="register-container">
+      <div class="card register-fallback-card">
+        <div class="register-fallback-icon" aria-hidden="true">
+          <i class="fa-solid fa-shield-heart"></i>
+        </div>
+        <h2 class="register-fallback-title">Loading registration form</h2>
+        <p class="register-fallback-message">
+          Please wait while ResQMesh prepares the verification form.
+        </p>
+        <p class="register-fallback-help">
+          If this stays on screen, refresh the page and check that external scripts are allowed.
+        </p>
+      </div>
+    </main>
+  </div>
 
   <!-- Footer -->
   <footer class="footer">

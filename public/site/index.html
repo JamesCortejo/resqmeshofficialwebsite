@@ -160,8 +160,8 @@
           </div>
           <h2 id="updates-title">Latest CDRRMO Valencia Updates</h2>
           <p>
-            Follow public advisories and community safety updates from CDRRMO Valencia. Facebook controls this embedded
-            timeline, so availability may depend on browser privacy settings and the public page configuration.
+            Follow public advisories and community safety updates from CDRRMO Valencia through a mobile-friendly
+            carousel of source-linked update cards.
           </p>
         </div>
         <a href="https://www.facebook.com/cdrrmovalencia" class="updates-link" target="_blank"
@@ -170,39 +170,83 @@
         </a>
       </div>
 
-      <div class="updates-panel">
-        <div class="facebook-frame-shell">
-          <iframe class="facebook-timeline" title="CDRRMO Valencia Facebook updates"
-            src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fcdrrmovalencia&tabs=timeline&width=500&height=520&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=false"
-            width="500" height="520" style="border:none;overflow:hidden" scrolling="no" frameborder="0"
-            allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
-          </iframe>
-          <div class="facebook-fallback" id="facebook-fallback">
-            <span class="facebook-fallback-icon"><i class="fa-brands fa-facebook-f"></i></span>
-            <h3>Facebook updates may be blocked</h3>
-            <p>If the timeline does not load, open the public page directly to view the newest advisories and posts.</p>
-            <a href="https://www.facebook.com/cdrrmovalencia" class="btn btn-primary" target="_blank"
-              rel="noopener noreferrer">View Updates on Facebook</a>
+      <div class="updates-carousel" aria-roledescription="carousel" aria-label="CDRRMO Valencia update cards">
+        <div class="updates-carousel-viewport">
+          <div class="updates-carousel-track" id="updatesCarouselTrack">
+            <article class="update-card" aria-label="Flood response update">
+              <span class="update-card-source">RMN Networks</span>
+              <h3>Valencia flood response coverage</h3>
+              <p>
+                Public coverage reported plans around a state of calamity in Valencia City, Bukidnon after widespread
+                flooding affected communities.
+              </p>
+              <div class="update-card-footer">
+                <span>Public reference</span>
+                <a href="https://rmn.ph/state-of-calamity-planong-ipatupad-sa-valencia-city-bukidnon-matapos-ang-malawakang-pagbaha/"
+                  target="_blank" rel="noopener noreferrer">
+                  View update <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                </a>
+              </div>
+            </article>
+
+            <article class="update-card" aria-label="Evacuation advisory update">
+              <span class="update-card-source">Bombo Radyo Malaybalay</span>
+              <h3>Mandatory evacuation advisory coverage</h3>
+              <p>
+                Public radio coverage described Valencia City DRRMO actions for residents near Panlibatuhan Creek during
+                flood-risk conditions.
+              </p>
+              <div class="update-card-footer">
+                <span>Public reference</span>
+                <a href="https://malaybalay.bomboradyo.com/valencia-city-disaster-risk-reduction-and-management-office-nagpatuman-mandatory-forced-evacuation-sa-mga-residenti-duol-sa-panlibatuhan-creek/"
+                  target="_blank" rel="noopener noreferrer">
+                  View update <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                </a>
+              </div>
+            </article>
+
+            <article class="update-card" aria-label="CDRRMO directory reference">
+              <span class="update-card-source">City of Valencia</span>
+              <h3>Official CDRRMO department listing</h3>
+              <p>
+                The City of Valencia departments directory lists the City Disaster Risk Reduction and Management Office
+                and public contact details.
+              </p>
+              <div class="update-card-footer">
+                <span>Official directory</span>
+                <a href="https://cityofvalencia.gov.ph/departments-and-offices/" target="_blank"
+                  rel="noopener noreferrer">
+                  View update <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                </a>
+              </div>
+            </article>
+
+            <article class="update-card" aria-label="CDRRMO Facebook page">
+              <span class="update-card-source">Facebook</span>
+              <h3>CDRRMO Valencia Facebook page</h3>
+              <p>
+                Open the public Facebook page directly for the newest posts, advisories, and community safety
+                announcements.
+              </p>
+              <div class="update-card-footer">
+                <span>External page</span>
+                <a href="https://www.facebook.com/cdrrmovalencia" target="_blank" rel="noopener noreferrer">
+                  View update <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                </a>
+              </div>
+            </article>
           </div>
         </div>
 
-        <aside class="updates-source-card" aria-label="CDRRMO source references">
-          <h3>Recent public references</h3>
-          <a href="https://rmn.ph/state-of-calamity-planong-ipatupad-sa-valencia-city-bukidnon-matapos-ang-malawakang-pagbaha/"
-            target="_blank" rel="noopener noreferrer">
-            Valencia CDRRMO flood response coverage
-            <span>RMN Networks</span>
-          </a>
-          <a href="https://malaybalay.bomboradyo.com/valencia-city-disaster-risk-reduction-and-management-office-nagpatuman-mandatory-forced-evacuation-sa-mga-residenti-duol-sa-panlibatuhan-creek/"
-            target="_blank" rel="noopener noreferrer">
-            Mandatory evacuation advisory coverage
-            <span>Bombo Radyo Malaybalay</span>
-          </a>
-          <a href="https://cityofvalencia.gov.ph/departments-and-offices/" target="_blank" rel="noopener noreferrer">
-            Official Valencia City departments directory
-            <span>City of Valencia</span>
-          </a>
-        </aside>
+        <div class="updates-carousel-controls" aria-label="CDRRMO updates carousel controls">
+          <button type="button" class="updates-carousel-button" id="updatesCarouselPrev" aria-label="Previous update">
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+          </button>
+          <div class="updates-carousel-dots" id="updatesCarouselDots" aria-label="Choose update"></div>
+          <button type="button" class="updates-carousel-button" id="updatesCarouselNext" aria-label="Next update">
+            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
     </div>
   </section>

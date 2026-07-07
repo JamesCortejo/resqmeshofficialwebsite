@@ -7,6 +7,38 @@
       });
     }
 
+const registerRootElement = document.getElementById('register-root');
+
+const showRegisterBootstrapError = (message) => {
+  if (!registerRootElement) {
+    return;
+  }
+
+  registerRootElement.innerHTML = `
+    <main class="register-container">
+      <div class="card register-fallback-card register-fallback-card-error" role="alert">
+        <div class="register-fallback-icon" aria-hidden="true">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h2 class="register-fallback-title">Registration form unavailable</h2>
+        <p class="register-fallback-message">${message}</p>
+        <p class="register-fallback-help">
+          Refresh the page and try again. If the problem continues, check your internet connection or browser content settings.
+        </p>
+      </div>
+    </main>
+  `;
+};
+
+if (!window.React || !window.ReactDOM) {
+  showRegisterBootstrapError('The registration page could not load its required interface libraries.');
+  throw new Error('ResQMesh registration bootstrap failed: React or ReactDOM is unavailable.');
+}
+
+if (!registerRootElement) {
+  throw new Error('ResQMesh registration bootstrap failed: #register-root was not found.');
+}
+
 const { useState, useRef } = React;
 
     // List of 31 Barangays in Valencia City, Bukidnon
@@ -629,7 +661,7 @@ const { useState, useRef } = React;
                       className={`form-control ${errors.idType ? 'error-border' : ''}`}
                     >
                       <option value="National ID">National ID</option>
-                      <option value="Driverâ€™s License">Driverâ€™s License</option>
+                      <option value="Driver's License">Driver's License</option>
                       <option value="PhilHealth ID">PhilHealth ID</option>
                     </select>
                     {errors.idType && <span class="form-error-msg">{errors.idType}</span>}
@@ -746,6 +778,11 @@ const { useState, useRef } = React;
     }
 
     // Render the React application
-    const root = ReactDOM.createRoot(document.getElementById('register-root'));
-    root.render(<React.StrictMode><ResQMeshRegistration /></React.StrictMode>);
+    try {
+      const root = ReactDOM.createRoot(registerRootElement);
+      root.render(<React.StrictMode><ResQMeshRegistration /></React.StrictMode>);
+    } catch (error) {
+      showRegisterBootstrapError('The registration form could not finish loading.');
+      console.error(error);
+    }
 

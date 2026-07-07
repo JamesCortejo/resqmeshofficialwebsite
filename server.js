@@ -40,6 +40,12 @@ app.get('/resqmeshadmin/overview', (req, res) => {
 app.get('/resqmeshadmin/accounts', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'accounts.html'));
 });
+app.get('/resqmeshadmin/rescuers', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'rescuers.html'));
+});
+app.get('/resqmeshadmin/rescue-teams', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'rescue-teams.html'));
+});
 
 // Start Server
 async function startServer() {
