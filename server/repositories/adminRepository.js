@@ -16,6 +16,21 @@ function findAdminCandidateByUsernameHash(usernameLookupHash) {
   `, [usernameLookupHash]);
 }
 
+function findAdminById(id) {
+  return get(`
+    SELECT
+      id,
+      user_code AS userCode,
+      status,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM users
+    WHERE id = ? AND status = 'admin'
+    LIMIT 1
+  `, [id]);
+}
+
 module.exports = {
-  findAdminCandidateByUsernameHash
+  findAdminCandidateByUsernameHash,
+  findAdminById
 };

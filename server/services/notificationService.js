@@ -83,6 +83,120 @@ function notifyAccountActivated(user) {
   });
 }
 
+function notifyRescuerCreated(rescuer) {
+  return safeCreateNotification({
+    type: 'rescuer.created',
+    title: 'Rescuer created',
+    message: `Rescuer ${rescuer.rescuerCode} was added to the roster.`,
+    relatedEntityType: 'rescuer',
+    relatedEntityId: rescuer.id,
+    relatedEntityCode: rescuer.rescuerCode,
+    metadata: {
+      status: rescuer.status,
+      accessStatus: rescuer.accessStatus
+    }
+  });
+}
+
+function notifyRescuerAccessChanged(rescuer, accessStatus) {
+  const archived = accessStatus === 'archived';
+
+  return safeCreateNotification({
+    type: archived ? 'rescuer.archived' : 'rescuer.activated',
+    title: archived ? 'Rescuer archived' : 'Rescuer activated',
+    message: `Rescuer ${rescuer.rescuerCode} was ${archived ? 'archived' : 'activated'}.`,
+    relatedEntityType: 'rescuer',
+    relatedEntityId: rescuer.id,
+    relatedEntityCode: rescuer.rescuerCode,
+    metadata: {
+      accessStatus,
+      status: rescuer.status
+    }
+  });
+}
+
+function notifyRescuerStatusChanged(rescuer) {
+  return safeCreateNotification({
+    type: 'rescuer.status.changed',
+    title: 'Rescuer status changed',
+    message: `Rescuer ${rescuer.rescuerCode} is now ${rescuer.status}.`,
+    relatedEntityType: 'rescuer',
+    relatedEntityId: rescuer.id,
+    relatedEntityCode: rescuer.rescuerCode,
+    metadata: {
+      status: rescuer.status,
+      accessStatus: rescuer.accessStatus
+    }
+  });
+}
+
+function notifyRescuerPasswordReset(rescuer) {
+  return safeCreateNotification({
+    type: 'rescuer.password.reset',
+    title: 'Rescuer password reset',
+    message: `Password for rescuer ${rescuer.rescuerCode} was reset by an administrator.`,
+    relatedEntityType: 'rescuer',
+    relatedEntityId: rescuer.id,
+    relatedEntityCode: rescuer.rescuerCode,
+    metadata: {
+      accessStatus: rescuer.accessStatus,
+      status: rescuer.status
+    }
+  });
+}
+
+function notifyRescueTeamCreated(team) {
+  return safeCreateNotification({
+    type: 'rescue-team.created',
+    title: 'Rescue team created',
+    message: `Rescue team ${team.teamCode} (${team.name}) was created with ${team.memberCount}/5 members.`,
+    relatedEntityType: 'rescue-team',
+    relatedEntityId: team.id,
+    relatedEntityCode: team.teamCode,
+    metadata: {
+      agency: team.agency,
+      status: team.status,
+      memberCount: team.memberCount
+    }
+  });
+}
+
+function notifyRescueTeamUpdated(team) {
+  return safeCreateNotification({
+    type: 'rescue-team.updated',
+    title: 'Rescue team updated',
+    message: `Rescue team ${team.teamCode} (${team.name}) was updated.`,
+    relatedEntityType: 'rescue-team',
+    relatedEntityId: team.id,
+    relatedEntityCode: team.teamCode,
+    metadata: {
+      agency: team.agency,
+      status: team.status,
+      memberCount: team.memberCount
+    }
+  });
+}
+
+function notifyRescueTeamRosterChanged(team, rosterChanged) {
+  if (!rosterChanged) {
+    return Promise.resolve();
+  }
+
+  return safeCreateNotification({
+    type: 'rescue-team.roster.changed',
+    title: 'Rescue team roster changed',
+    message: `Roster for team ${team.teamCode} (${team.name}) now has ${team.memberCount}/5 members.`,
+    relatedEntityType: 'rescue-team',
+    relatedEntityId: team.id,
+    relatedEntityCode: team.teamCode,
+    metadata: {
+      agency: team.agency,
+      status: team.status,
+      memberCount: team.memberCount
+    }
+  });
+}
+
 async function getNotifications() {
   const notifications = await listNotifications();
   return notifications.map(normalizeNotification);
@@ -98,6 +212,13 @@ module.exports = {
   notifyRegistrationReviewed,
   notifyAccountSuspended,
   notifyAccountActivated,
+  notifyRescuerCreated,
+  notifyRescuerAccessChanged,
+  notifyRescuerStatusChanged,
+  notifyRescuerPasswordReset,
+  notifyRescueTeamCreated,
+  notifyRescueTeamUpdated,
+  notifyRescueTeamRosterChanged,
   getNotifications,
   getUnreadNotificationCount,
   markNotificationRead,

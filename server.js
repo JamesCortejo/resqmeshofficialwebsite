@@ -3,9 +3,15 @@ const path = require('path');
 const userRoutes = require('./server/routes/userRoutes');
 const adminRoutes = require('./server/routes/adminRoutes');
 const { initializeDatabase } = require('./server/database/sqlite');
+const {
+  redirectAuthenticatedAdmin,
+  requireAdminPageSession
+} = require('./server/middleware/adminSessionMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.set('trust proxy', 1);
 
 // Body Parser Middleware
 app.use(express.json());
@@ -31,19 +37,19 @@ app.get('/contact', (req, res) => {
 app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'site', 'register.html'));
 });
-app.get('/resqmeshadmin', (req, res) => {
+app.get('/resqmeshadmin', redirectAuthenticatedAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
 });
-app.get('/resqmeshadmin/overview', (req, res) => {
+app.get('/resqmeshadmin/overview', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'overview.html'));
 });
-app.get('/resqmeshadmin/accounts', (req, res) => {
+app.get('/resqmeshadmin/accounts', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'accounts.html'));
 });
-app.get('/resqmeshadmin/rescuers', (req, res) => {
+app.get('/resqmeshadmin/rescuers', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'rescuers.html'));
 });
-app.get('/resqmeshadmin/rescue-teams', (req, res) => {
+app.get('/resqmeshadmin/rescue-teams', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'rescue-teams.html'));
 });
 

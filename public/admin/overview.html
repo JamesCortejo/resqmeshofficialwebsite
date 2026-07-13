@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="ResQMesh admin overview workspace.">
   <title>Admin Overview - ResQMesh</title>
+  <link rel="icon" type="image/png" href="/assets/logo-icon.png">
 
   <link rel="stylesheet" href="/admin/css/login.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
@@ -78,6 +79,10 @@
             <i class="fa-regular fa-bell" aria-hidden="true"></i>
             <span class="admin-notification-badge" id="adminNotificationBadge" hidden>0</span>
           </button>
+          <button type="button" class="admin-topbar-button" data-admin-logout>
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span data-admin-logout-label>Logout</span>
+          </button>
         </div>
       </header>
 
@@ -88,6 +93,7 @@
     </section>
   </main>
   <script src="/admin/js/admin-loader.js"></script>
+  <script src="/admin/js/admin-auth.js"></script>
   <script src="/admin/js/admin-notifications.js"></script>
 </body>
 

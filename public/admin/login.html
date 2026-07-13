@@ -7,6 +7,7 @@
   <meta name="description"
     content="ResQMesh administrative access portal for registration review and system coordination.">
   <title>Admin Login - ResQMesh</title>
+  <link rel="icon" type="image/png" href="/assets/logo-icon.png">
 
   <link rel="stylesheet" href="/admin/css/login.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
@@ -70,8 +71,6 @@
           <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
           Sign In
         </button>
-
-        <div class="admin-message" id="admin-message" role="status" aria-live="polite"></div>
       </form>
 
       <a href="/" class="back-link">
@@ -81,6 +80,13 @@
     </section>
   </main>
 
+  <div class="admin-login-toast" id="adminLoginToast" role="status" aria-live="polite" aria-hidden="true" data-tone="warning">
+    <span class="admin-login-toast-icon" id="adminLoginToastIcon">
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+    </span>
+    <span class="admin-login-toast-message" id="adminLoginToastMessage">Invalid admin credentials.</span>
+  </div>
+
   <script src="/admin/js/admin-loader.js"></script>
   <script>
     const form = document.getElementById('admin-login-form');
@@ -88,7 +94,38 @@
     const passwordInput = document.getElementById('admin-password');
     const usernameError = document.getElementById('username-error');
     const passwordError = document.getElementById('password-error');
-    const message = document.getElementById('admin-message');
+    const toast = document.getElementById('adminLoginToast');
+    const toastIcon = document.getElementById('adminLoginToastIcon');
+    const toastMessage = document.getElementById('adminLoginToastMessage');
+    const routeParams = new URLSearchParams(window.location.search);
+    const routeMessage = routeParams.get('reason');
+    let toastTimer = null;
+
+    function showToast(text, tone = 'warning') {
+      window.clearTimeout(toastTimer);
+      toast.dataset.tone = tone;
+      toastMessage.textContent = text;
+      toastIcon.innerHTML = tone === 'success'
+        ? '<i class="fa-solid fa-circle-check" aria-hidden="true"></i>'
+        : '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
+      toast.classList.add('is-visible');
+      toast.setAttribute('aria-hidden', 'false');
+
+      toastTimer = window.setTimeout(() => {
+        toast.classList.remove('is-visible');
+        toast.setAttribute('aria-hidden', 'true');
+      }, 4200);
+    }
+
+    function hideToast() {
+      window.clearTimeout(toastTimer);
+      toast.classList.remove('is-visible');
+      toast.setAttribute('aria-hidden', 'true');
+    }
+
+    if (routeMessage) {
+      showToast(routeMessage, 'warning');
+    }
 
     function setFieldState(input, errorElement, errorMessage) {
       input.classList.toggle('has-error', Boolean(errorMessage));
@@ -105,10 +142,9 @@
 
       setFieldState(usernameInput, usernameError, usernameMessage);
       setFieldState(passwordInput, passwordError, passwordMessage);
-      message.className = 'admin-message';
 
       if (usernameMessage || passwordMessage) {
-        message.textContent = '';
+        hideToast();
         return;
       }
 
@@ -118,6 +154,7 @@
           headers: {
             'Content-Type': 'application/json'
           },
+          credentials: 'same-origin',
           body: JSON.stringify({ username, password })
         });
         const result = await response.json();
@@ -128,8 +165,7 @@
 
         window.location.href = result.redirectTo || '/resqmeshadmin/overview';
       } catch (error) {
-        message.classList.add('is-visible');
-        message.textContent = error.message;
+        showToast(error.message, 'warning');
       }
     });
 
@@ -137,8 +173,7 @@
       input.addEventListener('input', () => {
         const errorElement = input === usernameInput ? usernameError : passwordError;
         setFieldState(input, errorElement, '');
-        message.className = 'admin-message';
-        message.textContent = '';
+        hideToast();
       });
     });
   </script>

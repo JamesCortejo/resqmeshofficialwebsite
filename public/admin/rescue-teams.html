@@ -6,11 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="ResQMesh rescue teams workspace.">
   <title>Rescue Teams - ResQMesh</title>
+  <link rel="icon" type="image/png" href="/assets/logo-icon.png">
 
   <link rel="stylesheet" href="/admin/css/login.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
   <link rel="stylesheet" href="/admin/css/app-shell.css">
   <link rel="stylesheet" href="/admin/css/admin-notifications.css">
+  <link rel="stylesheet" href="/admin/css/rescue-teams.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -70,7 +72,7 @@
             Valencia City Emergency Network
           </span>
           <h1 class="admin-topbar-title">Rescue Teams</h1>
-          <p class="admin-topbar-desc">A dedicated workspace for future rescue team grouping and coordination tools.</p>
+          <p class="admin-topbar-desc">Organize responder groups, control team capacity, and manage active rescue rosters.</p>
         </div>
 
         <div class="admin-topbar-actions">
@@ -78,17 +80,185 @@
             <i class="fa-regular fa-bell" aria-hidden="true"></i>
             <span class="admin-notification-badge" id="adminNotificationBadge" hidden>0</span>
           </button>
+          <button type="button" class="admin-topbar-button" data-admin-logout>
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span data-admin-logout-label>Logout</span>
+          </button>
         </div>
       </header>
 
-      <section class="admin-content-panel" aria-labelledby="rescue-teams-panel-title">
-        <h2 id="rescue-teams-panel-title">Rescue Teams</h2>
-        <p>This page is ready for team rosters, roles, and emergency response coordination workflows.</p>
+      <section class="admin-content-panel rescue-teams-panel" aria-labelledby="rescue-team-manager-panel-title">
+        <div class="rescue-teams-panel-header">
+          <div>
+            <h2 id="rescue-team-manager-panel-title">Rescue Team List</h2>
+            <p>Track active rescue groups, their agency alignment, and their current five-person roster capacity.</p>
+          </div>
+          <button type="button" class="rescue-teams-add-button" id="openAddRescueTeamButton">
+            <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+            <span>Add Rescue Team</span>
+          </button>
+        </div>
+
+        <label class="rescue-teams-search" for="rescueTeamsSearchInput">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input type="search" id="rescueTeamsSearchInput" placeholder="Search team code, name, agency, or status">
+        </label>
+
+        <div class="rescue-teams-feedback" id="rescueTeamsFeedback" role="status" hidden></div>
+
+        <div class="rescue-teams-table-wrap">
+          <table class="rescue-teams-table">
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Team</th>
+                <th scope="col">Agency</th>
+                <th scope="col">Members</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="rescue-teams-action-heading">Action</th>
+              </tr>
+            </thead>
+            <tbody id="rescueTeamsTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="rescue-teams-pagination" id="rescueTeamsPagination" hidden>
+          <span class="rescue-teams-pagination-summary" id="rescueTeamsPaginationSummary">Showing 0 rescue teams</span>
+          <div class="rescue-teams-pagination-actions">
+            <button type="button" class="admin-secondary-button" id="previousRescueTeamsButton">
+              <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+              <span>Previous</span>
+            </button>
+            <button type="button" class="admin-secondary-button" id="nextRescueTeamsButton">
+              <span>Next</span>
+              <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="rescue-teams-list-empty" id="rescueTeamsListEmpty" role="status" hidden></div>
       </section>
     </section>
   </main>
+
+  <div class="rescue-team-modal" id="rescueTeamModal" aria-hidden="true">
+    <div class="rescue-team-modal-backdrop" data-close-rescue-team-modal></div>
+    <section class="rescue-team-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescueTeamModalTitle">
+      <header class="rescue-team-modal-header">
+        <div>
+          <span class="rescue-team-modal-kicker">Add Rescue Team</span>
+          <h2 id="rescueTeamModalTitle">Rescue Team Form</h2>
+        </div>
+        <button type="button" class="rescue-team-icon-button" aria-label="Close rescue team form" data-close-rescue-team-modal>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <div class="rescue-team-modal-body">
+        <p class="rescue-team-modal-note">Build a rescue team roster with up to five active rescuers. Selecting a rescuer already assigned to another team will move them here.</p>
+        <form id="rescueTeamForm">
+          <div class="rescue-team-form-grid">
+            <label class="rescue-team-field">
+              <span>Team name</span>
+              <input type="text" id="rescueTeamNameInput" name="name" placeholder="Enter team name" required>
+            </label>
+            <label class="rescue-team-field">
+              <span>Agency</span>
+              <select id="rescueTeamAgencySelect" name="agency" required>
+                <option value="">Select agency</option>
+                <option value="cdrrmo">CDRRMO</option>
+                <option value="fire-department">Fire Department</option>
+                <option value="police-department">Police Department</option>
+              </select>
+            </label>
+            <label class="rescue-team-field">
+              <span>Team status</span>
+              <select id="rescueTeamStatusSelect" name="status" required>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="dispatched">Dispatched</option>
+              </select>
+            </label>
+          </div>
+
+          <section class="rescue-team-roster-section">
+            <div class="rescue-team-roster-header">
+              <div>
+                <h3>Team roster</h3>
+                <p>Search active rescuers, add them to the roster, and remove them as needed.</p>
+              </div>
+              <span class="rescue-team-roster-count" id="rescueTeamRosterCount">Selected 0/5</span>
+            </div>
+            <div class="rescue-team-picker">
+              <label class="rescue-team-picker-search" for="rescueTeamRescuerSearchInput">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input type="search" id="rescueTeamRescuerSearchInput" placeholder="Search rescuer name, code, agency, or current team">
+              </label>
+              <div class="rescue-team-picker-results" id="rescueTeamRosterResults"></div>
+              <div class="rescue-team-selected">
+                <h4>Selected rescuers</h4>
+                <div class="rescue-team-selected-list" id="rescueTeamSelectedList"></div>
+              </div>
+            </div>
+          </section>
+        </form>
+      </div>
+
+      <footer class="rescue-team-modal-actions">
+        <span class="rescue-team-action-message" id="rescueTeamActionMessage">Ready to save a new rescue team.</span>
+        <div class="rescue-team-action-buttons">
+          <button type="button" class="rescue-team-close-button" data-close-rescue-team-modal>Close</button>
+          <button type="submit" class="rescue-team-submit-button" id="rescueTeamSubmitButton" form="rescueTeamForm">Add Rescue Team</button>
+        </div>
+      </footer>
+    </section>
+  </div>
+
+  <div class="rescue-team-view-modal" id="rescueTeamViewModal" aria-hidden="true">
+    <div class="rescue-team-view-modal-backdrop" data-close-rescue-team-view-modal></div>
+    <section class="rescue-team-view-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescueTeamViewModalTitle">
+      <header class="rescue-team-view-modal-header">
+        <div>
+          <span class="rescue-team-view-modal-kicker" id="rescueTeamViewModalCode">Rescue team details</span>
+          <h2 id="rescueTeamViewModalTitle">Team Details</h2>
+        </div>
+        <button type="button" class="rescue-team-view-icon-button" aria-label="Close rescue team details" data-close-rescue-team-view-modal>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <div class="rescue-team-view-modal-body" id="rescueTeamViewModalBody">
+        <div class="rescue-team-view-status-message">Loading rescue team details...</div>
+      </div>
+
+      <footer class="rescue-team-view-modal-actions">
+        <div class="rescue-team-view-action-message" id="rescueTeamViewActionMessage" role="status"></div>
+        <div class="rescue-team-view-action-buttons">
+          <button type="button" class="rescue-team-view-secondary-button" data-close-rescue-team-view-modal>Close</button>
+          <button type="button" class="rescue-team-view-primary-button" id="saveRescueTeamChangesButton">
+            <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </footer>
+    </section>
+  </div>
+
+  <div class="admin-review-toast" id="adminReviewToast" role="status" aria-live="polite" aria-hidden="true">
+    <span class="admin-review-toast-icon" id="adminReviewToastIcon">
+      <i class="fa-solid fa-check" aria-hidden="true"></i>
+    </span>
+    <span class="admin-review-toast-message" id="adminReviewToastMessage">Rescue team updated.</span>
+  </div>
+
   <script src="/admin/js/admin-loader.js"></script>
+  <script src="/admin/js/admin-auth.js"></script>
   <script src="/admin/js/admin-notifications.js"></script>
+  <script src="/admin/js/rescue-teams-shared.js"></script>
+  <script src="/admin/js/rescue-teams-create.js"></script>
+  <script src="/admin/js/rescue-teams-list.js"></script>
+  <script src="/admin/js/rescue-teams-view.js"></script>
+  <script src="/admin/js/rescue-teams.js"></script>
 </body>
 
 </html>

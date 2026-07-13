@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="ResQMesh rescuer manager workspace.">
   <title>Rescuer Manager - ResQMesh</title>
+  <link rel="icon" type="image/png" href="/assets/logo-icon.png">
 
   <link rel="stylesheet" href="/admin/css/login.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
@@ -79,6 +80,10 @@
             <i class="fa-regular fa-bell" aria-hidden="true"></i>
             <span class="admin-notification-badge" id="adminNotificationBadge" hidden>0</span>
           </button>
+          <button type="button" class="admin-topbar-button" data-admin-logout>
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span data-admin-logout-label>Logout</span>
+          </button>
         </div>
       </header>
 
@@ -99,7 +104,13 @@
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
             <input type="search" id="rescuersSearchInput" placeholder="Search rescuer, phone, team, or status">
           </label>
+          <button type="button" class="admin-secondary-button rescuers-status-filter-button" id="toggleRescuerStatusFilterButton" data-access-filter="active">
+            <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+            <span id="rescuerStatusFilterLabel">Active rescuers</span>
+          </button>
         </div>
+
+        <div class="rescuers-feedback" id="rescuersFeedback" role="status" hidden></div>
 
         <div class="rescuers-table-wrap">
           <table class="rescuers-table" aria-describedby="rescuer-manager-panel-title">
@@ -113,71 +124,25 @@
                 <th scope="col" class="rescuers-action-heading">Action</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td data-label="ID">RSC-001</td>
-                <td data-label="Rescuer">
-                  <span class="rescuers-primary-text">Ariana Dela Cruz</span>
-                  <span class="rescuers-muted-text">Field responder</span>
-                </td>
-                <td data-label="Contact">
-                  <span class="rescuers-primary-text">+63 912 345 6789</span>
-                  <span class="rescuers-muted-text">ariana@example.com</span>
-                </td>
-                <td data-label="Team">Team Alpha</td>
-                <td data-label="Status"><span class="rescuers-status-pill" data-status="active">Active</span></td>
-                <td data-label="Action" class="rescuers-action-cell">
-                  <button type="button" class="rescuers-view-button" disabled>
-                    <i class="fa-regular fa-eye" aria-hidden="true"></i>
-                    <span>View</span>
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="ID">RSC-002</td>
-                <td data-label="Rescuer">
-                  <span class="rescuers-primary-text">Marco Santos</span>
-                  <span class="rescuers-muted-text">Team coordinator</span>
-                </td>
-                <td data-label="Contact">
-                  <span class="rescuers-primary-text">+63 917 222 1456</span>
-                  <span class="rescuers-muted-text">marco@example.com</span>
-                </td>
-                <td data-label="Team">Team Bravo</td>
-                <td data-label="Status"><span class="rescuers-status-pill" data-status="standby">Standby</span></td>
-                <td data-label="Action" class="rescuers-action-cell">
-                  <button type="button" class="rescuers-view-button" disabled>
-                    <i class="fa-regular fa-eye" aria-hidden="true"></i>
-                    <span>View</span>
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="ID">RSC-003</td>
-                <td data-label="Rescuer">
-                  <span class="rescuers-primary-text">Lian Reyes</span>
-                  <span class="rescuers-muted-text">Medical support</span>
-                </td>
-                <td data-label="Contact">
-                  <span class="rescuers-primary-text">+63 919 888 2201</span>
-                  <span class="rescuers-muted-text">lian@example.com</span>
-                </td>
-                <td data-label="Team">Team Charlie</td>
-                <td data-label="Status"><span class="rescuers-status-pill" data-status="active">Active</span></td>
-                <td data-label="Action" class="rescuers-action-cell">
-                  <button type="button" class="rescuers-view-button" disabled>
-                    <i class="fa-regular fa-eye" aria-hidden="true"></i>
-                    <span>View</span>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
+            <tbody id="rescuersTableBody"></tbody>
           </table>
         </div>
 
-        <div class="rescuers-list-empty" role="status">
-          Frontend rescuer list placeholder ready for future data binding.
+        <div class="rescuers-pagination" id="rescuersPagination" hidden>
+          <span class="rescuers-pagination-summary" id="rescuersPaginationSummary">Showing 0 rescuers</span>
+          <div class="rescuers-pagination-actions">
+            <button type="button" class="admin-secondary-button" id="previousRescuersButton">
+              <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+              <span>Previous</span>
+            </button>
+            <button type="button" class="admin-secondary-button" id="nextRescuersButton">
+              <span>Next</span>
+              <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
+
+        <div class="rescuers-list-empty" id="rescuersListEmpty" role="status" hidden></div>
       </section>
     </section>
   </main>
@@ -197,72 +162,120 @@
 
         <div class="rescuer-modal-body">
         <p class="rescuer-modal-note">
-          This form is frontend-only for now. It is ready for future backend wiring.
+          Add a rescuer profile and assign a team when one is available.
         </p>
 
-        <div class="rescuer-form-grid">
-          <label class="rescuer-field">
-            <span>First name</span>
-            <input type="text" placeholder="Enter first name">
-          </label>
-          <label class="rescuer-field">
-            <span>Middle name</span>
-            <input type="text" placeholder="Enter middle name">
-          </label>
-          <label class="rescuer-field">
-            <span>Last name</span>
-            <input type="text" placeholder="Enter last name">
-          </label>
-          <label class="rescuer-field">
-            <span>Birthdate</span>
-            <input type="date">
-          </label>
-          <label class="rescuer-field">
-            <span>Agency</span>
-            <select>
-              <option value="" selected disabled>Select agency</option>
-              <option value="cdrrmo">CDRRMO</option>
-              <option value="fire-department">Fire Department</option>
-              <option value="police-department">Police Department</option>
-            </select>
-          </label>
-          <label class="rescuer-field">
-            <span>Status</span>
-            <select>
-              <option value="available" selected>Available</option>
-              <option value="dispatched">Dispatched</option>
-              <option value="unavailable">Unavailable</option>
-            </select>
-          </label>
-          <label class="rescuer-field">
-            <span>Assign Team</span>
-            <select>
-              <option value="" selected disabled>Select team</option>
-              <option value="team-alpha">Team Alpha</option>
-              <option value="team-bravo">Team Bravo</option>
-              <option value="team-charlie">Team Charlie</option>
-              <option value="team-delta">Team Delta</option>
-            </select>
-          </label>
-          <label class="rescuer-field">
-            <span>Phone number</span>
-            <input type="tel" placeholder="Enter contact number">
-          </label>
-        </div>
+        <form id="rescuerForm" novalidate>
+          <div class="rescuer-form-grid">
+            <label class="rescuer-field">
+              <span>First name</span>
+              <input type="text" id="rescuerFirstNameInput" name="firstName" placeholder="Enter first name" required>
+            </label>
+            <label class="rescuer-field">
+              <span>Middle name</span>
+              <input type="text" id="rescuerMiddleNameInput" name="middleName" placeholder="Enter middle name">
+            </label>
+            <label class="rescuer-field">
+              <span>Last name</span>
+              <input type="text" id="rescuerLastNameInput" name="lastName" placeholder="Enter last name" required>
+            </label>
+            <label class="rescuer-field">
+              <span>Birthdate</span>
+              <input type="date" id="rescuerBirthDateInput" name="birthDate" required>
+            </label>
+            <label class="rescuer-field">
+              <span>Agency</span>
+              <select id="rescuerAgencySelect" name="agency" required>
+                <option value="" selected disabled>Select agency</option>
+                <option value="cdrrmo">CDRRMO</option>
+                <option value="fire-department">Fire Department</option>
+                <option value="police-department">Police Department</option>
+              </select>
+            </label>
+            <label class="rescuer-field">
+              <span>Status</span>
+              <select id="rescuerStatusSelect" name="status" required>
+                <option value="available" selected>Available</option>
+                <option value="dispatched">Dispatched</option>
+                <option value="unavailable">Unavailable</option>
+              </select>
+            </label>
+            <label class="rescuer-field">
+              <span>Assign Team</span>
+              <select id="rescuerTeamSelect" name="teamId">
+                <option value="">No team assigned</option>
+              </select>
+            </label>
+            <label class="rescuer-field">
+              <span>Phone number</span>
+              <input type="tel" id="rescuerPhoneInput" name="phone" placeholder="Enter contact number" required>
+            </label>
+            <label class="rescuer-field">
+              <span>Password</span>
+              <input type="password" id="rescuerPasswordInput" name="password" placeholder="Enter password" required>
+            </label>
+            <label class="rescuer-field">
+              <span>Confirm password</span>
+              <input type="password" id="rescuerConfirmPasswordInput" name="confirmPassword" placeholder="Confirm password" required>
+            </label>
+          </div>
+        </form>
       </div>
 
       <footer class="rescuer-modal-actions">
-        <span class="rescuer-action-message">No backend action is connected yet.</span>
+        <span class="rescuer-action-message" id="rescuerActionMessage">Ready to save a new rescuer.</span>
         <div class="rescuer-action-buttons">
           <button type="button" class="rescuer-close-button" data-close-rescuer-modal>Close</button>
-          <button type="button" class="rescuer-submit-button" disabled>Add Rescuer</button>
+          <button type="submit" class="rescuer-submit-button" id="rescuerSubmitButton" form="rescuerForm">Add Rescuer</button>
         </div>
       </footer>
     </section>
   </div>
 
+  <div class="rescuer-view-modal" id="rescuerViewModal" aria-hidden="true">
+    <div class="rescuer-view-modal-backdrop" data-close-view-modal></div>
+    <section class="rescuer-view-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescuerViewModalTitle">
+      <header class="rescuer-view-modal-header">
+        <div>
+          <span class="rescuer-view-modal-kicker" id="rescuerViewModalCode">Rescuer details</span>
+          <h2 id="rescuerViewModalTitle">Rescuer Details</h2>
+        </div>
+        <button type="button" class="rescuer-view-icon-button" aria-label="Close rescuer details" data-close-view-modal>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <div class="rescuer-view-modal-body" id="rescuerViewModalBody">
+        <div class="rescuer-view-status-message">Loading rescuer details...</div>
+      </div>
+
+      <footer class="rescuer-view-modal-actions">
+        <div class="rescuer-view-action-message" id="rescuerViewActionMessage" role="status"></div>
+        <div class="rescuer-view-action-buttons" id="rescuerViewActionButtons">
+          <button type="button" class="rescuer-view-secondary-button" data-close-view-modal>Close</button>
+          <button type="button" class="rescuer-view-primary-button" id="rescuerViewPrimaryActionButton">
+            <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+            <span>Archive Rescuer</span>
+          </button>
+        </div>
+      </footer>
+    </section>
+  </div>
+
+  <div class="admin-review-toast" id="adminReviewToast" role="status" aria-live="polite" aria-hidden="true">
+    <span class="admin-review-toast-icon" id="adminReviewToastIcon">
+      <i class="fa-solid fa-check" aria-hidden="true"></i>
+    </span>
+    <span class="admin-review-toast-message" id="adminReviewToastMessage">Rescuer action completed.</span>
+  </div>
+
   <script src="/admin/js/admin-loader.js"></script>
+  <script src="/admin/js/admin-auth.js"></script>
   <script src="/admin/js/admin-notifications.js"></script>
+  <script src="/admin/js/rescuers-shared.js"></script>
+  <script src="/admin/js/rescuers-create.js"></script>
+  <script src="/admin/js/rescuers-list.js"></script>
+  <script src="/admin/js/rescuers-view.js"></script>
   <script src="/admin/js/rescuers.js"></script>
 </body>
 

@@ -68,8 +68,15 @@
   }
 
   async function fetchJson(url, options) {
-    const response = await fetch(url, options);
+    const requestOptions = window.ResQMeshAdminAuth
+      ? await window.ResQMeshAdminAuth.prepareRequestOptions(options)
+      : options;
+    const response = await fetch(url, requestOptions);
     const payload = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+      window.ResQMeshAdminAuth?.handleUnauthorized(payload.message || 'Your admin session has expired.');
+    }
 
     if (!response.ok) {
       throw new Error(payload.message || 'Unable to complete request.');

@@ -24,6 +24,19 @@ async function authenticateAdmin(username, password) {
   };
 }
 
+function toAdminSessionPayload(admin) {
+  if (!admin) {
+    return null;
+  }
+
+  return {
+    id: admin.id,
+    userCode: admin.userCode,
+    status: admin.status
+  };
+}
+
 module.exports = {
-  authenticateAdmin
+  authenticateAdmin,
+  toAdminSessionPayload
 };

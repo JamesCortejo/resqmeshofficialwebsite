@@ -239,6 +239,63 @@ async function ensureAllowedUserStatuses() {
   `);
 }
 
+async function ensureAllowedRescueTeamStatuses() {
+  const rescueTeamsTableSql = await getTableSql('rescue_teams');
+
+  if (rescueTeamsTableSql.includes("'dispatched'")) {
+    return;
+  }
+
+  const blockingLegacyTable = await getTableSql('rescue_teams_legacy_status');
+
+  if (blockingLegacyTable) {
+    throw new Error(
+      'Cannot rebuild rescue team status constraint because rescue_teams_legacy_status already exists. Review the legacy table before restarting.'
+    );
+  }
+
+  await exec(`
+    PRAGMA foreign_keys = OFF;
+    BEGIN TRANSACTION;
+
+    ALTER TABLE rescue_teams RENAME TO rescue_teams_legacy_status;
+
+    CREATE TABLE rescue_teams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      team_code TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL UNIQUE,
+      agency TEXT NOT NULL CHECK (agency IN ('cdrrmo', 'fire-department', 'police-department')),
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'dispatched')),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    INSERT INTO rescue_teams (
+      id,
+      team_code,
+      name,
+      agency,
+      status,
+      created_at,
+      updated_at
+    )
+    SELECT
+      id,
+      team_code,
+      name,
+      COALESCE(NULLIF(TRIM(agency), ''), 'cdrrmo'),
+      status,
+      created_at,
+      updated_at
+    FROM rescue_teams_legacy_status;
+
+    DROP TABLE rescue_teams_legacy_status;
+
+    COMMIT;
+    PRAGMA foreign_keys = ON;
+  `);
+}
+
 async function initializeDatabase() {
   await exec(`
     PRAGMA foreign_keys = ON;
@@ -249,6 +306,22 @@ async function initializeDatabase() {
     );
 
     INSERT OR IGNORE INTO code_sequence (id, last_value)
+    VALUES (1, 0);
+
+    CREATE TABLE IF NOT EXISTS rescuer_code_sequence (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      last_value INTEGER NOT NULL DEFAULT 0
+    );
+
+    INSERT OR IGNORE INTO rescuer_code_sequence (id, last_value)
+    VALUES (1, 0);
+
+    CREATE TABLE IF NOT EXISTS rescue_team_code_sequence (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      last_value INTEGER NOT NULL DEFAULT 0
+    );
+
+    INSERT OR IGNORE INTO rescue_team_code_sequence (id, last_value)
     VALUES (1, 0);
 
     CREATE TABLE IF NOT EXISTS users (
@@ -293,6 +366,42 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_users_status ON users (status);
     CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);
 
+    CREATE TABLE IF NOT EXISTS rescue_teams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      team_code TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL UNIQUE,
+      agency TEXT NOT NULL CHECK (agency IN ('cdrrmo', 'fire-department', 'police-department')),
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'dispatched')),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS rescuers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      rescuer_code TEXT NOT NULL UNIQUE,
+      first_name_enc TEXT NOT NULL,
+      middle_name_enc TEXT,
+      last_name_enc TEXT NOT NULL,
+      birth_date_enc TEXT NOT NULL,
+      phone_enc TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      phone_lookup_hash TEXT NOT NULL UNIQUE,
+      agency TEXT NOT NULL CHECK (agency IN ('cdrrmo', 'fire-department', 'police-department')),
+      status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'dispatched', 'unavailable')),
+      access_status TEXT NOT NULL DEFAULT 'active' CHECK (access_status IN ('active', 'archived')),
+      archived_at TEXT,
+      team_id INTEGER,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (team_id) REFERENCES rescue_teams(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_rescuers_status ON rescuers (status);
+    CREATE INDEX IF NOT EXISTS idx_rescuers_created_at ON rescuers (created_at);
+    CREATE INDEX IF NOT EXISTS idx_rescuers_team_id ON rescuers (team_id);
+    CREATE INDEX IF NOT EXISTS idx_rescue_teams_status ON rescue_teams (status);
+    CREATE INDEX IF NOT EXISTS idx_rescue_teams_name ON rescue_teams (name);
+
     CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT NOT NULL,
@@ -309,6 +418,26 @@ async function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications (created_at);
     CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON notifications (read_at);
+
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      principal_type TEXT NOT NULL,
+      principal_id INTEGER NOT NULL,
+      client_type TEXT NOT NULL,
+      session_token_hash TEXT NOT NULL UNIQUE,
+      csrf_secret TEXT,
+      expires_at TEXT NOT NULL,
+      last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      revoked_at TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_token_hash ON auth_sessions (session_token_hash);
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_principal ON auth_sessions (principal_type, principal_id);
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions (expires_at);
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_revoked_at ON auth_sessions (revoked_at);
   `);
 
   if (!(await columnExists('users', 'id_number_lookup_hash'))) {
@@ -336,7 +465,36 @@ async function initializeDatabase() {
     await run('ALTER TABLE notifications ADD COLUMN hidden_at TEXT');
   }
 
+  await run(`
+    INSERT OR IGNORE INTO rescue_team_code_sequence (id, last_value)
+    VALUES (1, 0)
+  `);
+
+  if (!(await columnExists('rescuers', 'access_status'))) {
+    await run("ALTER TABLE rescuers ADD COLUMN access_status TEXT NOT NULL DEFAULT 'active'");
+    await run("UPDATE rescuers SET access_status = 'active' WHERE access_status IS NULL OR access_status = ''");
+  }
+
+  if (!(await columnExists('rescuers', 'archived_at'))) {
+    await run('ALTER TABLE rescuers ADD COLUMN archived_at TEXT');
+  }
+
+  if (!(await columnExists('rescuers', 'password_hash'))) {
+    await run('ALTER TABLE rescuers ADD COLUMN password_hash TEXT');
+  }
+
+  if (!(await columnExists('rescue_teams', 'agency'))) {
+    await run('ALTER TABLE rescue_teams ADD COLUMN agency TEXT');
+  }
+
+  await run(`
+    UPDATE rescue_teams
+    SET agency = 'cdrrmo'
+    WHERE agency IS NULL OR TRIM(agency) = ''
+  `);
+
   await ensureAllowedUserStatuses();
+  await ensureAllowedRescueTeamStatuses();
   await warnAboutLegacyUserTables();
 
   await exec(`
@@ -344,9 +502,19 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_id_number_lookup_hash
     ON users (id_number_lookup_hash);
+    CREATE INDEX IF NOT EXISTS idx_rescuers_status ON rescuers (status);
+    CREATE INDEX IF NOT EXISTS idx_rescuers_access_status ON rescuers (access_status);
+    CREATE INDEX IF NOT EXISTS idx_rescuers_created_at ON rescuers (created_at);
+    CREATE INDEX IF NOT EXISTS idx_rescuers_team_id ON rescuers (team_id);
+    CREATE INDEX IF NOT EXISTS idx_rescue_teams_status ON rescue_teams (status);
+    CREATE INDEX IF NOT EXISTS idx_rescue_teams_name ON rescue_teams (name);
     CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications (created_at);
     CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON notifications (read_at);
     CREATE INDEX IF NOT EXISTS idx_notifications_hidden_at ON notifications (hidden_at);
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_token_hash ON auth_sessions (session_token_hash);
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_principal ON auth_sessions (principal_type, principal_id);
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions (expires_at);
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_revoked_at ON auth_sessions (revoked_at);
   `);
 }
 
