@@ -8,6 +8,10 @@ fs.mkdirSync(path.dirname(config.databasePath), { recursive: true });
 const db = new sqlite3.Database(config.databasePath);
 db.configure('busyTimeout', 5000);
 
+function nowAsIso() {
+  return new Date().toISOString();
+}
+
 function run(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.run(sql, params, function onRun(error) {
@@ -296,6 +300,68 @@ async function ensureAllowedRescueTeamStatuses() {
   `);
 }
 
+async function ensureBootstrapSyncDevice() {
+  const bootstrapConfig = config.deviceSync && config.deviceSync.bootstrapDevice
+    ? config.deviceSync.bootstrapDevice
+    : null;
+
+  if (!bootstrapConfig || !bootstrapConfig.nodeId || !bootstrapConfig.apiKey) {
+    return;
+  }
+
+  const crypto = require('crypto');
+  const timestamp = nowAsIso();
+  const apiKeyHash = crypto.createHash('sha256').update(String(bootstrapConfig.apiKey)).digest('hex');
+
+  const existing = await get(`
+    SELECT id, api_key_hash AS apiKeyHash
+    FROM sync_devices
+    WHERE node_id = ?
+    LIMIT 1
+  `, [bootstrapConfig.nodeId]);
+
+  if (!existing) {
+    await run(`
+      INSERT INTO sync_devices (
+        node_id,
+        node_name,
+        status,
+        api_key_hash,
+        allowed_ip,
+        created_at,
+        updated_at
+      ) VALUES (?, ?, 'active', ?, ?, ?, ?)
+    `, [
+      bootstrapConfig.nodeId,
+      bootstrapConfig.nodeName || bootstrapConfig.nodeId,
+      apiKeyHash,
+      bootstrapConfig.allowedIp || null,
+      timestamp,
+      timestamp
+    ]);
+    return;
+  }
+
+  if (existing.apiKeyHash !== apiKeyHash) {
+    await run(`
+      UPDATE sync_devices
+      SET
+        node_name = ?,
+        status = 'active',
+        api_key_hash = ?,
+        allowed_ip = ?,
+        updated_at = ?
+      WHERE id = ?
+    `, [
+      bootstrapConfig.nodeName || bootstrapConfig.nodeId,
+      apiKeyHash,
+      bootstrapConfig.allowedIp || null,
+      timestamp,
+      existing.id
+    ]);
+  }
+}
+
 async function initializeDatabase() {
   await exec(`
     PRAGMA foreign_keys = ON;
@@ -438,6 +504,134 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_auth_sessions_principal ON auth_sessions (principal_type, principal_id);
     CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions (expires_at);
     CREATE INDEX IF NOT EXISTS idx_auth_sessions_revoked_at ON auth_sessions (revoked_at);
+
+    CREATE TABLE IF NOT EXISTS sync_devices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      node_id TEXT NOT NULL UNIQUE,
+      node_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'revoked')),
+      api_key_hash TEXT NOT NULL,
+      allowed_ip TEXT,
+      last_seen_at TEXT,
+      last_sync_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sync_devices_status ON sync_devices (status);
+    CREATE INDEX IF NOT EXISTS idx_sync_devices_last_sync ON sync_devices (last_sync_at);
+
+    CREATE TABLE IF NOT EXISTS mesh_nodes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      node_id TEXT NOT NULL UNIQUE,
+      node_name TEXT,
+      latitude REAL,
+      longitude REAL,
+      status TEXT,
+      last_seen_at TEXT,
+      users_connected INTEGER,
+      deleted INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS mesh_node_health_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      node_id TEXT NOT NULL,
+      battery_voltage REAL,
+      signal_strength INTEGER,
+      gps_status TEXT,
+      cpu_temp REAL,
+      storage_remaining INTEGER,
+      ram_usage REAL,
+      recorded_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (node_id, recorded_at)
+    );
+
+    CREATE TABLE IF NOT EXISTS mesh_distress_signals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      origin_node_id TEXT NOT NULL,
+      origin_distress_id INTEGER NOT NULL,
+      distress_code TEXT,
+      user_code TEXT,
+      first_name TEXT,
+      last_name TEXT,
+      phone TEXT,
+      blood_type TEXT,
+      age INTEGER,
+      node_id TEXT,
+      reason TEXT,
+      latitude REAL,
+      longitude REAL,
+      timestamp TEXT,
+      status TEXT,
+      priority TEXT,
+      ack_received INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT,
+      deleted INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (origin_node_id, origin_distress_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS mesh_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      origin_node_id TEXT NOT NULL,
+      local_message_id INTEGER NOT NULL,
+      message_code TEXT,
+      msg_type TEXT,
+      source_node_id TEXT,
+      destination_node_id TEXT,
+      conversation_node_id TEXT,
+      sender_local_user_id INTEGER,
+      sender_code TEXT,
+      sender_first_name TEXT,
+      sender_last_name TEXT,
+      sender_role TEXT,
+      content TEXT,
+      status TEXT,
+      priority TEXT,
+      message_timestamp TEXT,
+      uploaded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (origin_node_id, local_message_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS mesh_audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      origin_node_id TEXT NOT NULL,
+      local_audit_id INTEGER NOT NULL,
+      local_user_id INTEGER,
+      user_code TEXT,
+      user_role TEXT,
+      user_first_name TEXT,
+      user_last_name TEXT,
+      action TEXT NOT NULL,
+      target_type TEXT,
+      target_id TEXT,
+      ip_address TEXT,
+      event_timestamp TEXT,
+      metadata_json TEXT,
+      uploaded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (origin_node_id, local_audit_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS mesh_commands (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      target_node_id TEXT NOT NULL,
+      command_type TEXT NOT NULL,
+      payload_json TEXT,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processed', 'cancelled')),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      processed_at TEXT,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_mesh_nodes_updated_at ON mesh_nodes (updated_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_node_health_logs_recorded_at ON mesh_node_health_logs (recorded_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_distress_signals_updated_at ON mesh_distress_signals (updated_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_messages_timestamp ON mesh_messages (message_timestamp);
+    CREATE INDEX IF NOT EXISTS idx_mesh_audit_logs_event_timestamp ON mesh_audit_logs (event_timestamp);
+    CREATE INDEX IF NOT EXISTS idx_mesh_commands_target_status ON mesh_commands (target_node_id, status);
   `);
 
   if (!(await columnExists('users', 'id_number_lookup_hash'))) {
@@ -487,6 +681,10 @@ async function initializeDatabase() {
     await run('ALTER TABLE rescue_teams ADD COLUMN agency TEXT');
   }
 
+  if (!(await columnExists('mesh_nodes', 'node_name')) && (await getTableSql('mesh_nodes'))) {
+    await run('ALTER TABLE mesh_nodes ADD COLUMN node_name TEXT');
+  }
+
   await run(`
     UPDATE rescue_teams
     SET agency = 'cdrrmo'
@@ -515,7 +713,17 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_auth_sessions_principal ON auth_sessions (principal_type, principal_id);
     CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions (expires_at);
     CREATE INDEX IF NOT EXISTS idx_auth_sessions_revoked_at ON auth_sessions (revoked_at);
+    CREATE INDEX IF NOT EXISTS idx_sync_devices_status ON sync_devices (status);
+    CREATE INDEX IF NOT EXISTS idx_sync_devices_last_sync ON sync_devices (last_sync_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_nodes_updated_at ON mesh_nodes (updated_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_node_health_logs_recorded_at ON mesh_node_health_logs (recorded_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_distress_signals_updated_at ON mesh_distress_signals (updated_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_messages_timestamp ON mesh_messages (message_timestamp);
+    CREATE INDEX IF NOT EXISTS idx_mesh_audit_logs_event_timestamp ON mesh_audit_logs (event_timestamp);
+    CREATE INDEX IF NOT EXISTS idx_mesh_commands_target_status ON mesh_commands (target_node_id, status);
   `);
+
+  await ensureBootstrapSyncDevice();
 }
 
 module.exports = {

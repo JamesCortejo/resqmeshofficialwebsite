@@ -1,8 +1,10 @@
 const crypto = require('crypto');
+const config = require('../config/env');
 const {
   ADMIN_CSRF_HEADER_NAME,
   ADMIN_SESSION_COOKIE_NAME,
   ADMIN_SESSION_TTL_HOURS,
+  DEVICE_SYNC_TOKEN_TTL_MINUTES,
   SAFE_HTTP_METHODS,
   SESSION_CLIENT_TYPES,
   SESSION_PRINCIPAL_TYPES
@@ -11,9 +13,14 @@ const {
   createAuthSession,
   findAuthSessionByTokenHash,
   revokeAuthSessionById,
+  revokeAuthSessionsForPrincipal,
   updateAuthSessionLastSeen
 } = require('../repositories/authSessionRepository');
 const { findAdminById } = require('../repositories/adminRepository');
+const {
+  findSyncDeviceById,
+  touchSyncDeviceLastSeen
+} = require('../repositories/syncDeviceRepository');
 
 const SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -23,6 +30,10 @@ function nowAsIso() {
 
 function addHours(date, hours) {
   return new Date(date.getTime() + (hours * 60 * 60 * 1000));
+}
+
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + (minutes * 60 * 1000));
 }
 
 function hashToken(value) {
@@ -159,6 +170,40 @@ async function createAdminWebSession(adminUser, req) {
   };
 }
 
+async function createDeviceSyncSession(syncDevice, req) {
+  const issuedAt = new Date();
+  const expiresAt = addMinutes(issuedAt, config.deviceSync?.tokenTtlMinutes || DEVICE_SYNC_TOKEN_TTL_MINUTES);
+  const sessionToken = crypto.randomBytes(32).toString('hex');
+  const timestamp = issuedAt.toISOString();
+
+  await revokeAuthSessionsForPrincipal(
+    SESSION_PRINCIPAL_TYPES.MESH_NODE,
+    syncDevice.id,
+    SESSION_CLIENT_TYPES.DEVICE_SYNC,
+    timestamp
+  );
+
+  const result = await createAuthSession({
+    principalType: SESSION_PRINCIPAL_TYPES.MESH_NODE,
+    principalId: syncDevice.id,
+    clientType: SESSION_CLIENT_TYPES.DEVICE_SYNC,
+    sessionTokenHash: hashToken(sessionToken),
+    csrfSecret: null,
+    expiresAt: expiresAt.toISOString(),
+    lastSeenAt: timestamp,
+    revokedAt: null,
+    ipAddress: getRequestIpAddress(req),
+    userAgent: String(req.headers['user-agent'] || '').slice(0, 500),
+    createdAt: timestamp
+  });
+
+  return {
+    sessionId: result.lastID,
+    sessionToken,
+    expiresAt: expiresAt.toISOString()
+  };
+}
+
 async function validateAdminWebSession(req) {
   const sessionToken = readSessionTokenFromRequest(req);
 
@@ -212,6 +257,68 @@ async function revokeAuthenticatedSession(sessionId) {
   await revokeAuthSessionById(sessionId, nowAsIso());
 }
 
+function readBearerTokenFromRequest(req) {
+  const authorization = String(req.headers.authorization || '').trim();
+
+  if (!authorization.toLowerCase().startsWith('bearer ')) {
+    return '';
+  }
+
+  return authorization.slice(7).trim();
+}
+
+async function validateDeviceSyncSession(req) {
+  const sessionToken = readBearerTokenFromRequest(req);
+
+  if (!sessionToken) {
+    return null;
+  }
+
+  const session = await findAuthSessionByTokenHash(hashToken(sessionToken));
+
+  if (!session) {
+    return null;
+  }
+
+  const now = new Date();
+  const expiresAt = new Date(session.expiresAt);
+
+  if (
+    session.revokedAt
+    || session.principalType !== SESSION_PRINCIPAL_TYPES.MESH_NODE
+    || session.clientType !== SESSION_CLIENT_TYPES.DEVICE_SYNC
+    || Number.isNaN(expiresAt.getTime())
+    || expiresAt.getTime() <= now.getTime()
+  ) {
+    return null;
+  }
+
+  const syncDevice = await findSyncDeviceById(session.principalId);
+
+  if (!syncDevice || syncDevice.status !== 'active') {
+    return null;
+  }
+
+  const requestIpAddress = getRequestIpAddress(req);
+  if (syncDevice.allowedIp && syncDevice.allowedIp !== requestIpAddress) {
+    return null;
+  }
+
+  if (shouldTouchLastSeen(session.lastSeenAt)) {
+    const nextLastSeenAt = nowAsIso();
+    await updateAuthSessionLastSeen(session.id, nextLastSeenAt);
+    await touchSyncDeviceLastSeen(syncDevice.id, nextLastSeenAt);
+    session.lastSeenAt = nextLastSeenAt;
+    syncDevice.lastSeenAt = nextLastSeenAt;
+  }
+
+  return {
+    session,
+    principal: syncDevice,
+    token: sessionToken
+  };
+}
+
 function isSafeMethod(method) {
   return SAFE_HTTP_METHODS.has(String(method || 'GET').toUpperCase());
 }
@@ -248,10 +355,14 @@ module.exports = {
   buildSessionCookie,
   buildClearedSessionCookie,
   createAdminWebSession,
+  hashToken,
   getCsrfTokenFromRequest,
   hasValidCsrfToken,
   isSafeMethod,
   readSessionTokenFromRequest,
+  readBearerTokenFromRequest,
   revokeAuthenticatedSession,
-  validateAdminWebSession
+  validateAdminWebSession,
+  createDeviceSyncSession,
+  validateDeviceSyncSession
 };

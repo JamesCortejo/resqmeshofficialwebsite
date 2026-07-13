@@ -1,24 +1,28 @@
 const SESSION_PRINCIPAL_TYPES = {
   ADMIN_USER: 'admin_user',
   USER: 'user',
-  RESCUER: 'rescuer'
+  RESCUER: 'rescuer',
+  MESH_NODE: 'mesh_node'
 };
 
 const SESSION_CLIENT_TYPES = {
   ADMIN_WEB: 'admin_web',
-  MOBILE_APP: 'mobile_app'
+  MOBILE_APP: 'mobile_app',
+  DEVICE_SYNC: 'device_sync'
 };
 
 const ADMIN_SESSION_COOKIE_NAME = 'resqmesh_admin_session';
 const ADMIN_SESSION_TTL_HOURS = 8;
 const ADMIN_CSRF_HEADER_NAME = 'x-csrf-token';
 const SAFE_HTTP_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const DEVICE_SYNC_TOKEN_TTL_MINUTES = 30;
 
 module.exports = {
   SESSION_PRINCIPAL_TYPES,
   SESSION_CLIENT_TYPES,
   ADMIN_SESSION_COOKIE_NAME,
   ADMIN_SESSION_TTL_HOURS,
+  DEVICE_SYNC_TOKEN_TTL_MINUTES,
   ADMIN_CSRF_HEADER_NAME,
   SAFE_HTTP_METHODS
 };

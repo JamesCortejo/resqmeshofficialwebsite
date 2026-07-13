@@ -67,9 +67,21 @@ function revokeAuthSessionById(id, revokedAt) {
   `, [revokedAt, id]);
 }
 
+function revokeAuthSessionsForPrincipal(principalType, principalId, clientType, revokedAt) {
+  return run(`
+    UPDATE auth_sessions
+    SET revoked_at = ?
+    WHERE principal_type = ?
+      AND principal_id = ?
+      AND client_type = ?
+      AND revoked_at IS NULL
+  `, [revokedAt, principalType, principalId, clientType]);
+}
+
 module.exports = {
   createAuthSession,
   findAuthSessionByTokenHash,
   updateAuthSessionLastSeen,
-  revokeAuthSessionById
+  revokeAuthSessionById,
+  revokeAuthSessionsForPrincipal
 };

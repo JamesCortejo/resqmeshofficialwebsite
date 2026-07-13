@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const userRoutes = require('./server/routes/userRoutes');
 const adminRoutes = require('./server/routes/adminRoutes');
+const deviceSyncRoutes = require('./server/routes/deviceSyncRoutes');
 const { initializeDatabase } = require('./server/database/sqlite');
 const {
   redirectAuthenticatedAdmin,
@@ -23,6 +24,25 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 // MVC API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api', deviceSyncRoutes);
+
+app.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'ok',
+    service: 'resqmesh-website',
+    serverTime: new Date().toISOString()
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'ok',
+    service: 'resqmesh-website',
+    serverTime: new Date().toISOString()
+  });
+});
 
 // Route for specific pages
 app.get('/', (req, res) => {

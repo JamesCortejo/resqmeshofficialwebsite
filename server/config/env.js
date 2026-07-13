@@ -59,11 +59,45 @@ function parseBoolean(value, name) {
   throw new Error(`${name} must be true or false.`);
 }
 
+function optional(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  return normalized ? normalized : null;
+}
+
+function parsePositiveInteger(value, fallback, name) {
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(String(value), 10);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${name} must be a valid positive integer.`);
+  }
+
+  return parsed;
+}
+
 const config = {
   appRoot,
   databasePath: resolveFromRoot(required('SQLITE_DB_PATH')),
   encryptedUploadDir: resolveFromRoot(required('ENCRYPTED_UPLOAD_DIR')),
   encryptionKey: parseEncryptionKey(required('APP_ENCRYPTION_KEY')),
+  deviceSync: {
+    tokenTtlMinutes: parsePositiveInteger(process.env.DEVICE_SYNC_TOKEN_TTL_MINUTES, 30, 'DEVICE_SYNC_TOKEN_TTL_MINUTES'),
+    defaultPageLimit: parsePositiveInteger(process.env.DEVICE_SYNC_DEFAULT_PAGE_LIMIT, 100, 'DEVICE_SYNC_DEFAULT_PAGE_LIMIT'),
+    maxPageLimit: parsePositiveInteger(process.env.DEVICE_SYNC_MAX_PAGE_LIMIT, 250, 'DEVICE_SYNC_MAX_PAGE_LIMIT'),
+    bootstrapDevice: {
+      nodeId: optional(process.env.SYNC_BOOTSTRAP_NODE_ID),
+      nodeName: optional(process.env.SYNC_BOOTSTRAP_NODE_NAME),
+      apiKey: optional(process.env.SYNC_BOOTSTRAP_API_KEY),
+      allowedIp: optional(process.env.SYNC_BOOTSTRAP_ALLOWED_IP)
+    }
+  },
   smtp: {
     host: required('SMTP_HOST'),
     port: parsePort(required('SMTP_PORT')),
