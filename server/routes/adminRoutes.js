@@ -2,6 +2,7 @@ const express = require('express');
 const adminAuthController = require('../controllers/adminAuthController');
 const adminAccountsController = require('../controllers/adminAccountsController');
 const adminNotificationsController = require('../controllers/adminNotificationsController');
+const deviceManagerController = require('../controllers/deviceManagerController');
 const rescuerController = require('../controllers/rescuerController');
 const rescueTeamController = require('../controllers/rescueTeamController');
 const {
@@ -28,6 +29,8 @@ router.get('/accounts/:id', adminAccountsController.getDetails);
 router.get('/accounts/:id/id/:side', adminAccountsController.getIdImage);
 router.patch('/accounts/:id/access-status', adminAccountsController.updateAccessStatus);
 router.patch('/accounts/:id/status', adminAccountsController.updateStatus);
+router.get('/devices', deviceManagerController.listDevices);
+router.get('/devices/:id', deviceManagerController.getDeviceDetails);
 router.post('/rescuers', rescuerController.createRescuer);
 router.get('/rescuers', rescuerController.listRescuers);
 router.get('/rescuers/assignable', rescueTeamController.listAssignableRescuers);

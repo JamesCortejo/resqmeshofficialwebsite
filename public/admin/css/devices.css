@@ -1,0 +1,559 @@
+.devices-panel {
+  display: grid;
+  gap: 1rem;
+  max-height: none;
+}
+
+.devices-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.devices-panel-header h2 {
+  margin-bottom: 0.35rem;
+}
+
+.devices-panel-header p {
+  max-width: 760px;
+}
+
+.devices-toolbar {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.devices-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  color: var(--admin-primary);
+  padding: 0 0.85rem;
+}
+
+.devices-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--admin-ink);
+  font: 700 0.92rem 'Inter', system-ui, -apple-system, sans-serif;
+  outline: none;
+  padding: 0.75rem 0;
+}
+
+.devices-search input::placeholder {
+  color: var(--admin-muted);
+  font-weight: 600;
+}
+
+.devices-search:focus-within {
+  border-color: rgba(231, 75, 50, 0.46);
+  box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
+}
+
+.devices-status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.admin-secondary-button,
+.device-card-view-button,
+.device-view-icon-button,
+.device-view-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--admin-radius-md);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 800;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.admin-secondary-button {
+  min-height: 42px;
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  background: #ffffff;
+  color: var(--admin-primary-hover);
+  cursor: pointer;
+  padding: 0.7rem 0.95rem;
+}
+
+.admin-secondary-button:hover,
+.device-card-view-button:hover,
+.device-view-secondary-button:hover {
+  border-color: rgba(231, 75, 50, 0.35);
+  background: var(--admin-soft);
+  box-shadow: 0 10px 20px rgba(231, 75, 50, 0.1);
+}
+
+.admin-secondary-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.admin-secondary-button.devices-filter-button.is-active {
+  background: var(--admin-soft);
+  border-color: rgba(231, 75, 50, 0.35);
+  color: var(--admin-primary-hover);
+  box-shadow: 0 10px 20px rgba(231, 75, 50, 0.1);
+}
+
+.devices-feedback {
+  border-radius: var(--admin-radius-md);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  padding: 0.9rem 1rem;
+}
+
+.devices-feedback[data-tone="error"] {
+  border: 1px solid rgba(178, 41, 41, 0.2);
+  background: rgba(178, 41, 41, 0.08);
+  color: #9f1f1f;
+}
+
+.devices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.device-card {
+  display: grid;
+  gap: 0.95rem;
+  border: 1px solid rgba(220, 227, 234, 0.9);
+  border-radius: calc(var(--admin-radius-md) + 0.1rem);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 245, 0.92));
+  box-shadow: 0 20px 40px rgba(23, 33, 43, 0.08);
+  padding: 1rem;
+}
+
+.device-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.device-card-title {
+  color: var(--admin-ink);
+  font: 800 1.05rem 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+}
+
+.device-card-subtitle {
+  color: var(--admin-muted);
+  font: 700 0.82rem 'Inter', system-ui, -apple-system, sans-serif;
+  margin-top: 0.2rem;
+}
+
+.device-card-status-pill,
+.device-inline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  font: 900 0.75rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 0.5rem 0.72rem;
+  text-transform: uppercase;
+}
+
+.device-card-status-pill[data-status="online"],
+.device-inline-pill[data-status="online"] {
+  border: 1px solid rgba(14, 139, 112, 0.2);
+  background: rgba(14, 139, 112, 0.08);
+  color: #0b6b56;
+}
+
+.device-card-status-pill[data-status="stale"],
+.device-inline-pill[data-status="stale"] {
+  border: 1px solid rgba(187, 114, 14, 0.24);
+  background: rgba(187, 114, 14, 0.08);
+  color: #9a5d08;
+}
+
+.device-card-status-pill[data-status="offline"],
+.device-inline-pill[data-status="offline"] {
+  border: 1px solid rgba(100, 113, 127, 0.24);
+  background: #f8fafc;
+  color: var(--admin-muted);
+}
+
+.device-card-status-pill[data-status="revoked"],
+.device-inline-pill[data-status="revoked"] {
+  border: 1px solid rgba(178, 41, 41, 0.22);
+  background: rgba(178, 41, 41, 0.08);
+  color: #9f1f1f;
+}
+
+.device-card-body {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.device-card-sync-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.device-card-stat {
+  border: 1px solid rgba(220, 227, 234, 0.84);
+  border-radius: var(--admin-radius-md);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.75rem 0.8rem;
+}
+
+.device-card-stat strong {
+  display: block;
+  color: var(--admin-muted);
+  font: 800 0.72rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.device-card-stat span {
+  color: var(--admin-ink);
+  font: 800 0.95rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.device-card-meta {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.device-card-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--admin-muted);
+  font: 700 0.84rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.device-card-meta-row strong {
+  color: var(--admin-ink);
+}
+
+.device-card-activity {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.device-card-activity-chip {
+  border: 1px solid rgba(231, 75, 50, 0.14);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-soft);
+  padding: 0.6rem 0.45rem;
+  text-align: center;
+}
+
+.device-card-activity-chip strong {
+  display: block;
+  color: var(--admin-primary-hover);
+  font: 900 1rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.device-card-activity-chip span {
+  color: var(--admin-muted);
+  font: 700 0.72rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.device-card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.device-card-view-button,
+.device-view-secondary-button {
+  min-height: 40px;
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  background: #ffffff;
+  color: var(--admin-primary-hover);
+  cursor: pointer;
+  padding: 0.65rem 0.9rem;
+}
+
+.devices-list-empty {
+  border: 1px dashed rgba(100, 113, 127, 0.24);
+  border-radius: var(--admin-radius-md);
+  color: var(--admin-muted);
+  font: 700 0.92rem 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 1rem;
+  text-align: center;
+}
+
+.devices-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.devices-pagination-summary {
+  color: var(--admin-muted);
+  font: 700 0.9rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.devices-pagination-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.device-view-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.device-view-modal.is-open {
+  display: flex;
+}
+
+.device-view-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 22, 29, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+.device-view-modal-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(980px, 100%);
+  max-height: calc(100vh - 3rem);
+  overflow: auto;
+  border: 1px solid rgba(231, 75, 50, 0.14);
+  border-radius: calc(var(--admin-radius-md) + 0.2rem);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 247, 244, 0.96));
+  box-shadow: 0 28px 80px rgba(23, 33, 43, 0.22);
+  padding: 1.35rem;
+}
+
+.device-view-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.device-view-modal-kicker {
+  display: inline-flex;
+  align-items: center;
+  color: var(--admin-primary-hover);
+  font: 800 0.76rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.device-view-modal-header h2 {
+  color: var(--admin-ink);
+  font-size: 1.7rem;
+  font-weight: 800;
+  margin-top: 0.35rem;
+}
+
+.device-view-icon-button {
+  min-height: 42px;
+  min-width: 42px;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  background: #ffffff;
+  color: var(--admin-muted);
+  cursor: pointer;
+}
+
+.device-view-icon-button:hover {
+  border-color: rgba(231, 75, 50, 0.3);
+  color: var(--admin-primary-hover);
+}
+
+.device-view-modal-body {
+  margin-top: 1rem;
+}
+
+.device-view-status-message {
+  border: 1px dashed rgba(100, 113, 127, 0.24);
+  border-radius: var(--admin-radius-md);
+  color: var(--admin-muted);
+  font: 700 0.95rem 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 1rem;
+}
+
+.device-view-status-message[data-tone="error"] {
+  border-color: rgba(178, 41, 41, 0.2);
+  background: rgba(178, 41, 41, 0.08);
+  color: #9f1f1f;
+}
+
+.device-detail-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.device-detail-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(220, 227, 234, 0.84);
+  border-radius: calc(var(--admin-radius-md) + 0.05rem);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 1rem;
+}
+
+.device-detail-hero h3 {
+  color: var(--admin-ink);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.device-detail-hero p {
+  color: var(--admin-muted);
+  font: 700 0.9rem 'Inter', system-ui, -apple-system, sans-serif;
+  margin-top: 0.25rem;
+}
+
+.device-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.device-detail-section {
+  border: 1px solid rgba(220, 227, 234, 0.84);
+  border-radius: calc(var(--admin-radius-md) + 0.05rem);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 1rem;
+}
+
+.device-detail-section h3 {
+  color: var(--admin-ink);
+  font-size: 1rem;
+  font-weight: 800;
+  margin-bottom: 0.85rem;
+}
+
+.device-detail-section dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem 1rem;
+}
+
+.device-detail-item {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.device-detail-item dt {
+  color: var(--admin-muted);
+  font: 800 0.73rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.device-detail-item dd {
+  color: var(--admin-ink);
+  font: 700 0.94rem 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+}
+
+.device-view-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.device-view-action-message {
+  color: var(--admin-muted);
+  font: 700 0.88rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.device-view-action-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.devices-modal-open {
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .device-card-activity {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .device-detail-section dl {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .devices-status-filters {
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+  }
+
+  .devices-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .devices-pagination-actions {
+    justify-content: stretch;
+  }
+
+  .devices-pagination-actions .admin-secondary-button {
+    flex: 1;
+  }
+
+  .device-card-sync-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .device-detail-hero {
+    flex-direction: column;
+  }
+
+  .device-detail-badges {
+    justify-content: flex-start;
+  }
+
+  .device-view-modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .device-view-action-buttons {
+    width: 100%;
+  }
+
+  .device-view-secondary-button {
+    width: 100%;
+  }
+}
