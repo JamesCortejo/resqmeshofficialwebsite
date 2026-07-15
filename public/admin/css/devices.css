@@ -252,28 +252,33 @@
 }
 
 .device-card-activity {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
 }
 
 .device-card-activity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   border: 1px solid rgba(231, 75, 50, 0.14);
   border-radius: var(--admin-radius-md);
   background: var(--admin-soft);
-  padding: 0.6rem 0.45rem;
-  text-align: center;
+  padding: 0.55rem 0.8rem;
+  text-align: left;
 }
 
 .device-card-activity-chip strong {
-  display: block;
   color: var(--admin-primary-hover);
-  font: 900 1rem 'Inter', system-ui, -apple-system, sans-serif;
+  font: 900 1.05rem 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1;
 }
 
 .device-card-activity-chip span {
   color: var(--admin-muted);
-  font: 700 0.72rem 'Inter', system-ui, -apple-system, sans-serif;
+  font: 800 0.78rem 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .device-card-actions {
@@ -504,10 +509,6 @@
 }
 
 @media (max-width: 900px) {
-  .device-card-activity {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .device-detail-section dl {
     grid-template-columns: 1fr;
   }

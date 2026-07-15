@@ -18,7 +18,9 @@ function listDevices() {
       mn.last_seen_at AS nodeLastSeenAt,
       mn.users_connected AS usersConnected,
       COALESCE(mc.pendingCommandCount, 0) AS pendingCommandCount,
-      COALESCE(md.recentDistressCount, 0) AS recentDistressCount,
+      COALESCE(md.recentActiveDistressCount, 0) AS recentActiveDistressCount,
+      COALESCE(md.recentSolvedDistressCount, 0) AS recentSolvedDistressCount,
+      COALESCE(md.recentCanceledDistressCount, 0) AS recentCanceledDistressCount,
       COALESCE(mm.recentMessageCount, 0) AS recentMessageCount,
       COALESCE(ma.recentAuditCount, 0) AS recentAuditCount
     FROM sync_devices sd
@@ -30,9 +32,14 @@ function listDevices() {
       GROUP BY target_node_id
     ) mc ON mc.target_node_id = sd.node_id
     LEFT JOIN (
-      SELECT origin_node_id, COUNT(*) AS recentDistressCount
+      SELECT
+        origin_node_id,
+        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'pending' THEN 1 ELSE 0 END) AS recentActiveDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'processed' THEN 1 ELSE 0 END) AS recentSolvedDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'cancelled' THEN 1 ELSE 0 END) AS recentCanceledDistressCount
       FROM mesh_distress_signals
-      WHERE datetime(COALESCE(updated_at, created_at)) >= datetime('now', '-1 day')
+      WHERE deleted = 0
+        AND datetime(COALESCE(updated_at, created_at)) >= datetime('now', '-1 day')
       GROUP BY origin_node_id
     ) md ON md.origin_node_id = sd.node_id
     LEFT JOIN (
@@ -69,7 +76,9 @@ function getDeviceSummaryById(id) {
       mn.last_seen_at AS nodeLastSeenAt,
       mn.users_connected AS usersConnected,
       COALESCE(mc.pendingCommandCount, 0) AS pendingCommandCount,
-      COALESCE(md.recentDistressCount, 0) AS recentDistressCount,
+      COALESCE(md.recentActiveDistressCount, 0) AS recentActiveDistressCount,
+      COALESCE(md.recentSolvedDistressCount, 0) AS recentSolvedDistressCount,
+      COALESCE(md.recentCanceledDistressCount, 0) AS recentCanceledDistressCount,
       COALESCE(mm.recentMessageCount, 0) AS recentMessageCount,
       COALESCE(ma.recentAuditCount, 0) AS recentAuditCount
     FROM sync_devices sd
@@ -81,9 +90,14 @@ function getDeviceSummaryById(id) {
       GROUP BY target_node_id
     ) mc ON mc.target_node_id = sd.node_id
     LEFT JOIN (
-      SELECT origin_node_id, COUNT(*) AS recentDistressCount
+      SELECT
+        origin_node_id,
+        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'pending' THEN 1 ELSE 0 END) AS recentActiveDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'processed' THEN 1 ELSE 0 END) AS recentSolvedDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'cancelled' THEN 1 ELSE 0 END) AS recentCanceledDistressCount
       FROM mesh_distress_signals
-      WHERE datetime(COALESCE(updated_at, created_at)) >= datetime('now', '-1 day')
+      WHERE deleted = 0
+        AND datetime(COALESCE(updated_at, created_at)) >= datetime('now', '-1 day')
       GROUP BY origin_node_id
     ) md ON md.origin_node_id = sd.node_id
     LEFT JOIN (
@@ -123,9 +137,14 @@ function getLatestHealthRecord(nodeId) {
 
 function getTotalDistressCount(nodeId) {
   return get(`
-    SELECT COUNT(*) AS count
+    SELECT
+      COUNT(*) AS count,
+      SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'pending' THEN 1 ELSE 0 END) AS activeCount,
+      SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'processed' THEN 1 ELSE 0 END) AS solvedCount,
+      SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'cancelled' THEN 1 ELSE 0 END) AS canceledCount
     FROM mesh_distress_signals
     WHERE origin_node_id = ?
+      AND deleted = 0
   `, [nodeId]);
 }
 

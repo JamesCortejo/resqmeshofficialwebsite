@@ -15,7 +15,7 @@
       return 'Not available';
     }
 
-    const date = new Date(value);
+    const date = parseTimestamp(value);
 
     if (Number.isNaN(date.getTime())) {
       return value;
@@ -35,7 +35,7 @@
       return 'No recent activity';
     }
 
-    const date = new Date(value);
+    const date = parseTimestamp(value);
 
     if (Number.isNaN(date.getTime())) {
       return value;
@@ -59,6 +59,28 @@
 
     const diffDays = Math.round(diffHours / 24);
     return `${diffDays}d ago`;
+  }
+
+  function parseTimestamp(value) {
+    if (value === null || value === undefined || value === '') {
+      return new Date('');
+    }
+
+    if (value instanceof Date) {
+      return value;
+    }
+
+    const raw = String(value).trim();
+
+    if (!raw) {
+      return new Date('');
+    }
+
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)) {
+      return new Date(raw.replace(' ', 'T') + 'Z');
+    }
+
+    return new Date(raw);
   }
 
   function formatCoordinate(value) {

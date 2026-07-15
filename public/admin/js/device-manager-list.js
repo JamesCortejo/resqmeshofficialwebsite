@@ -52,20 +52,20 @@
 
               <div class="device-card-activity">
                 <div class="device-card-activity-chip">
-                  <strong>${helpers.escapeHtml(device.recentDistressCount)}</strong>
-                  <span>Distress</span>
+                  <strong>${helpers.escapeHtml(device.recentActiveDistressCount)}</strong>
+                  <span>Active</span>
+                </div>
+                <div class="device-card-activity-chip">
+                  <strong>${helpers.escapeHtml(device.recentSolvedDistressCount)}</strong>
+                  <span>Solved</span>
+                </div>
+                <div class="device-card-activity-chip">
+                  <strong>${helpers.escapeHtml(device.recentCanceledDistressCount)}</strong>
+                  <span>Canceled</span>
                 </div>
                 <div class="device-card-activity-chip">
                   <strong>${helpers.escapeHtml(device.recentMessageCount)}</strong>
                   <span>Messages</span>
-                </div>
-                <div class="device-card-activity-chip">
-                  <strong>${helpers.escapeHtml(device.pendingCommandCount)}</strong>
-                  <span>Commands</span>
-                </div>
-                <div class="device-card-activity-chip">
-                  <strong>${helpers.escapeHtml(device.recentAuditCount)}</strong>
-                  <span>Audit</span>
                 </div>
               </div>
             </div>
