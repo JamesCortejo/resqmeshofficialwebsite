@@ -318,6 +318,20 @@
   gap: 0.55rem;
 }
 
+.device-map-popup-distress {
+  display: grid;
+  gap: 0.45rem;
+  border-top: 1px solid rgba(178, 41, 41, 0.14);
+  padding-top: 0.7rem;
+}
+
+.device-map-popup-distress > strong {
+  color: #9f1f1f;
+  font: 900 0.78rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .device-map-popup-row {
   display: flex;
   justify-content: space-between;

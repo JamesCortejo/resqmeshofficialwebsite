@@ -164,7 +164,18 @@ function mapStatusResponse(row) {
     lastSyncAt: summary.lastSyncAt,
     usersConnected: summary.usersConnected,
     hasActiveDistress,
-    activeDistressCount
+    activeDistressCount,
+    activeDistress: hasActiveDistress ? {
+      distressCode: row.activeDistressCode || null,
+      userCode: row.activeDistressUserCode || null,
+      firstName: row.activeDistressFirstName || null,
+      lastName: row.activeDistressLastName || null,
+      fullName: [row.activeDistressFirstName, row.activeDistressLastName].filter(Boolean).join(' ').trim() || null,
+      phone: row.activeDistressPhone || null,
+      reason: row.activeDistressReason || null,
+      priority: row.activeDistressPriority || null,
+      timestamp: toIsoTimestamp(row.activeDistressTimestamp)
+    } : null
   };
 }
 

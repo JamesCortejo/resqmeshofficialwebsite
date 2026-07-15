@@ -102,6 +102,16 @@
     const accessBadge = device.deviceStatus === 'revoked'
       ? `<span class="device-map-popup-pill" data-status="revoked">${helpers.escapeHtml(device.deviceStatusLabel)}</span>`
       : '';
+    const activeDistress = device.activeDistress || null;
+    const distressDetails = device.hasActiveDistress && activeDistress ? `
+      <div class="device-map-popup-distress">
+        <strong>Active Distress</strong>
+        <div class="device-map-popup-row"><span>Activated by</span><strong>${helpers.escapeHtml(activeDistress.fullName || activeDistress.userCode || 'Unknown user')}</strong></div>
+        <div class="device-map-popup-row"><span>User code</span><strong>${helpers.escapeHtml(activeDistress.userCode || 'Not available')}</strong></div>
+        <div class="device-map-popup-row"><span>Reason</span><strong>${helpers.escapeHtml(activeDistress.reason || 'Not available')}</strong></div>
+        <div class="device-map-popup-row"><span>Triggered</span><strong>${helpers.escapeHtml(activeDistress.timestamp ? helpers.formatRelativeTime(activeDistress.timestamp) : 'Not available')}</strong></div>
+      </div>
+    ` : '';
 
     return `
       <div class="device-map-popup-card">
@@ -119,6 +129,7 @@
           <div class="device-map-popup-row"><span>Users connected</span><strong>${helpers.escapeHtml(device.usersConnected)}</strong></div>
           <div class="device-map-popup-row"><span>Coordinates</span><strong>${helpers.escapeHtml(`${helpers.formatCoordinate(device.latitude)}, ${helpers.formatCoordinate(device.longitude)}`)}</strong></div>
         </div>
+        ${distressDetails}
       </div>
     `;
   }

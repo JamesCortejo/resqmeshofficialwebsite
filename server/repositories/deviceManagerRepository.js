@@ -75,7 +75,15 @@ function listDevicesForMap() {
       mn.longitude,
       mn.last_seen_at AS nodeLastSeenAt,
       mn.users_connected AS usersConnected,
-      COALESCE(md.activeDistressCount, 0) AS activeDistressCount
+      COALESCE(md.activeDistressCount, 0) AS activeDistressCount,
+      ad.distress_code AS activeDistressCode,
+      ad.user_code AS activeDistressUserCode,
+      ad.first_name AS activeDistressFirstName,
+      ad.last_name AS activeDistressLastName,
+      ad.phone AS activeDistressPhone,
+      ad.reason AS activeDistressReason,
+      ad.priority AS activeDistressPriority,
+      ad.timestamp AS activeDistressTimestamp
     FROM sync_devices sd
     LEFT JOIN mesh_nodes mn ON mn.node_id = sd.node_id
     LEFT JOIN (
@@ -87,6 +95,16 @@ function listDevicesForMap() {
         AND LOWER(COALESCE(status, 'active')) = 'active'
       GROUP BY origin_node_id
     ) md ON md.origin_node_id = sd.node_id
+    LEFT JOIN mesh_distress_signals ad
+      ON ad.id = (
+        SELECT inner_mds.id
+        FROM mesh_distress_signals inner_mds
+        WHERE inner_mds.origin_node_id = sd.node_id
+          AND inner_mds.deleted = 0
+          AND LOWER(COALESCE(inner_mds.status, 'active')) = 'active'
+        ORDER BY datetime(COALESCE(inner_mds.updated_at, inner_mds.timestamp, inner_mds.created_at)) DESC, inner_mds.id DESC
+        LIMIT 1
+      )
     ORDER BY COALESCE(sd.last_sync_at, sd.last_seen_at, sd.created_at) DESC, sd.id DESC
   `);
 }
