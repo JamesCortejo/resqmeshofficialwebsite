@@ -248,6 +248,14 @@ function buildLiveRouteResponse(assignment, location, snapshot) {
       assigned_at: assignment.deployedAt || assignment.createdAt,
       eta_minutes: snapshot?.etaMinutes ?? null,
       status: assignment.status,
+      team: assignment.teamId
+        ? {
+          id: assignment.teamId,
+          code: assignment.teamCode || '',
+          name: assignment.teamName || '',
+          status: assignment.teamStatus || ''
+        }
+        : null,
       distress: {
         code: assignment.distressCode,
         reason: assignment.reason,
