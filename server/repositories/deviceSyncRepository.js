@@ -355,6 +355,26 @@ function markMeshCommandProcessed(id, nodeId) {
   `, [id, nodeId]);
 }
 
+function createMeshCommand(command) {
+  return run(`
+    INSERT INTO mesh_commands (
+      target_node_id,
+      command_type,
+      payload_json,
+      status,
+      created_at,
+      updated_at
+    ) VALUES (?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
+  `, [
+    command.targetNodeId,
+    command.commandType,
+    command.payloadJson || null,
+    command.status || 'pending',
+    command.createdAt || null,
+    command.updatedAt || null
+  ]);
+}
+
 function createServerAuditLog(entry) {
   const localAuditId = Number(entry.localAuditId);
 
@@ -386,5 +406,6 @@ module.exports = {
   upsertMeshAuditLog,
   listPendingMeshCommands,
   markMeshCommandProcessed,
+  createMeshCommand,
   createServerAuditLog
 };

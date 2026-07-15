@@ -16,6 +16,7 @@ const {
   createDeployment,
   updateDeploymentStatus
 } = require('../repositories/deploymentRepository');
+const { createMeshCommand } = require('../repositories/deviceSyncRepository');
 const {
   listRescueTeams,
   getRescueTeamMembers,
@@ -58,6 +59,28 @@ function teamSummary(row) {
     name: row.teamName || '',
     status: row.teamStatus || ''
   };
+}
+
+async function enqueueDistressCancelCommand(deployment) {
+  if (!deployment?.originNodeId || !deployment?.originDistressId) {
+    return;
+  }
+
+  const timestamp = new Date().toISOString();
+
+  await createMeshCommand({
+    targetNodeId: deployment.originNodeId,
+    commandType: 'cancel_distress',
+    payloadJson: JSON.stringify({
+      originNodeId: deployment.originNodeId,
+      originDistressId: deployment.originDistressId,
+      meshDistressSignalId: deployment.meshDistressSignalId || null,
+      deploymentId: deployment.id
+    }),
+    status: 'pending',
+    createdAt: timestamp,
+    updatedAt: timestamp
+  });
 }
 
 function distressSummary(row) {
@@ -278,6 +301,7 @@ async function setDeploymentStatus(id, status) {
   if (status === DEPLOYMENT_STATUSES.CANCELED) {
     await notifyDeploymentCanceled(updated);
   } else if (status === DEPLOYMENT_STATUSES.ACCOMPLISHED) {
+    await enqueueDistressCancelCommand(updated);
     await notifyDeploymentAccomplished(updated);
   }
 
