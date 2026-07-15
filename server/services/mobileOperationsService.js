@@ -2,6 +2,7 @@ const {
   getActiveDistressSignalById,
   findActiveDeploymentByDistressSignalId,
   getDeploymentById,
+  listAssignmentsForRescuer,
   listActiveAssignmentsForRescuer,
   findActiveAssignmentForRescuer,
   findActiveDeploymentByOrigin,
@@ -35,11 +36,18 @@ function ensureCoordinate(value, label) {
 }
 
 function assignmentSummary(row) {
+  const statusTimestamp = row.status === 'accomplished'
+    ? row.accomplishedAt
+    : row.status === 'canceled'
+      ? row.canceledAt
+      : row.updatedAt;
+
   return {
     id: row.id,
     distress_id: row.meshDistressSignalId,
     status: row.status,
     assigned_at: row.deployedAt || row.createdAt,
+    status_updated_at: statusTimestamp || row.updatedAt || row.deployedAt || row.createdAt,
     eta_minutes: row.etaMinutes ?? null,
     distress: {
       code: row.distressCode,
@@ -69,7 +77,7 @@ function assignmentSummary(row) {
 }
 
 async function getRescuerAssignments(rescuer) {
-  const rows = await listActiveAssignmentsForRescuer(rescuer.id);
+  const rows = await listAssignmentsForRescuer(rescuer.id);
   return rows.map(assignmentSummary);
 }
 

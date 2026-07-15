@@ -520,6 +520,55 @@ function listActiveAssignmentsForRescuer(rescuerId) {
   `, [rescuerId]);
 }
 
+function listAssignmentsForRescuer(rescuerId) {
+  return all(`
+    SELECT
+      d.id,
+      d.deployment_code AS deploymentCode,
+      d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.origin_node_id AS originNodeId,
+      d.origin_distress_id AS originDistressId,
+      d.team_id AS teamId,
+      d.team_leader_rescuer_id AS teamLeaderRescuerId,
+      d.status,
+      d.created_at AS createdAt,
+      d.deployed_at AS deployedAt,
+      d.canceled_at AS canceledAt,
+      d.accomplished_at AS accomplishedAt,
+      d.updated_at AS updatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      m.distress_code AS distressCode,
+      m.reason,
+      m.latitude,
+      m.longitude,
+      m.timestamp,
+      m.priority,
+      m.first_name AS firstName,
+      m.last_name AS lastName,
+      m.phone,
+      m.blood_type AS bloodType,
+      m.age,
+      n.node_id AS nodeId,
+      n.node_name AS nodeName,
+      s.distance_m AS distanceM,
+      s.duration_s AS durationS,
+      s.eta_minutes AS etaMinutes,
+      s.geometry_json AS geometryJson,
+      s.updated_at AS routeUpdatedAt
+    FROM distress_deployment_members dm
+    INNER JOIN distress_deployments d ON d.id = dm.deployment_id
+    INNER JOIN mesh_distress_signals m ON m.id = d.mesh_distress_signal_id
+    LEFT JOIN rescue_teams t ON t.id = d.team_id
+    LEFT JOIN mesh_nodes n ON n.node_id = d.origin_node_id
+    LEFT JOIN deployment_route_snapshots s ON s.deployment_id = d.id
+    WHERE dm.rescuer_id = ?
+      AND d.status IN ('deployed', 'accomplished', 'canceled')
+      AND m.deleted = 0
+    ORDER BY COALESCE(d.updated_at, d.deployed_at, d.created_at) DESC, d.id DESC
+  `, [rescuerId]);
+}
+
 function findActiveAssignmentForRescuer(rescuerId) {
   return get(`
     SELECT
@@ -801,6 +850,7 @@ module.exports = {
   upsertDeploymentRouteSnapshot,
   getDeploymentRouteSnapshotByDeploymentId,
   listActiveAssignmentsForRescuer,
+  listAssignmentsForRescuer,
   findActiveAssignmentForRescuer,
   findActiveDeploymentByOrigin,
   getLatestDeployedAssignment,
