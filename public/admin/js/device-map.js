@@ -108,7 +108,7 @@
         <strong>Active Distress</strong>
         <div class="device-map-popup-row"><span>Activated by</span><strong>${helpers.escapeHtml(activeDistress.fullName || activeDistress.userCode || 'Unknown user')}</strong></div>
         <div class="device-map-popup-row"><span>User code</span><strong>${helpers.escapeHtml(activeDistress.userCode || 'Not available')}</strong></div>
-        <div class="device-map-popup-row"><span>Reason</span><strong>${helpers.escapeHtml(activeDistress.reason || 'Not available')}</strong></div>
+        <div class="device-map-popup-row"><span>Reason</span><strong>${helpers.escapeHtml(helpers.formatDistressReason(activeDistress.reason))}</strong></div>
         <div class="device-map-popup-row"><span>Triggered</span><strong>${helpers.escapeHtml(activeDistress.timestamp ? helpers.formatRelativeTime(activeDistress.timestamp) : 'Not available')}</strong></div>
       </div>
     ` : '';

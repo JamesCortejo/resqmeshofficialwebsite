@@ -107,6 +107,20 @@
     return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unknown';
   }
 
+  function formatDistressReason(value) {
+    const normalized = String(value || '').trim();
+
+    if (!normalized) {
+      return 'Not available';
+    }
+
+    return normalized
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase();
+  }
+
   function detailItem(label, value) {
     return `
       <div class="device-detail-item">
@@ -243,6 +257,7 @@
         formatRelativeTime,
         formatCoordinate,
         getStatusDisplay,
+        formatDistressReason,
         detailItem,
         requestJson
       },
