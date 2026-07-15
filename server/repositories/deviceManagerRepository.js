@@ -58,6 +58,39 @@ function listDevices() {
   `);
 }
 
+function listDevicesForMap() {
+  return all(`
+    SELECT
+      sd.id,
+      sd.node_id AS nodeId,
+      sd.node_name AS nodeName,
+      sd.status AS deviceStatus,
+      sd.allowed_ip AS allowedIp,
+      sd.last_seen_at AS deviceLastSeenAt,
+      sd.last_sync_at AS lastSyncAt,
+      sd.created_at AS createdAt,
+      sd.updated_at AS updatedAt,
+      mn.status AS nodeStatus,
+      mn.latitude,
+      mn.longitude,
+      mn.last_seen_at AS nodeLastSeenAt,
+      mn.users_connected AS usersConnected,
+      COALESCE(md.activeDistressCount, 0) AS activeDistressCount
+    FROM sync_devices sd
+    LEFT JOIN mesh_nodes mn ON mn.node_id = sd.node_id
+    LEFT JOIN (
+      SELECT
+        origin_node_id,
+        COUNT(*) AS activeDistressCount
+      FROM mesh_distress_signals
+      WHERE deleted = 0
+        AND LOWER(COALESCE(status, 'active')) = 'active'
+      GROUP BY origin_node_id
+    ) md ON md.origin_node_id = sd.node_id
+    ORDER BY COALESCE(sd.last_sync_at, sd.last_seen_at, sd.created_at) DESC, sd.id DESC
+  `);
+}
+
 function getDeviceSummaryById(id) {
   return get(`
     SELECT
@@ -166,6 +199,7 @@ function getTotalAuditCount(nodeId) {
 
 module.exports = {
   listDevices,
+  listDevicesForMap,
   getDeviceSummaryById,
   getLatestHealthRecord,
   getTotalDistressCount,

@@ -30,6 +30,7 @@ router.get('/accounts/:id/id/:side', adminAccountsController.getIdImage);
 router.patch('/accounts/:id/access-status', adminAccountsController.updateAccessStatus);
 router.patch('/accounts/:id/status', adminAccountsController.updateStatus);
 router.get('/devices', deviceManagerController.listDevices);
+router.get('/devices/map', deviceManagerController.listDevicesForMap);
 router.get('/devices/:id', deviceManagerController.getDeviceDetails);
 router.post('/rescuers', rescuerController.createRescuer);
 router.get('/rescuers', rescuerController.listRescuers);

@@ -69,6 +69,9 @@ app.get('/resqmeshadmin/accounts', requireAdminPageSession, (req, res) => {
 app.get('/resqmeshadmin/devices', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'devices.html'));
 });
+app.get('/resqmeshadmin/device-map', requireAdminPageSession, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'device-map.html'));
+});
 app.get('/resqmeshadmin/rescuers', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'rescuers.html'));
 });

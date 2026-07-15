@@ -1,5 +1,6 @@
 const {
   getDeviceSummaries,
+  getDeviceMapSummaries,
   getDeviceDetails
 } = require('../services/deviceManagerService');
 
@@ -32,6 +33,20 @@ exports.listDevices = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to load devices.');
+  }
+};
+
+exports.listDevicesForMap = async (req, res) => {
+  try {
+    const devices = await getDeviceMapSummaries();
+
+    return res.json({
+      success: true,
+      count: devices.length,
+      data: devices
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load device map data.');
   }
 };
 

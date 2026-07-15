@@ -1,5 +1,6 @@
 const {
   listDevices,
+  listDevicesForMap,
   getDeviceSummaryById,
   getLatestHealthRecord,
   getTotalDistressCount,
@@ -129,9 +130,52 @@ function summaryResponse(row) {
   };
 }
 
+function mapStatusResponse(row) {
+  const summary = summaryResponse(row);
+  const activeDistressCount = Number(row.activeDistressCount || 0);
+  const hasActiveDistress = activeDistressCount > 0;
+  let mapStatus = 'offline';
+  let mapStatusLabel = 'Offline';
+
+  if (hasActiveDistress) {
+    mapStatus = 'distressed';
+    mapStatusLabel = 'Distressed';
+  } else if (summary.connectivityStatus === 'online') {
+    mapStatus = 'active';
+    mapStatusLabel = 'Active';
+  } else if (summary.connectivityStatus === 'stale') {
+    mapStatus = 'stale';
+    mapStatusLabel = 'Stale';
+  }
+
+  return {
+    id: summary.id,
+    nodeId: summary.nodeId,
+    nodeName: summary.nodeName,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    deviceStatus: summary.deviceStatus,
+    deviceStatusLabel: summary.deviceStatusLabel,
+    connectivityStatus: summary.connectivityStatus,
+    connectivityStatusLabel: summary.connectivityStatusLabel,
+    mapStatus,
+    mapStatusLabel,
+    lastSeenAt: summary.lastSeenAt,
+    lastSyncAt: summary.lastSyncAt,
+    usersConnected: summary.usersConnected,
+    hasActiveDistress,
+    activeDistressCount
+  };
+}
+
 async function getDeviceSummaries() {
   const rows = await listDevices();
   return rows.map(summaryResponse);
+}
+
+async function getDeviceMapSummaries() {
+  const rows = await listDevicesForMap();
+  return rows.map(mapStatusResponse);
 }
 
 async function getDeviceDetails(id) {
@@ -195,5 +239,6 @@ async function getDeviceDetails(id) {
 
 module.exports = {
   getDeviceSummaries,
+  getDeviceMapSummaries,
   getDeviceDetails
 };
