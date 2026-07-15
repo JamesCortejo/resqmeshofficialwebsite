@@ -2,6 +2,7 @@
   window.ResQMeshDeviceManagerView = {
     init(context) {
       const { dom, state, helpers, ui } = context;
+      let detailsRequestInFlight = false;
 
       function renderDetails(details) {
         if (!dom.deviceViewModalBody || !dom.deviceViewModalCode) {
@@ -85,6 +86,35 @@
         `;
       }
 
+      async function fetchDetails(deviceId, options = {}) {
+        const { silent = false } = options;
+
+        if (!deviceId || detailsRequestInFlight) {
+          return false;
+        }
+
+        detailsRequestInFlight = true;
+        try {
+          const payload = await helpers.requestJson(`/api/admin/devices/${deviceId}`);
+          renderDetails(payload.data);
+          return true;
+        } catch (error) {
+          if (error.statusCode === 404 && silent) {
+            ui.closeDeviceViewModal();
+            ui.setFeedback('The selected device is no longer available.', 'error');
+            return false;
+          }
+
+          if (!silent && dom.deviceViewModalBody) {
+            dom.deviceViewModalBody.innerHTML = `<div class="device-view-status-message" data-tone="error">${helpers.escapeHtml(error.message || 'Unable to load device details.')}</div>`;
+          }
+
+          return false;
+        } finally {
+          detailsRequestInFlight = false;
+        }
+      }
+
       async function openDetails(deviceId) {
         state.selectedDeviceId = deviceId;
         state.selectedDeviceDetails = null;
@@ -100,14 +130,18 @@
         ui.setViewActionMessage('');
         ui.openDeviceViewModal();
 
-        try {
-          const payload = await helpers.requestJson(`/api/admin/devices/${deviceId}`);
-          renderDetails(payload.data);
-        } catch (error) {
-          if (dom.deviceViewModalBody) {
-            dom.deviceViewModalBody.innerHTML = `<div class="device-view-status-message" data-tone="error">${helpers.escapeHtml(error.message || 'Unable to load device details.')}</div>`;
-          }
+        await fetchDetails(deviceId);
+      }
+
+      async function refreshSelectedDetails(options = {}) {
+        if (!state.selectedDeviceId || !dom.deviceViewModal?.classList.contains('is-open')) {
+          return false;
         }
+
+        return fetchDetails(state.selectedDeviceId, {
+          silent: true,
+          ...options
+        });
       }
 
       if (dom.deviceViewModal) {
@@ -123,7 +157,8 @@
       }
 
       context.view = {
-        openDetails
+        openDetails,
+        refreshSelectedDetails
       };
 
       return context.view;

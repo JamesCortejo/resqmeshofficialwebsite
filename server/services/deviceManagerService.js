@@ -8,8 +8,8 @@ const {
   getTotalAuditCount
 } = require('../repositories/deviceManagerRepository');
 
-const ONLINE_THRESHOLD_MS = 5 * 60 * 1000;
-const STALE_THRESHOLD_MS = 30 * 60 * 1000;
+const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
+const STALE_THRESHOLD_MS = 10 * 60 * 1000;
 
 function normalizeTimestampValue(value) {
   if (!value || typeof value !== 'string') {

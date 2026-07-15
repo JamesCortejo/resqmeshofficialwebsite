@@ -1,6 +1,7 @@
 (function initDeviceMap() {
   const context = window.ResQMeshDeviceMap.createContext();
-  const { dom, state, helpers, ui } = context;
+  const { dom, state, helpers, ui, constants } = context;
+  let mapRequestInFlight = false;
 
   window.ResQMeshDeviceManagerView.init(context);
 
@@ -98,9 +99,6 @@
   }
 
   function popupMarkup(device, status) {
-    const distressBadge = device.hasActiveDistress
-      ? `<span class="device-map-popup-pill" data-status="distressed">Distress ${helpers.escapeHtml(device.activeDistressCount)}</span>`
-      : '';
     const accessBadge = device.deviceStatus === 'revoked'
       ? `<span class="device-map-popup-pill" data-status="revoked">${helpers.escapeHtml(device.deviceStatusLabel)}</span>`
       : '';
@@ -114,7 +112,6 @@
         <div class="device-map-popup-pills">
           <span class="device-map-popup-pill" data-status="${helpers.escapeHtml(status)}">${helpers.escapeHtml(deriveMapStatusLabel(status))}</span>
           ${accessBadge}
-          ${distressBadge}
         </div>
         <div class="device-map-popup-meta">
           <div class="device-map-popup-row"><span>Last seen</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(device.lastSeenAt))}</strong></div>
@@ -133,7 +130,6 @@
       className: 'device-map-marker-icon',
       html: `
         <div class="device-map-marker${distressedClass}" data-status="${helpers.escapeHtml(status)}">
-          ${device.hasActiveDistress ? `<span class="device-map-marker-badge">${helpers.escapeHtml(device.activeDistressCount)}</span>` : ''}
         </div>
       `,
       iconSize: [24, 24],
@@ -207,13 +203,9 @@
     });
   }
 
-  function applyFilters() {
-    state.filteredDevices = state.devices.slice();
+  function renderMap(options = {}) {
+    const { preserveViewport = false } = options;
 
-    renderMap();
-  }
-
-  function renderMap() {
     initializeMap();
 
     if (!state.map || !state.markersLayer || !state.connectionsLayer) {
@@ -245,8 +237,14 @@
       bounds.push([Number(device.latitude), Number(device.longitude)]);
     });
 
+    if (preserveViewport || state.hasInitializedViewport) {
+      setTimeout(() => state.map?.invalidateSize?.(), 0);
+      return;
+    }
+
     if (bounds.length === 1) {
       state.map.setView(bounds[0], 15);
+      state.hasInitializedViewport = true;
       return;
     }
 
@@ -254,28 +252,56 @@
       padding: [36, 36],
       maxZoom: 15
     });
+    state.hasInitializedViewport = true;
 
     setTimeout(() => state.map?.invalidateSize?.(), 0);
   }
 
-  async function loadMapDevices() {
-    state.loading = true;
-    renderMap();
+  async function loadMapDevices(options = {}) {
+    const { background = false } = options;
+
+    if (mapRequestInFlight) {
+      return false;
+    }
+
+    mapRequestInFlight = true;
+
+    if (!background) {
+      state.loading = true;
+      renderMap();
+    }
 
     try {
       const payload = await helpers.requestJson('/api/admin/devices/map');
       state.devices = Array.isArray(payload.data) ? payload.data : [];
       ui.setFeedback('');
       applyFilters();
+      return true;
     } catch (error) {
-      state.devices = [];
-      state.filteredDevices = [];
-      renderUnavailableList([]);
-      setMapEmptyState(true, 'Unable to load mesh node locations right now.');
-      ui.setFeedback(error.message || 'Unable to load mesh node map data.', 'error');
+      if (!background || state.devices.length === 0) {
+        state.devices = [];
+        state.filteredDevices = [];
+        renderUnavailableList([]);
+        setMapEmptyState(true, 'Unable to load mesh node locations right now.');
+        ui.setFeedback(error.message || 'Unable to load mesh node map data.', 'error');
+      }
+
+      return false;
     } finally {
-      state.loading = false;
+      mapRequestInFlight = false;
+
+      if (!background) {
+        state.loading = false;
+      }
     }
+  }
+
+  function applyFilters() {
+    state.filteredDevices = state.devices.slice();
+
+    renderMap({
+      preserveViewport: state.hasInitializedViewport
+    });
   }
 
   window.addEventListener('keydown', (event) => {
@@ -284,5 +310,31 @@
     }
   });
 
+  function refreshNow() {
+    loadMapDevices({ background: true }).catch(() => {
+      // Keep the current map state visible during transient polling failures.
+    });
+  }
+
+  function stopLiveRefresh() {
+    if (state.liveRefreshIntervalId) {
+      window.clearInterval(state.liveRefreshIntervalId);
+      state.liveRefreshIntervalId = null;
+    }
+  }
+
+  window.addEventListener('focus', refreshNow);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      refreshNow();
+    }
+  });
+  window.addEventListener('beforeunload', stopLiveRefresh);
+
   loadMapDevices();
+  state.liveRefreshIntervalId = window.setInterval(() => {
+    if (!document.hidden) {
+      refreshNow();
+    }
+  }, constants.LIVE_REFRESH_INTERVAL_MS);
 }());

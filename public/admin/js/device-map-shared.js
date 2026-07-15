@@ -1,4 +1,5 @@
 (function createDeviceMapSharedModule() {
+  const LIVE_REFRESH_INTERVAL_MS = 5000;
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -176,7 +177,10 @@
       loading: false,
       map: null,
       tileLayer: null,
-      markersLayer: null
+      markersLayer: null,
+      connectionsLayer: null,
+      liveRefreshIntervalId: null,
+      hasInitializedViewport: false
     };
 
     function setFeedback(message, tone = 'error') {
@@ -247,6 +251,9 @@
         setViewActionMessage,
         openDeviceViewModal,
         closeDeviceViewModal
+      },
+      constants: {
+        LIVE_REFRESH_INTERVAL_MS
       },
       view: null
     };

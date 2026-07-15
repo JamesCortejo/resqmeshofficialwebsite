@@ -5,6 +5,7 @@
     init(context) {
       const { dom, state, helpers, ui, constants } = context;
       let currentPage = 1;
+      let listRequestInFlight = false;
 
       function renderCards(pageDevices) {
         if (!dom.devicesGrid) {
@@ -168,27 +169,47 @@
       }
 
       async function loadDevices(options = {}) {
-        const { resetPage = true } = options;
+        const {
+          resetPage = true,
+          background = false
+        } = options;
 
-        state.loading = true;
-        if (resetPage) {
-          currentPage = 1;
+        if (listRequestInFlight) {
+          return false;
         }
-        render();
+
+        listRequestInFlight = true;
+
+        if (!background) {
+          state.loading = true;
+          if (resetPage) {
+            currentPage = 1;
+          }
+          render();
+        }
 
         try {
           const payload = await helpers.requestJson('/api/admin/devices');
           state.devices = Array.isArray(payload.data) ? payload.data : [];
           applyFilters();
           ui.setFeedback('');
+          return true;
         } catch (error) {
-          state.devices = [];
-          state.filteredDevices = [];
-          render();
-          ui.setFeedback(error.message || 'Unable to load devices.', 'error');
+          if (!background || state.devices.length === 0) {
+            state.devices = [];
+            state.filteredDevices = [];
+            render();
+            ui.setFeedback(error.message || 'Unable to load devices.', 'error');
+          }
+
+          return false;
         } finally {
-          state.loading = false;
-          render();
+          listRequestInFlight = false;
+
+          if (!background) {
+            state.loading = false;
+            render();
+          }
         }
       }
 
@@ -243,7 +264,8 @@
       context.list = {
         loadDevices,
         render,
-        applyFilters
+        applyFilters,
+        getCurrentPage: () => currentPage
       };
 
       return context.list;

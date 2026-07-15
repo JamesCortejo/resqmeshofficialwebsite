@@ -1,5 +1,6 @@
 (function createDeviceManagerSharedModule() {
   const FILTER_OPTIONS = ['all', 'online', 'offline'];
+  const LIVE_REFRESH_INTERVAL_MS = 5000;
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -178,7 +179,8 @@
       loading: false,
       statusFilter: 'all',
       selectedDeviceId: null,
-      selectedDeviceDetails: null
+      selectedDeviceDetails: null,
+      liveRefreshIntervalId: null
     };
 
     function setFeedback(message, tone = 'error') {
@@ -236,7 +238,8 @@
       dom,
       state,
       constants: {
-        FILTER_OPTIONS
+        FILTER_OPTIONS,
+        LIVE_REFRESH_INTERVAL_MS
       },
       helpers: {
         escapeHtml,
