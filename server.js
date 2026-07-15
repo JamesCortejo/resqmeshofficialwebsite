@@ -3,6 +3,7 @@ const path = require('path');
 const userRoutes = require('./server/routes/userRoutes');
 const adminRoutes = require('./server/routes/adminRoutes');
 const deviceSyncRoutes = require('./server/routes/deviceSyncRoutes');
+const mobileRoutes = require('./server/routes/mobileRoutes');
 const { initializeDatabase } = require('./server/database/sqlite');
 const {
   redirectAuthenticatedAdmin,
@@ -25,6 +26,7 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', deviceSyncRoutes);
+app.use('/', mobileRoutes);
 
 app.get('/health', (req, res) => {
   res.json({
@@ -71,6 +73,9 @@ app.get('/resqmeshadmin/devices', requireAdminPageSession, (req, res) => {
 });
 app.get('/resqmeshadmin/device-map', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'device-map.html'));
+});
+app.get('/resqmeshadmin/distress-signals', requireAdminPageSession, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'distress-signals.html'));
 });
 app.get('/resqmeshadmin/rescuers', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'rescuers.html'));

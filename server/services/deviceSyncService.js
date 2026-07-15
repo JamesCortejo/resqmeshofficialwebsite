@@ -13,6 +13,11 @@ const {
   markMeshCommandProcessed,
   createServerAuditLog
 } = require('../repositories/deviceSyncRepository');
+const {
+  listDeploymentsForSync,
+  listDeploymentRouteSnapshotsForSync,
+  listDeploymentMemberCodes
+} = require('../repositories/deploymentRepository');
 const { touchSyncDeviceLastSync } = require('../repositories/syncDeviceRepository');
 
 function nowAsIso() {
@@ -150,6 +155,49 @@ function mapRescueTeam(row) {
   };
 }
 
+function mapDeployment(row, membersByDeploymentId) {
+  return {
+    id: row.id,
+    sourceRecordId: row.id,
+    deploymentCode: row.deploymentCode,
+    meshDistressSignalId: row.meshDistressSignalId,
+    originNodeId: row.originNodeId,
+    originDistressId: row.originDistressId,
+    teamId: row.teamId,
+    teamCode: row.teamCode || '',
+    teamLeaderRescuerId: row.teamLeaderRescuerId,
+    teamLeaderRescuerCode: row.teamLeaderRescuerCode || '',
+    memberRescuerCodes: membersByDeploymentId.get(row.id) || [],
+    status: row.status,
+    createdAt: row.createdAt,
+    deployedAt: row.deployedAt,
+    canceledAt: row.canceledAt,
+    accomplishedAt: row.accomplishedAt,
+    updatedAt: row.updatedAt
+  };
+}
+
+function mapDeploymentRouteSnapshot(row) {
+  return {
+    id: row.id,
+    sourceRecordId: row.id,
+    deploymentId: row.deploymentId,
+    originNodeId: row.originNodeId,
+    originDistressId: row.originDistressId,
+    teamId: row.teamId,
+    teamLeaderRescuerId: row.leaderRescuerId,
+    teamLeaderRescuerCode: row.leaderRescuerCode || '',
+    leaderRecordedAt: row.leaderRecordedAt,
+    distanceM: row.distanceM,
+    durationS: row.durationS,
+    etaMinutes: row.etaMinutes,
+    coordinates: row.geometryJson ? JSON.parse(row.geometryJson) : [],
+    provider: row.provider,
+    computedAt: row.computedAt,
+    updatedAt: row.updatedAt
+  };
+}
+
 async function buildDeltaResponse(rows, mapper, limit) {
   const hasMore = rows.length > limit;
   const pageRows = hasMore ? rows.slice(0, limit) : rows;
@@ -181,6 +229,34 @@ async function getRescueTeamsDelta(query) {
   const cursor = decodeCursor(query?.cursor);
   const rows = await listRescueTeamsForSync(cursor, limit + 1);
   return buildDeltaResponse(rows, mapRescueTeam, limit);
+}
+
+async function getDeploymentsDelta(query) {
+  const limit = normalizeLimit(query?.limit);
+  const cursor = decodeCursor(query?.cursor);
+  const rows = await listDeploymentsForSync(cursor, limit + 1);
+  const pageRows = rows.length > limit ? rows.slice(0, limit) : rows;
+  const memberRows = await listDeploymentMemberCodes(pageRows.map((row) => row.id));
+  const membersByDeploymentId = memberRows.reduce((result, member) => {
+    const current = result.get(member.deploymentId) || [];
+    current.push(member.rescuerCode);
+    result.set(member.deploymentId, current);
+    return result;
+  }, new Map());
+  const lastRow = pageRows.length > 0 ? pageRows[pageRows.length - 1] : null;
+
+  return {
+    data: pageRows.map((row) => mapDeployment(row, membersByDeploymentId)),
+    nextCursor: lastRow ? encodeCursor(lastRow) : null,
+    hasMore: rows.length > limit
+  };
+}
+
+async function getDeploymentRouteSnapshotsDelta(query) {
+  const limit = normalizeLimit(query?.limit);
+  const cursor = decodeCursor(query?.cursor);
+  const rows = await listDeploymentRouteSnapshotsForSync(cursor, limit + 1);
+  return buildDeltaResponse(rows, mapDeploymentRouteSnapshot, limit);
 }
 
 function requireItemsArray(payload) {
@@ -481,6 +557,8 @@ module.exports = {
   getUsersDelta,
   getRescuersDelta,
   getRescueTeamsDelta,
+  getDeploymentsDelta,
+  getDeploymentRouteSnapshotsDelta,
   syncNodesBatch,
   syncNodeHealthBatch,
   syncDistressSignalsBatch,

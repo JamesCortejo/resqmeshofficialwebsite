@@ -16,6 +16,8 @@ router.use('/device-sync', syncRateLimit, requireDeviceSyncSession);
 router.get('/device-sync/users', deviceSyncController.listUsers);
 router.get('/device-sync/rescuers', deviceSyncController.listRescuers);
 router.get('/device-sync/rescue-teams', deviceSyncController.listRescueTeams);
+router.get('/device-sync/deployments', deviceSyncController.listDeployments);
+router.get('/device-sync/deployment-routes', deviceSyncController.listDeploymentRoutes);
 router.get('/device-sync/mesh-commands', deviceSyncController.listMeshCommands);
 router.post('/device-sync/nodes/batch', deviceSyncController.syncNodesBatch);
 router.post('/device-sync/node-health/batch', deviceSyncController.syncNodeHealthBatch);

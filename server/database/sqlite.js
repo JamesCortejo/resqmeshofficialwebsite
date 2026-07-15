@@ -390,6 +390,14 @@ async function initializeDatabase() {
     INSERT OR IGNORE INTO rescue_team_code_sequence (id, last_value)
     VALUES (1, 0);
 
+    CREATE TABLE IF NOT EXISTS deployment_code_sequence (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      last_value INTEGER NOT NULL DEFAULT 0
+    );
+
+    INSERT OR IGNORE INTO deployment_code_sequence (id, last_value)
+    VALUES (1, 0);
+
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_code TEXT NOT NULL UNIQUE,
@@ -574,6 +582,91 @@ async function initializeDatabase() {
       UNIQUE (origin_node_id, origin_distress_id)
     );
 
+    CREATE TABLE IF NOT EXISTS distress_deployments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      deployment_code TEXT NOT NULL UNIQUE,
+      mesh_distress_signal_id INTEGER NOT NULL,
+      origin_node_id TEXT NOT NULL,
+      origin_distress_id INTEGER NOT NULL,
+      team_id INTEGER NOT NULL,
+      team_leader_rescuer_id INTEGER NOT NULL,
+      created_by_admin_user_id INTEGER NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('deployed', 'canceled', 'accomplished')),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      deployed_at TEXT,
+      canceled_at TEXT,
+      accomplished_at TEXT,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (mesh_distress_signal_id) REFERENCES mesh_distress_signals(id),
+      FOREIGN KEY (team_id) REFERENCES rescue_teams(id),
+      FOREIGN KEY (team_leader_rescuer_id) REFERENCES rescuers(id),
+      FOREIGN KEY (created_by_admin_user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS distress_deployment_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      deployment_id INTEGER NOT NULL,
+      rescuer_id INTEGER NOT NULL,
+      rescuer_code TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (deployment_id) REFERENCES distress_deployments(id) ON DELETE CASCADE,
+      FOREIGN KEY (rescuer_id) REFERENCES rescuers(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS rescuer_locations_current (
+      rescuer_id INTEGER PRIMARY KEY,
+      deployment_id INTEGER,
+      team_id INTEGER,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      accuracy_m REAL,
+      heading_deg REAL,
+      speed_mps REAL,
+      node_id TEXT,
+      recorded_at TEXT NOT NULL,
+      received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (rescuer_id) REFERENCES rescuers(id),
+      FOREIGN KEY (deployment_id) REFERENCES distress_deployments(id),
+      FOREIGN KEY (team_id) REFERENCES rescue_teams(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS rescuer_location_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      rescuer_id INTEGER NOT NULL,
+      deployment_id INTEGER,
+      team_id INTEGER,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      accuracy_m REAL,
+      heading_deg REAL,
+      speed_mps REAL,
+      node_id TEXT,
+      recorded_at TEXT NOT NULL,
+      received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (rescuer_id) REFERENCES rescuers(id),
+      FOREIGN KEY (deployment_id) REFERENCES distress_deployments(id),
+      FOREIGN KEY (team_id) REFERENCES rescue_teams(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS deployment_route_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      deployment_id INTEGER NOT NULL UNIQUE,
+      leader_rescuer_id INTEGER NOT NULL,
+      leader_recorded_at TEXT,
+      destination_latitude REAL,
+      destination_longitude REAL,
+      distance_m REAL,
+      duration_s REAL,
+      eta_minutes INTEGER,
+      geometry_json TEXT,
+      provider TEXT NOT NULL DEFAULT 'openrouteservice',
+      computed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (deployment_id) REFERENCES distress_deployments(id) ON DELETE CASCADE,
+      FOREIGN KEY (leader_rescuer_id) REFERENCES rescuers(id)
+    );
+
     CREATE TABLE IF NOT EXISTS mesh_messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       origin_node_id TEXT NOT NULL,
@@ -629,6 +722,16 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_mesh_nodes_updated_at ON mesh_nodes (updated_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_node_health_logs_recorded_at ON mesh_node_health_logs (recorded_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_distress_signals_updated_at ON mesh_distress_signals (updated_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_distress_deployments_active_unique
+      ON distress_deployments(mesh_distress_signal_id)
+      WHERE status = 'deployed';
+    CREATE INDEX IF NOT EXISTS idx_distress_deployments_status ON distress_deployments (status, updated_at);
+    CREATE INDEX IF NOT EXISTS idx_distress_deployments_origin ON distress_deployments (origin_node_id, origin_distress_id, updated_at);
+    CREATE INDEX IF NOT EXISTS idx_distress_deployment_members_deployment_id ON distress_deployment_members (deployment_id);
+    CREATE INDEX IF NOT EXISTS idx_rescuer_locations_current_deployment_id ON rescuer_locations_current (deployment_id);
+    CREATE INDEX IF NOT EXISTS idx_rescuer_locations_current_team_id ON rescuer_locations_current (team_id);
+    CREATE INDEX IF NOT EXISTS idx_rescuer_location_history_rescuer_id ON rescuer_location_history (rescuer_id, recorded_at);
+    CREATE INDEX IF NOT EXISTS idx_deployment_route_snapshots_updated_at ON deployment_route_snapshots (updated_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_messages_timestamp ON mesh_messages (message_timestamp);
     CREATE INDEX IF NOT EXISTS idx_mesh_audit_logs_event_timestamp ON mesh_audit_logs (event_timestamp);
     CREATE INDEX IF NOT EXISTS idx_mesh_commands_target_status ON mesh_commands (target_node_id, status);
@@ -661,6 +764,11 @@ async function initializeDatabase() {
 
   await run(`
     INSERT OR IGNORE INTO rescue_team_code_sequence (id, last_value)
+    VALUES (1, 0)
+  `);
+
+  await run(`
+    INSERT OR IGNORE INTO deployment_code_sequence (id, last_value)
     VALUES (1, 0)
   `);
 
@@ -724,6 +832,16 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_mesh_nodes_updated_at ON mesh_nodes (updated_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_node_health_logs_recorded_at ON mesh_node_health_logs (recorded_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_distress_signals_updated_at ON mesh_distress_signals (updated_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_distress_deployments_active_unique
+      ON distress_deployments(mesh_distress_signal_id)
+      WHERE status = 'deployed';
+    CREATE INDEX IF NOT EXISTS idx_distress_deployments_status ON distress_deployments (status, updated_at);
+    CREATE INDEX IF NOT EXISTS idx_distress_deployments_origin ON distress_deployments (origin_node_id, origin_distress_id, updated_at);
+    CREATE INDEX IF NOT EXISTS idx_distress_deployment_members_deployment_id ON distress_deployment_members (deployment_id);
+    CREATE INDEX IF NOT EXISTS idx_rescuer_locations_current_deployment_id ON rescuer_locations_current (deployment_id);
+    CREATE INDEX IF NOT EXISTS idx_rescuer_locations_current_team_id ON rescuer_locations_current (team_id);
+    CREATE INDEX IF NOT EXISTS idx_rescuer_location_history_rescuer_id ON rescuer_location_history (rescuer_id, recorded_at);
+    CREATE INDEX IF NOT EXISTS idx_deployment_route_snapshots_updated_at ON deployment_route_snapshots (updated_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_messages_timestamp ON mesh_messages (message_timestamp);
     CREATE INDEX IF NOT EXISTS idx_mesh_audit_logs_event_timestamp ON mesh_audit_logs (event_timestamp);
     CREATE INDEX IF NOT EXISTS idx_mesh_commands_target_status ON mesh_commands (target_node_id, status);

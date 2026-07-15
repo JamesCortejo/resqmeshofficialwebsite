@@ -63,6 +63,61 @@ function findRescuerByPhoneLookupHash(phoneLookupHash) {
   `, [phoneLookupHash]);
 }
 
+function findRescuerAuthCandidateByCode(rescuerCode) {
+  return get(`
+    SELECT
+      r.id,
+      r.rescuer_code AS rescuerCode,
+      r.first_name_enc AS firstNameEnc,
+      r.middle_name_enc AS middleNameEnc,
+      r.last_name_enc AS lastNameEnc,
+      r.birth_date_enc AS birthDateEnc,
+      r.phone_enc AS phoneEnc,
+      r.password_hash AS passwordHash,
+      r.agency,
+      r.status,
+      r.access_status AS accessStatus,
+      r.archived_at AS archivedAt,
+      r.team_id AS teamId,
+      r.created_at AS createdAt,
+      r.updated_at AS updatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      t.status AS teamStatus
+    FROM rescuers r
+    LEFT JOIN rescue_teams t ON t.id = r.team_id
+    WHERE UPPER(r.rescuer_code) = UPPER(?)
+    LIMIT 1
+  `, [rescuerCode]);
+}
+
+function findRescuerSessionPrincipalById(id) {
+  return get(`
+    SELECT
+      r.id,
+      r.rescuer_code AS rescuerCode,
+      r.first_name_enc AS firstNameEnc,
+      r.middle_name_enc AS middleNameEnc,
+      r.last_name_enc AS lastNameEnc,
+      r.birth_date_enc AS birthDateEnc,
+      r.phone_enc AS phoneEnc,
+      r.agency,
+      r.status,
+      r.access_status AS accessStatus,
+      r.archived_at AS archivedAt,
+      r.team_id AS teamId,
+      r.created_at AS createdAt,
+      r.updated_at AS updatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      t.status AS teamStatus
+    FROM rescuers r
+    LEFT JOIN rescue_teams t ON t.id = r.team_id
+    WHERE r.id = ?
+    LIMIT 1
+  `, [id]);
+}
+
 function getRescuerById(id) {
   return get(`
     SELECT
@@ -180,6 +235,8 @@ module.exports = {
   generateRescuerCode,
   createRescuer,
   findRescuerByPhoneLookupHash,
+  findRescuerAuthCandidateByCode,
+  findRescuerSessionPrincipalById,
   getRescuerById,
   listRescuers,
   updateRescuerAccessStatus,

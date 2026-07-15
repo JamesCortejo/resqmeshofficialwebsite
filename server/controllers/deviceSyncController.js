@@ -2,6 +2,8 @@ const {
   getUsersDelta,
   getRescuersDelta,
   getRescueTeamsDelta,
+  getDeploymentsDelta,
+  getDeploymentRouteSnapshotsDelta,
   syncNodesBatch,
   syncNodeHealthBatch,
   syncDistressSignalsBatch,
@@ -65,6 +67,32 @@ exports.listRescueTeams = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to load synced rescue teams.');
+  }
+};
+
+exports.listDeployments = async (req, res) => {
+  try {
+    const result = await getDeploymentsDelta(req.query || {});
+    return res.json({
+      success: true,
+      serverTime: new Date().toISOString(),
+      ...result
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load synced deployments.');
+  }
+};
+
+exports.listDeploymentRoutes = async (req, res) => {
+  try {
+    const result = await getDeploymentRouteSnapshotsDelta(req.query || {});
+    return res.json({
+      success: true,
+      serverTime: new Date().toISOString(),
+      ...result
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load synced deployment routes.');
   }
 };
 

@@ -197,6 +197,57 @@ function notifyRescueTeamRosterChanged(team, rosterChanged) {
   });
 }
 
+function notifyDeploymentCreated(deployment) {
+  return safeCreateNotification({
+    type: 'deployment.created',
+    title: 'Rescue team deployed',
+    message: `Deployment ${deployment.deploymentCode} sent team ${deployment.teamCode} (${deployment.teamName}).`,
+    relatedEntityType: 'deployment',
+    relatedEntityId: deployment.id,
+    relatedEntityCode: deployment.deploymentCode,
+    metadata: {
+      status: deployment.status,
+      teamId: deployment.teamId,
+      teamCode: deployment.teamCode,
+      teamName: deployment.teamName
+    }
+  });
+}
+
+function notifyDeploymentCanceled(deployment) {
+  return safeCreateNotification({
+    type: 'deployment.canceled',
+    title: 'Deployment canceled',
+    message: `Deployment ${deployment.deploymentCode} was canceled.`,
+    relatedEntityType: 'deployment',
+    relatedEntityId: deployment.id,
+    relatedEntityCode: deployment.deploymentCode,
+    metadata: {
+      status: deployment.status,
+      teamId: deployment.teamId,
+      teamCode: deployment.teamCode,
+      teamName: deployment.teamName
+    }
+  });
+}
+
+function notifyDeploymentAccomplished(deployment) {
+  return safeCreateNotification({
+    type: 'deployment.accomplished',
+    title: 'Deployment accomplished',
+    message: `Deployment ${deployment.deploymentCode} was marked as accomplished.`,
+    relatedEntityType: 'deployment',
+    relatedEntityId: deployment.id,
+    relatedEntityCode: deployment.deploymentCode,
+    metadata: {
+      status: deployment.status,
+      teamId: deployment.teamId,
+      teamCode: deployment.teamCode,
+      teamName: deployment.teamName
+    }
+  });
+}
+
 async function getNotifications() {
   const notifications = await listNotifications();
   return notifications.map(normalizeNotification);
@@ -219,6 +270,9 @@ module.exports = {
   notifyRescueTeamCreated,
   notifyRescueTeamUpdated,
   notifyRescueTeamRosterChanged,
+  notifyDeploymentCreated,
+  notifyDeploymentCanceled,
+  notifyDeploymentAccomplished,
   getNotifications,
   getUnreadNotificationCount,
   markNotificationRead,

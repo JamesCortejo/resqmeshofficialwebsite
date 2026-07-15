@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ResQMesh distress signal deployment workspace.">
+  <title>Distress Signals - ResQMesh</title>
+  <link rel="icon" type="image/png" href="/assets/logo-icon.png">
+
+  <link rel="stylesheet" href="/admin/css/login.css">
+  <link rel="stylesheet" href="/admin/css/admin-loader.css">
+  <link rel="stylesheet" href="/admin/css/app-shell.css">
+  <link rel="stylesheet" href="/admin/css/admin-notifications.css">
+  <link rel="stylesheet" href="/admin/css/distress-signals.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="admin-login-page admin-loading">
+  <div class="admin-loader" aria-live="polite" aria-label="Loading ResQMesh admin">
+    <div class="admin-loader-content">
+      <span class="admin-loader-mark" aria-hidden="true"></span>
+      <span>
+        <span class="admin-loader-title">ResQMesh Admin</span>
+        <span class="admin-loader-subtitle">Preparing distress workspace</span>
+      </span>
+    </div>
+  </div>
+
+  <main class="admin-app-shell">
+    <aside class="admin-sidebar" aria-label="Admin navigation">
+      <div>
+        <a href="/resqmeshadmin/overview" class="admin-logo-link" aria-label="ResQMesh admin overview">
+          <img src="/assets/logo-icon.png" alt="ResQMesh Logo" class="admin-logo-icon">
+          <div>
+            <span class="admin-logo-title">RESQ-MESH</span>
+            <span class="admin-logo-subtitle">Admin Console</span>
+          </div>
+        </a>
+
+        <div class="admin-sidebar-group">
+          <span class="admin-sidebar-label">Navigation</span>
+          <nav class="admin-nav">
+            <a href="/resqmeshadmin/overview" class="admin-nav-link">
+              <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+              <span>Overview</span>
+            </a>
+            <a href="/resqmeshadmin/accounts" class="admin-nav-link">
+              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+              <span>Accounts Manager</span>
+            </a>
+            <a href="/resqmeshadmin/devices" class="admin-nav-link">
+              <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+              <span>Device Manager</span>
+            </a>
+            <a href="/resqmeshadmin/device-map" class="admin-nav-link">
+              <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+              <span>Mesh Node Map</span>
+            </a>
+            <a href="/resqmeshadmin/distress-signals" class="admin-nav-link is-active" aria-current="page">
+              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+              <span>Distress Signals</span>
+            </a>
+            <a href="/resqmeshadmin/rescuers" class="admin-nav-link">
+              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+              <span>Rescuer Manager</span>
+            </a>
+            <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link">
+              <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+              <span>Rescue Teams</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+
+      <p class="admin-sidebar-footnote">Administrative tools for the ResQMesh emergency network.</p>
+    </aside>
+
+    <section class="admin-app-main">
+      <header class="admin-topbar">
+        <div class="admin-topbar-copy">
+          <span class="admin-kicker">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            Valencia City Emergency Network
+          </span>
+          <h1 class="admin-topbar-title">Distress Signals</h1>
+          <p class="admin-topbar-desc">Review active emergency reports, assign response teams, and prepare deployment decisions from one workspace.</p>
+        </div>
+
+        <div class="admin-topbar-actions">
+          <button type="button" class="admin-notification-button" id="adminNotificationButton" aria-label="Notifications" aria-expanded="false">
+            <i class="fa-regular fa-bell" aria-hidden="true"></i>
+            <span class="admin-notification-badge" id="adminNotificationBadge" hidden>0</span>
+          </button>
+          <button type="button" class="admin-topbar-button" data-admin-logout>
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span data-admin-logout-label>Logout</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="admin-content-panel distress-signals-panel" aria-labelledby="distress-signals-panel-title">
+        <div class="distress-signals-panel-header">
+          <div>
+            <h2 id="distress-signals-panel-title">Active Distress Queue</h2>
+            <p>Review mesh-synced distress reports, deploy rescue teams, and track dispatch status from one workspace.</p>
+          </div>
+          <div class="distress-signals-summary-cards" aria-label="Distress signal summary">
+            <article class="distress-signals-summary-card">
+              <span class="distress-signals-summary-label">Active reports</span>
+              <strong id="distressSignalsSummaryActive">0</strong>
+            </article>
+            <article class="distress-signals-summary-card">
+              <span class="distress-signals-summary-label">Canceled cases</span>
+              <strong id="distressSignalsSummaryAssigned">0</strong>
+            </article>
+            <article class="distress-signals-summary-card">
+              <span class="distress-signals-summary-label">Accomplished cases</span>
+              <strong id="distressSignalsSummaryDeployed">0</strong>
+            </article>
+          </div>
+        </div>
+
+        <div class="distress-signals-toolbar" aria-label="Distress signal filters">
+          <label class="distress-signals-search" for="distressSignalsSearchInput">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="distressSignalsSearchInput" placeholder="Search distress code, civilian, reason, location, or team">
+          </label>
+          <div class="distress-signals-filters" id="distressSignalsFilterGroup">
+            <button type="button" class="admin-secondary-button distress-signals-filter-button is-active" data-distress-filter="all">All distress</button>
+            <button type="button" class="admin-secondary-button distress-signals-filter-button" data-distress-filter="unassigned">Unassigned</button>
+            <button type="button" class="admin-secondary-button distress-signals-filter-button" data-distress-filter="deployed">Deployed</button>
+            <button type="button" class="admin-secondary-button distress-signals-filter-button" data-distress-filter="canceled">Canceled</button>
+            <button type="button" class="admin-secondary-button distress-signals-filter-button" data-distress-filter="accomplished">Accomplished</button>
+          </div>
+        </div>
+
+        <div class="distress-signals-feedback" id="distressSignalsFeedback" role="status" hidden></div>
+
+        <div class="distress-signals-table-wrap">
+          <table class="distress-signals-table">
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Civilian</th>
+                <th scope="col">Emergency</th>
+                <th scope="col">Mesh Node</th>
+                <th scope="col">Assignment</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="distressSignalsTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="distress-signals-pagination" id="distressSignalsPagination" hidden>
+          <span class="distress-signals-pagination-summary" id="distressSignalsPaginationSummary">Showing 0 distress signals</span>
+          <div class="distress-signals-pagination-actions">
+            <button type="button" class="admin-secondary-button" id="previousDistressSignalsButton">
+              <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+              <span>Previous</span>
+            </button>
+            <button type="button" class="admin-secondary-button" id="nextDistressSignalsButton">
+              <span>Next</span>
+              <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="distress-signals-list-empty" id="distressSignalsListEmpty" role="status" hidden></div>
+      </section>
+    </section>
+  </main>
+
+  <div class="distress-signal-modal" id="distressSignalModal" aria-hidden="true">
+    <div class="distress-signal-modal-backdrop" data-close-distress-signal-modal></div>
+    <section class="distress-signal-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="distressSignalModalTitle">
+      <header class="distress-signal-modal-header">
+        <div>
+          <span class="distress-signal-modal-kicker" id="distressSignalModalCode">Distress details</span>
+          <h2 id="distressSignalModalTitle">Emergency Deployment</h2>
+        </div>
+        <button type="button" class="distress-signal-icon-button" aria-label="Close distress signal details" data-close-distress-signal-modal>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <div class="distress-signal-modal-body" id="distressSignalModalBody">
+        <div class="distress-signal-status-message">Loading distress signal details...</div>
+      </div>
+
+      <footer class="distress-signal-modal-actions">
+        <div class="distress-signal-action-message" id="distressSignalActionMessage" role="status">Review the distress signal and choose a team to prepare deployment.</div>
+        <div class="distress-signal-action-buttons">
+          <button type="button" class="distress-signal-secondary-button" data-cancel-deployment>Cancel Deployment</button>
+          <button type="button" class="distress-signal-primary-button" id="deployDistressTeamButton">Deploy Team</button>
+        </div>
+      </footer>
+    </section>
+  </div>
+
+  <div class="admin-review-toast" id="adminReviewToast" role="status" aria-live="polite" aria-hidden="true">
+    <span class="admin-review-toast-icon" id="adminReviewToastIcon">
+      <i class="fa-solid fa-check" aria-hidden="true"></i>
+    </span>
+    <span class="admin-review-toast-message" id="adminReviewToastMessage">Team assigned.</span>
+  </div>
+
+  <script src="/admin/js/admin-loader.js"></script>
+  <script src="/admin/js/admin-auth.js"></script>
+  <script src="/admin/js/admin-notifications.js"></script>
+  <script src="/admin/js/distress-signals-shared.js"></script>
+  <script src="/admin/js/distress-signals-list.js"></script>
+  <script src="/admin/js/distress-signals-view.js"></script>
+  <script src="/admin/js/distress-signals.js"></script>
+</body>
+
+</html>

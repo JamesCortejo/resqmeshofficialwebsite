@@ -87,6 +87,11 @@ const config = {
   databasePath: resolveFromRoot(required('SQLITE_DB_PATH')),
   encryptedUploadDir: resolveFromRoot(required('ENCRYPTED_UPLOAD_DIR')),
   encryptionKey: parseEncryptionKey(required('APP_ENCRYPTION_KEY')),
+  openRouteServiceApiKey: optional(process.env.OPENROUTESERVICE_API_KEY),
+  routeSync: {
+    snapshotMaxAgeSeconds: parsePositiveInteger(process.env.ROUTE_SNAPSHOT_MAX_AGE_SECONDS, 10, 'ROUTE_SNAPSHOT_MAX_AGE_SECONDS'),
+    movementThresholdMeters: parsePositiveInteger(process.env.ROUTE_MOVEMENT_THRESHOLD_METERS, 25, 'ROUTE_MOVEMENT_THRESHOLD_METERS')
+  },
   deviceSync: {
     tokenTtlMinutes: parsePositiveInteger(process.env.DEVICE_SYNC_TOKEN_TTL_MINUTES, 30, 'DEVICE_SYNC_TOKEN_TTL_MINUTES'),
     defaultPageLimit: parsePositiveInteger(process.env.DEVICE_SYNC_DEFAULT_PAGE_LIMIT, 100, 'DEVICE_SYNC_DEFAULT_PAGE_LIMIT'),
