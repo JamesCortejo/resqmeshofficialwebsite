@@ -23,6 +23,20 @@ function createAuditId() {
   return Number(`${Date.now()}${Math.floor(Math.random() * 1000)}`);
 }
 
+function normalizeDistressStatus(status) {
+  const normalized = normalizeString(status)?.toLowerCase();
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === 'cancelled') {
+    return 'canceled';
+  }
+
+  return normalized;
+}
+
 function normalizeLimit(rawLimit) {
   const parsed = Number.parseInt(String(rawLimit || ''), 10);
   const defaultLimit = config.deviceSync?.defaultPageLimit || 100;
@@ -323,7 +337,7 @@ async function syncDistressSignalsBatch(payload, syncDevice, requestIp) {
       latitude: normalizeNumber(item.latitude ?? item.lat),
       longitude: normalizeNumber(item.longitude ?? item.lng),
       timestamp: normalizeString(item.timestamp),
-      status: normalizeString(item.status),
+      status: normalizeDistressStatus(item.status),
       priority: normalizeString(item.priority),
       ackReceived: normalizeBoolean(item.ackReceived ?? item.ack_received),
       updatedAt: normalizeString(item.updatedAt || item.updated_at) || nowAsIso(),

@@ -686,6 +686,12 @@ async function initializeDatabase() {
   }
 
   await run(`
+    UPDATE mesh_distress_signals
+    SET status = 'canceled'
+    WHERE LOWER(COALESCE(status, '')) = 'cancelled'
+  `);
+
+  await run(`
     UPDATE rescue_teams
     SET agency = 'cdrrmo'
     WHERE agency IS NULL OR TRIM(agency) = ''

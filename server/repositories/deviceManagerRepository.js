@@ -34,9 +34,9 @@ function listDevices() {
     LEFT JOIN (
       SELECT
         origin_node_id,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'pending' THEN 1 ELSE 0 END) AS recentActiveDistressCount,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'processed' THEN 1 ELSE 0 END) AS recentSolvedDistressCount,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'cancelled' THEN 1 ELSE 0 END) AS recentCanceledDistressCount
+        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'active' THEN 1 ELSE 0 END) AS recentActiveDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'processed' THEN 1 ELSE 0 END) AS recentSolvedDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) IN ('canceled', 'cancelled') THEN 1 ELSE 0 END) AS recentCanceledDistressCount
       FROM mesh_distress_signals
       WHERE deleted = 0
         AND datetime(COALESCE(updated_at, created_at)) >= datetime('now', '-1 day')
@@ -92,9 +92,9 @@ function getDeviceSummaryById(id) {
     LEFT JOIN (
       SELECT
         origin_node_id,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'pending' THEN 1 ELSE 0 END) AS recentActiveDistressCount,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'processed' THEN 1 ELSE 0 END) AS recentSolvedDistressCount,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'cancelled' THEN 1 ELSE 0 END) AS recentCanceledDistressCount
+        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'active' THEN 1 ELSE 0 END) AS recentActiveDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'processed' THEN 1 ELSE 0 END) AS recentSolvedDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) IN ('canceled', 'cancelled') THEN 1 ELSE 0 END) AS recentCanceledDistressCount
       FROM mesh_distress_signals
       WHERE deleted = 0
         AND datetime(COALESCE(updated_at, created_at)) >= datetime('now', '-1 day')
@@ -139,9 +139,9 @@ function getTotalDistressCount(nodeId) {
   return get(`
     SELECT
       COUNT(*) AS count,
-      SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'pending' THEN 1 ELSE 0 END) AS activeCount,
-      SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'processed' THEN 1 ELSE 0 END) AS solvedCount,
-      SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'cancelled' THEN 1 ELSE 0 END) AS canceledCount
+      SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'active' THEN 1 ELSE 0 END) AS activeCount,
+      SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'processed' THEN 1 ELSE 0 END) AS solvedCount,
+      SUM(CASE WHEN LOWER(COALESCE(status, 'active')) IN ('canceled', 'cancelled') THEN 1 ELSE 0 END) AS canceledCount
     FROM mesh_distress_signals
     WHERE origin_node_id = ?
       AND deleted = 0
