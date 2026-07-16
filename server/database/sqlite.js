@@ -667,6 +667,22 @@ async function initializeDatabase() {
       FOREIGN KEY (leader_rescuer_id) REFERENCES rescuers(id)
     );
 
+    CREATE TABLE IF NOT EXISTS deployment_isochrone_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      deployment_id INTEGER NOT NULL UNIQUE,
+      leader_rescuer_id INTEGER NOT NULL,
+      leader_recorded_at TEXT,
+      origin_latitude REAL,
+      origin_longitude REAL,
+      range_values_json TEXT NOT NULL,
+      feature_collection_json TEXT NOT NULL,
+      provider TEXT NOT NULL DEFAULT 'openrouteservice',
+      computed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (deployment_id) REFERENCES distress_deployments(id) ON DELETE CASCADE,
+      FOREIGN KEY (leader_rescuer_id) REFERENCES rescuers(id)
+    );
+
     CREATE TABLE IF NOT EXISTS mesh_messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       origin_node_id TEXT NOT NULL,
@@ -732,6 +748,7 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_rescuer_locations_current_team_id ON rescuer_locations_current (team_id);
     CREATE INDEX IF NOT EXISTS idx_rescuer_location_history_rescuer_id ON rescuer_location_history (rescuer_id, recorded_at);
     CREATE INDEX IF NOT EXISTS idx_deployment_route_snapshots_updated_at ON deployment_route_snapshots (updated_at);
+    CREATE INDEX IF NOT EXISTS idx_deployment_isochrone_snapshots_updated_at ON deployment_isochrone_snapshots (updated_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_messages_timestamp ON mesh_messages (message_timestamp);
     CREATE INDEX IF NOT EXISTS idx_mesh_audit_logs_event_timestamp ON mesh_audit_logs (event_timestamp);
     CREATE INDEX IF NOT EXISTS idx_mesh_commands_target_status ON mesh_commands (target_node_id, status);
@@ -842,6 +859,7 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_rescuer_locations_current_team_id ON rescuer_locations_current (team_id);
     CREATE INDEX IF NOT EXISTS idx_rescuer_location_history_rescuer_id ON rescuer_location_history (rescuer_id, recorded_at);
     CREATE INDEX IF NOT EXISTS idx_deployment_route_snapshots_updated_at ON deployment_route_snapshots (updated_at);
+    CREATE INDEX IF NOT EXISTS idx_deployment_isochrone_snapshots_updated_at ON deployment_isochrone_snapshots (updated_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_messages_timestamp ON mesh_messages (message_timestamp);
     CREATE INDEX IF NOT EXISTS idx_mesh_audit_logs_event_timestamp ON mesh_audit_logs (event_timestamp);
     CREATE INDEX IF NOT EXISTS idx_mesh_commands_target_status ON mesh_commands (target_node_id, status);

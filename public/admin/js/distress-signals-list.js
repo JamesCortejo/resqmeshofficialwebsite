@@ -36,7 +36,7 @@
               <span class="distress-signals-muted-text">${helpers.escapeHtml(signal.civilianPhone)}</span>
             </td>
             <td>
-              <span class="distress-signals-primary-text">${helpers.escapeHtml(signal.reason)}</span>
+              <span class="distress-signals-primary-text">${helpers.escapeHtml(helpers.formatDistressReason(signal.reason))}</span>
             </td>
             <td>
               <span class="distress-signals-location-line">${helpers.escapeHtml(signal.nodeName)}</span>

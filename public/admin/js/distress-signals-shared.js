@@ -69,6 +69,20 @@
     return 'Active';
   }
 
+  function formatDistressReason(value) {
+    const normalized = String(value || '').trim();
+
+    if (!normalized) {
+      return 'Not available';
+    }
+
+    return normalized
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase();
+  }
+
   function getDistressSearchText(signal, team) {
     return [
       signal.distressCode,
@@ -288,6 +302,7 @@
         getPriorityDisplay,
         getAssignmentDisplay,
         getTeamStatusDisplay,
+        formatDistressReason,
         getDistressSearchText,
         requestJson
       },

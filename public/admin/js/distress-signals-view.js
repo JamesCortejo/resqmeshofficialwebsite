@@ -30,6 +30,15 @@
         return getFilteredTeams().concat(getSelectedSignalDetails()?.availableTeams || []).find((team) => team.id === state.selectedTeamId) || null;
       }
 
+      function getDeploymentStatus(details = getSelectedSignalDetails()) {
+        return details?.deployment?.status || details?.accessState || 'unassigned';
+      }
+
+      function isReadOnlyEmergency(details = getSelectedSignalDetails()) {
+        const status = getDeploymentStatus(details);
+        return status === 'canceled' || status === 'accomplished';
+      }
+
       function renderTeamOptions() {
         const visibleTeams = getFilteredTeams().slice(0, VISIBLE_TEAM_LIMIT);
 
@@ -96,21 +105,54 @@
 
       function syncActionButtons() {
         const details = getSelectedSignalDetails();
-        const deploymentStatus = details?.deployment?.status || details?.accessState || 'unassigned';
+        const deploymentStatus = getDeploymentStatus(details);
+        const isReadOnly = isReadOnlyEmergency(details);
         const cancelButton = dom.distressSignalModal?.querySelector('[data-cancel-deployment]');
-        const canDeploy = Boolean(state.selectedTeamId && state.selectedLeaderId) && deploymentStatus !== 'deployed';
+        const canDeploy = Boolean(state.selectedTeamId && state.selectedLeaderId) && deploymentStatus !== 'deployed' && !isReadOnly;
 
-        dom.deployDistressTeamButton.disabled = state.modalSubmitting || !canDeploy;
-        dom.deployDistressTeamButton.textContent = deploymentStatus === 'deployed' ? 'Team Deployed' : 'Deploy Team';
+        if (dom.deployDistressTeamButton) {
+          dom.deployDistressTeamButton.hidden = isReadOnly;
+          dom.deployDistressTeamButton.disabled = isReadOnly || state.modalSubmitting || !canDeploy;
+          dom.deployDistressTeamButton.textContent = deploymentStatus === 'deployed' ? 'Team Deployed' : 'Deploy Team';
+        }
 
         if (cancelButton) {
-          cancelButton.disabled = state.modalSubmitting || deploymentStatus !== 'deployed';
+          cancelButton.hidden = isReadOnly;
+          cancelButton.disabled = isReadOnly || state.modalSubmitting || deploymentStatus !== 'deployed';
         }
       }
 
       function renderSignal(details) {
         const teamName = details.team?.name || 'No rescue team selected yet.';
         const leaderDisplay = details.deployment?.teamLeaderName || 'Not assigned';
+        const readOnly = isReadOnlyEmergency(details);
+        const deploymentControls = readOnly ? `
+              <div>
+                <h3>Final Deployment Record</h3>
+                <div class="distress-signal-status-message">
+                  This emergency is already ${helpers.escapeHtml(details.assignmentLabel.toLowerCase())}. Deployment controls are no longer available.
+                </div>
+              </div>
+            ` : `
+              <div>
+                <h3>Available Rescue Teams</h3>
+                <label class="distress-signal-team-search" for="distressSignalTeamSearchInput">
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                  <input type="search" id="distressSignalTeamSearchInput" placeholder="Search rescue team name, code, agency, or member" value="${helpers.escapeHtml(state.teamSearchQuery)}">
+                </label>
+                <p class="distress-signal-team-search-note">Showing up to 3 rescue teams at a time for this deployment picker.</p>
+                <div class="distress-signal-team-grid" id="distressSignalTeamGrid">
+                  ${renderTeamOptions()}
+                </div>
+              </div>
+
+              <div>
+                <h3>Team Leader</h3>
+                <div class="distress-signal-team-grid" id="distressSignalLeaderGrid">
+                  ${renderLeaderOptions()}
+                </div>
+              </div>
+            `;
 
         dom.distressSignalModalCode.textContent = details.distressCode;
         dom.distressSignalModalBody.innerHTML = `
@@ -130,7 +172,7 @@
                     </div>
                     <div class="distress-signal-detail-item">
                       <span>Reason</span>
-                      <strong>${helpers.escapeHtml(details.reason)}</strong>
+                      <strong>${helpers.escapeHtml(helpers.formatDistressReason(details.reason))}</strong>
                     </div>
                     <div class="distress-signal-detail-item">
                       <span>Age</span>
@@ -176,25 +218,7 @@
                 <p class="distress-signals-muted-text">${helpers.escapeHtml(`Current team: ${teamName}`)}</p>
                 <p class="distress-signals-muted-text">${helpers.escapeHtml(`Team leader: ${leaderDisplay}`)}</p>
               </div>
-
-              <div>
-                <h3>Available Rescue Teams</h3>
-                <label class="distress-signal-team-search" for="distressSignalTeamSearchInput">
-                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                  <input type="search" id="distressSignalTeamSearchInput" placeholder="Search rescue team name, code, agency, or member" value="${helpers.escapeHtml(state.teamSearchQuery)}">
-                </label>
-                <p class="distress-signal-team-search-note">Showing up to 3 rescue teams at a time for this deployment picker.</p>
-                <div class="distress-signal-team-grid" id="distressSignalTeamGrid">
-                  ${renderTeamOptions()}
-                </div>
-              </div>
-
-              <div>
-                <h3>Team Leader</h3>
-                <div class="distress-signal-team-grid" id="distressSignalLeaderGrid">
-                  ${renderLeaderOptions()}
-                </div>
-              </div>
+              ${deploymentControls}
             </section>
           </div>
         `;
@@ -238,9 +262,9 @@
           ui.setActionMessage(details.accessState === 'deployed'
             ? 'Deployment is currently active for this distress signal.'
             : details.accessState === 'canceled'
-              ? 'This deployment was canceled. You can choose a new team to redeploy.'
+              ? 'This emergency was canceled. Deployment controls are no longer available.'
               : details.accessState === 'accomplished'
-                ? 'This deployment was accomplished. You can review the final team assignment.'
+                ? 'This emergency was accomplished. You can review the final team assignment.'
                 : 'Select a rescue team and leader, then deploy right away.');
         } catch (error) {
           ui.setActionMessage(error.message || 'Unable to load distress signal details.', 'error');
@@ -251,6 +275,12 @@
 
       async function deployTeam() {
         const details = getSelectedSignalDetails();
+
+        if (isReadOnlyEmergency(details)) {
+          ui.setActionMessage('Finished emergencies are view-only.', 'warning');
+          ui.toast.show('This emergency can no longer be deployed.', 'warning');
+          return;
+        }
 
         if (!details || !state.selectedTeamId || !state.selectedLeaderId) {
           ui.setActionMessage('Select both a rescue team and a team leader before deploying.', 'warning');
@@ -329,6 +359,10 @@
 
         const teamButton = event.target.closest('[data-select-distress-team]');
         if (teamButton) {
+          if (isReadOnlyEmergency()) {
+            return;
+          }
+
           state.selectedTeamId = Number(teamButton.dataset.selectDistressTeam);
           state.selectedLeaderId = null;
 
@@ -341,6 +375,10 @@
 
         const leaderButton = event.target.closest('[data-select-team-leader]');
         if (leaderButton) {
+          if (isReadOnlyEmergency()) {
+            return;
+          }
+
           state.selectedLeaderId = Number(leaderButton.dataset.selectTeamLeader);
 
           if (state.selectedSignalDetails) {
