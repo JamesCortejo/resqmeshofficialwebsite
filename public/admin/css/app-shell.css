@@ -204,10 +204,25 @@
   overflow: hidden;
 }
 
+/* Keep page-level modals above the shared topbar, notifications, and map overlays. */
+.account-modal,
+.rescuer-modal,
+.rescuer-view-modal,
+.rescue-team-modal,
+.rescue-team-view-modal,
+.distress-signal-modal,
+.device-view-modal {
+  z-index: 1200 !important;
+}
+
+.admin-review-toast {
+  z-index: 1300 !important;
+}
+
 .admin-logout-modal {
   position: fixed;
   inset: 0;
-  z-index: 900;
+  z-index: 1400;
   display: none;
   align-items: center;
   justify-content: center;
