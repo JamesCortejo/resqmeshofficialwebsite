@@ -15,6 +15,8 @@ router.get('/api/distress/:id/eta', mobileOperationsController.getDistressEta);
 router.get('/api/public/distress/:id/eta', mobileOperationsController.getDistressEta);
 router.get('/api/route/live/public', mobileOperationsController.getPublicLiveRoute);
 router.get('/api/public/route/live', mobileOperationsController.getPublicLiveRoute);
+router.get('/api/routes/live/public', mobileOperationsController.getPublicLiveRoutes);
+router.get('/api/public/routes/live', mobileOperationsController.getPublicLiveRoutes);
 router.get('/api/node/:nodeId/route/live', mobileOperationsController.getPublicLiveRoute);
 
 router.get('/api/rescuer/assignments', requireRescuerSession, mobileOperationsController.listRescuerAssignments);

@@ -4,6 +4,7 @@ const {
   resolveRescuerAssignment,
   updateRescuerLocation,
   getPublicLiveRoute,
+  getPublicLiveRoutes,
   getEtaByNodeId,
   getEtaByDistressId,
   getPublicNodes,
@@ -109,6 +110,15 @@ exports.getPublicLiveRoute = async (req, res) => {
     return res.json(route);
   } catch (error) {
     return errorResponse(res, error, 'Unable to load public live route.');
+  }
+};
+
+exports.getPublicLiveRoutes = async (_req, res) => {
+  try {
+    const routes = await getPublicLiveRoutes();
+    return res.json(routes);
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load public live routes.');
   }
 };
 

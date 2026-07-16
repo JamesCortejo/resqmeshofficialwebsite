@@ -7,6 +7,7 @@ const {
   findActiveAssignmentForRescuer,
   findActiveDeploymentByOrigin,
   getLatestDeployedAssignment,
+  listActiveDeployedAssignments,
   listPublicNodes,
   getNodeActiveDistress,
   upsertRescuerLocationCurrent,
@@ -186,6 +187,23 @@ async function getPublicLiveRoute({ nodeId = null, distressId = null } = {}) {
   return buildLiveRouteResponse(assignment, location, snapshot);
 }
 
+async function getPublicLiveRoutes() {
+  const assignments = await listActiveDeployedAssignments();
+
+  if (!assignments.length) {
+    const error = new Error('No active assignment found.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const routes = await Promise.all(assignments.map(async (assignment) => {
+    const { location, snapshot } = await ensureDeploymentRouteSnapshot(assignment);
+    return buildLiveRouteResponse(assignment, location, snapshot);
+  }));
+
+  return routes;
+}
+
 async function getEtaByNodeId(nodeId) {
   const route = await getPublicLiveRoute({ nodeId });
   return route.route.eta_minutes;
@@ -246,6 +264,7 @@ module.exports = {
   resolveRescuerAssignment,
   updateRescuerLocation,
   getPublicLiveRoute,
+  getPublicLiveRoutes,
   getEtaByNodeId,
   getEtaByDistressId,
   getPublicNodes,

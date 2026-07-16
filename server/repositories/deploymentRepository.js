@@ -683,6 +683,46 @@ function getLatestDeployedAssignment() {
   `);
 }
 
+function listActiveDeployedAssignments() {
+  return all(`
+    SELECT
+      d.id,
+      d.deployment_code AS deploymentCode,
+      d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.origin_node_id AS originNodeId,
+      d.origin_distress_id AS originDistressId,
+      d.team_id AS teamId,
+      d.team_leader_rescuer_id AS teamLeaderRescuerId,
+      d.status,
+      d.created_at AS createdAt,
+      d.deployed_at AS deployedAt,
+      d.updated_at AS updatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      t.status AS teamStatus,
+      m.distress_code AS distressCode,
+      m.reason,
+      m.latitude,
+      m.longitude,
+      m.timestamp,
+      m.priority,
+      m.first_name AS firstName,
+      m.last_name AS lastName,
+      m.phone,
+      m.blood_type AS bloodType,
+      m.age,
+      n.node_id AS nodeId,
+      n.node_name AS nodeName
+    FROM distress_deployments d
+    INNER JOIN mesh_distress_signals m ON m.id = d.mesh_distress_signal_id
+    LEFT JOIN rescue_teams t ON t.id = d.team_id
+    LEFT JOIN mesh_nodes n ON n.node_id = d.origin_node_id
+    WHERE d.status = 'deployed'
+      AND m.deleted = 0
+    ORDER BY COALESCE(d.deployed_at, d.created_at) DESC, d.id DESC
+  `);
+}
+
 function listDeploymentsForSync(cursor, limit) {
   return all(`
     SELECT
@@ -854,6 +894,7 @@ module.exports = {
   findActiveAssignmentForRescuer,
   findActiveDeploymentByOrigin,
   getLatestDeployedAssignment,
+  listActiveDeployedAssignments,
   listDeploymentsForSync,
   listDeploymentRouteSnapshotsForSync,
   listDeploymentMemberCodes,
