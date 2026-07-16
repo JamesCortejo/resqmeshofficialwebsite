@@ -1,6 +1,7 @@
 (function initAdminNotifications() {
   const button = document.getElementById('adminNotificationButton');
   const badge = document.getElementById('adminNotificationBadge');
+  const distressNavLink = document.querySelector('.admin-nav-link[href="/resqmeshadmin/distress-signals"]');
 
   if (!button || !badge) {
     return;
@@ -112,6 +113,22 @@
     }, 4200);
   }
 
+  function renderDistressAlertState() {
+    if (!distressNavLink) {
+      return;
+    }
+
+    const hasUnreadEmergency = notifications.some((notification) =>
+      notification &&
+      !notification.isRead &&
+      notification.type === 'distress.active'
+    );
+    const shouldAlert = hasUnreadEmergency && !distressNavLink.classList.contains('is-active');
+
+    distressNavLink.classList.toggle('is-alerting', shouldAlert);
+    distressNavLink.setAttribute('data-alerting', shouldAlert ? 'true' : 'false');
+  }
+
   function renderBadge(count) {
     if (previousUnreadCount !== null && count > previousUnreadCount) {
       const newestUnread = notifications.find((notification) => !notification.isRead);
@@ -133,6 +150,7 @@
   function renderNotifications() {
     if (notifications.length === 0) {
       list.innerHTML = '<div class="admin-notifications-empty">No notifications yet.</div>';
+      renderDistressAlertState();
       return;
     }
 
@@ -149,6 +167,7 @@
         </div>
       </article>
     `).join('');
+    renderDistressAlertState();
   }
 
   async function refreshNotifications() {
@@ -178,6 +197,7 @@
       ]);
 
       notifications = itemsPayload.data || [];
+      renderDistressAlertState();
       renderBadge(countPayload.count || 0);
     } catch (error) {
       // Keep badge state stable if a background poll fails.

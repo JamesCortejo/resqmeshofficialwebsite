@@ -248,6 +248,42 @@ function notifyDeploymentAccomplished(deployment) {
   });
 }
 
+function notifyDistressSignalActive(distress) {
+  return safeCreateNotification({
+    type: 'distress.active',
+    title: 'New emergency reported',
+    message: `Emergency ${distress.distressCode} is active on mesh node ${distress.originNodeId}.`,
+    relatedEntityType: 'mesh-distress-signal',
+    relatedEntityId: distress.id,
+    relatedEntityCode: distress.distressCode,
+    metadata: {
+      status: 'active',
+      originNodeId: distress.originNodeId,
+      originDistressId: distress.originDistressId,
+      reason: distress.reason || null,
+      priority: distress.priority || null
+    }
+  });
+}
+
+function notifyDistressSignalCanceled(distress) {
+  return safeCreateNotification({
+    type: 'distress.canceled',
+    title: 'Emergency canceled',
+    message: `Emergency ${distress.distressCode} on mesh node ${distress.originNodeId} was canceled.`,
+    relatedEntityType: 'mesh-distress-signal',
+    relatedEntityId: distress.id,
+    relatedEntityCode: distress.distressCode,
+    metadata: {
+      status: 'canceled',
+      originNodeId: distress.originNodeId,
+      originDistressId: distress.originDistressId,
+      reason: distress.reason || null,
+      priority: distress.priority || null
+    }
+  });
+}
+
 async function getNotifications() {
   const notifications = await listNotifications();
   return notifications.map(normalizeNotification);
@@ -273,6 +309,8 @@ module.exports = {
   notifyDeploymentCreated,
   notifyDeploymentCanceled,
   notifyDeploymentAccomplished,
+  notifyDistressSignalActive,
+  notifyDistressSignalCanceled,
   getNotifications,
   getUnreadNotificationCount,
   markNotificationRead,

@@ -223,6 +223,36 @@ function upsertMeshDistressSignal(item) {
   ]);
 }
 
+function getMeshDistressSignalByOrigin(originNodeId, originDistressId) {
+  return get(`
+    SELECT
+      id,
+      origin_node_id AS originNodeId,
+      origin_distress_id AS originDistressId,
+      distress_code AS distressCode,
+      user_code AS userCode,
+      first_name AS firstName,
+      last_name AS lastName,
+      phone,
+      blood_type AS bloodType,
+      age,
+      node_id AS nodeId,
+      reason,
+      latitude,
+      longitude,
+      timestamp,
+      status,
+      priority,
+      ack_received AS ackReceived,
+      updated_at AS updatedAt,
+      deleted
+    FROM mesh_distress_signals
+    WHERE origin_node_id = ?
+      AND origin_distress_id = ?
+    LIMIT 1
+  `, [originNodeId, originDistressId]);
+}
+
 function upsertMeshMessage(item) {
   return run(`
     INSERT INTO mesh_messages (
@@ -402,6 +432,7 @@ module.exports = {
   upsertMeshNode,
   upsertMeshNodeHealthLog,
   upsertMeshDistressSignal,
+  getMeshDistressSignalByOrigin,
   upsertMeshMessage,
   upsertMeshAuditLog,
   listPendingMeshCommands,

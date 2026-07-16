@@ -7,6 +7,7 @@ const {
   upsertMeshNode,
   upsertMeshNodeHealthLog,
   upsertMeshDistressSignal,
+  getMeshDistressSignalByOrigin,
   upsertMeshMessage,
   upsertMeshAuditLog,
   listPendingMeshCommands,
@@ -16,9 +17,14 @@ const {
 const {
   listDeploymentsForSync,
   listDeploymentRouteSnapshotsForSync,
-  listDeploymentMemberCodes
+  listDeploymentMemberCodes,
+  getLatestDeploymentByDistressSignalId
 } = require('../repositories/deploymentRepository');
 const { touchSyncDeviceLastSync } = require('../repositories/syncDeviceRepository');
+const {
+  notifyDistressSignalActive,
+  notifyDistressSignalCanceled
+} = require('./notificationService');
 
 function nowAsIso() {
   return new Date().toISOString();
@@ -40,6 +46,15 @@ function normalizeDistressStatus(status) {
   }
 
   return normalized;
+}
+
+function isDistressActive(status) {
+  return String(status || '').toLowerCase() === 'active';
+}
+
+function isDistressCanceled(status) {
+  const normalized = String(status || '').toLowerCase();
+  return normalized === 'canceled' || normalized === 'cancelled';
 }
 
 function normalizeLimit(rawLimit) {
@@ -398,7 +413,8 @@ async function syncDistressSignalsBatch(payload, syncDevice, requestIp) {
       throw new Error('originNodeId and originDistressId are required.');
     }
 
-    await upsertMeshDistressSignal({
+    const previous = await getMeshDistressSignalByOrigin(originNodeId, originDistressId);
+    const normalized = {
       originNodeId,
       originDistressId,
       distressCode: normalizeString(item.distressCode || item.code),
@@ -418,7 +434,31 @@ async function syncDistressSignalsBatch(payload, syncDevice, requestIp) {
       ackReceived: normalizeBoolean(item.ackReceived ?? item.ack_received),
       updatedAt: normalizeString(item.updatedAt || item.updated_at) || nowAsIso(),
       deleted: normalizeBoolean(item.deleted)
-    });
+    };
+
+    await upsertMeshDistressSignal(normalized);
+
+    const current = await getMeshDistressSignalByOrigin(originNodeId, originDistressId);
+
+    if (current && !current.deleted) {
+      if ((!previous || !isDistressActive(previous.status) || previous.deleted) && isDistressActive(current.status)) {
+        await notifyDistressSignalActive(current);
+      } else if (
+        previous &&
+        !previous.deleted &&
+        !isDistressCanceled(previous.status) &&
+        isDistressCanceled(current.status)
+      ) {
+        const latestDeployment = current.id
+          ? await getLatestDeploymentByDistressSignalId(current.id)
+          : null;
+        const suppressedByAccomplished = latestDeployment?.status === 'accomplished';
+
+        if (!suppressedByAccomplished) {
+          await notifyDistressSignalCanceled(current);
+        }
+      }
+    }
 
     return { originNodeId, originDistressId };
   }, 'distress signal');

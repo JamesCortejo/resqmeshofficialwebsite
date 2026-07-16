@@ -656,6 +656,29 @@ function findActiveDeploymentByOrigin(originNodeId, originDistressId) {
   `, [originNodeId, originDistressId]);
 }
 
+function getLatestDeploymentByDistressSignalId(meshDistressSignalId) {
+  return get(`
+    SELECT
+      id,
+      deployment_code AS deploymentCode,
+      mesh_distress_signal_id AS meshDistressSignalId,
+      origin_node_id AS originNodeId,
+      origin_distress_id AS originDistressId,
+      team_id AS teamId,
+      team_leader_rescuer_id AS teamLeaderRescuerId,
+      status,
+      created_at AS createdAt,
+      deployed_at AS deployedAt,
+      canceled_at AS canceledAt,
+      accomplished_at AS accomplishedAt,
+      updated_at AS updatedAt
+    FROM distress_deployments
+    WHERE mesh_distress_signal_id = ?
+    ORDER BY COALESCE(updated_at, created_at) DESC, id DESC
+    LIMIT 1
+  `, [meshDistressSignalId]);
+}
+
 function getLatestDeployedAssignment() {
   return get(`
     SELECT
@@ -902,6 +925,7 @@ module.exports = {
   listAssignmentsForRescuer,
   findActiveAssignmentForRescuer,
   findActiveDeploymentByOrigin,
+  getLatestDeploymentByDistressSignalId,
   getLatestDeployedAssignment,
   listActiveDeployedAssignments,
   listDeploymentsForSync,

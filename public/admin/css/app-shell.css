@@ -76,9 +76,40 @@
   box-shadow: 0 12px 24px rgba(231, 75, 50, 0.08);
 }
 
+.admin-nav-link.is-alerting {
+  background: rgba(212, 58, 49, 0.12);
+  border-color: rgba(212, 58, 49, 0.26);
+  color: #c62d24;
+  box-shadow: 0 0 0 1px rgba(212, 58, 49, 0.1);
+  animation: adminDistressNavPulse 1s ease-in-out infinite;
+}
+
+.admin-nav-link.is-alerting:hover {
+  background: rgba(212, 58, 49, 0.16);
+  border-color: rgba(212, 58, 49, 0.32);
+  color: #a9241d;
+}
+
+.admin-nav-link.is-active.is-alerting {
+  animation: none;
+}
+
 .admin-nav-link i {
   width: 18px;
   text-align: center;
+}
+
+@keyframes adminDistressNavPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 58, 49, 0.12);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(212, 58, 49, 0.1),
+      0 0 26px rgba(212, 58, 49, 0.16);
+  }
 }
 
 .admin-sidebar-footnote {
@@ -96,6 +127,8 @@
 }
 
 .admin-topbar {
+  position: relative;
+  z-index: 600;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -127,6 +160,7 @@
 
 .admin-topbar-actions {
   position: relative;
+  z-index: 650;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -173,7 +207,7 @@
 .admin-logout-modal {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 900;
   display: none;
   align-items: center;
   justify-content: center;
