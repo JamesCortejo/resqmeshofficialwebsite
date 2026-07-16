@@ -21,6 +21,7 @@
     });
     state.tileLayer.addTo(state.map);
     state.connectionsLayer = L.layerGroup().addTo(state.map);
+    state.routesLayer = L.layerGroup().addTo(state.map);
     state.markersLayer = L.layerGroup().addTo(state.map);
   }
 
@@ -134,6 +135,29 @@
     `;
   }
 
+  function routePopupMarkup(route) {
+    return `
+      <div class="device-map-popup-card device-map-route-popup-card">
+        <div>
+          <h3>${helpers.escapeHtml(route.teamName || route.teamCode || route.deploymentCode)}</h3>
+          <p class="device-map-popup-subtitle">${helpers.escapeHtml(route.deploymentCode)}</p>
+        </div>
+        <div class="device-map-popup-pills">
+          <span class="device-map-popup-pill" data-status="route">Active team route</span>
+          <span class="device-map-popup-pill" data-status="distressed">${helpers.escapeHtml(route.distressCode)}</span>
+        </div>
+        <div class="device-map-popup-meta">
+          <div class="device-map-popup-row"><span>Team</span><strong>${helpers.escapeHtml(route.teamName || 'Unknown team')}</strong></div>
+          <div class="device-map-popup-row"><span>Leader</span><strong>${helpers.escapeHtml(route.teamLeaderName || 'Unknown leader')}</strong></div>
+          <div class="device-map-popup-row"><span>Distress</span><strong>${helpers.escapeHtml(helpers.formatDistressReason(route.distressReason))}</strong></div>
+          <div class="device-map-popup-row"><span>ETA</span><strong>${helpers.escapeHtml(route.etaMinutes != null ? `${route.etaMinutes} min` : 'Not available')}</strong></div>
+          <div class="device-map-popup-row"><span>Distance</span><strong>${helpers.escapeHtml(helpers.formatDistance(route.distanceM))}</strong></div>
+          <div class="device-map-popup-row"><span>Updated</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(route.routeUpdatedAt))}</strong></div>
+        </div>
+      </div>
+    `;
+  }
+
   function createMarker(device) {
     const status = deriveMapStatus(device);
     const distressedClass = device.hasActiveDistress ? ' is-flashing' : '';
@@ -214,16 +238,68 @@
     });
   }
 
+  function hasRenderableRoute(route) {
+    return Array.isArray(route.coordinates) && route.coordinates.length >= 2;
+  }
+
+  function renderRoutes() {
+    if (!state.routesLayer) {
+      return;
+    }
+
+    state.routesLayer.clearLayers();
+
+    const visibleRoutes = state.routes.filter(hasRenderableRoute);
+
+    if (!visibleRoutes.some((route) => route.deploymentId === state.selectedRouteDeploymentId)) {
+      state.selectedRouteDeploymentId = null;
+    }
+
+    visibleRoutes.forEach((route) => {
+      const isSelected = state.selectedRouteDeploymentId === route.deploymentId;
+      const polyline = L.polyline(
+        route.coordinates.map((coordinate) => [Number(coordinate[1]), Number(coordinate[0])]),
+        {
+          className: `device-map-route${isSelected ? ' is-selected' : ''}`,
+          color: isSelected ? '#c93f29' : '#f26441',
+          weight: isSelected ? 6 : 4,
+          opacity: isSelected ? 0.94 : 0.66,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }
+      ).bindPopup(routePopupMarkup(route), {
+        className: 'device-map-popup device-map-route-popup'
+      });
+
+      polyline.on('click', (event) => {
+        state.selectedRouteDeploymentId = route.deploymentId;
+        renderMap({ preserveViewport: true });
+
+        window.setTimeout(() => {
+          state.routesLayer?.eachLayer((layer) => {
+            if (layer.__routeDeploymentId === route.deploymentId) {
+              layer.openPopup(event.latlng);
+            }
+          });
+        }, 0);
+      });
+
+      polyline.__routeDeploymentId = route.deploymentId;
+      polyline.addTo(state.routesLayer);
+    });
+  }
+
   function renderMap(options = {}) {
     const { preserveViewport = false } = options;
 
     initializeMap();
 
-    if (!state.map || !state.markersLayer || !state.connectionsLayer) {
+    if (!state.map || !state.markersLayer || !state.connectionsLayer || !state.routesLayer) {
       return;
     }
 
     state.connectionsLayer.clearLayers();
+    state.routesLayer.clearLayers();
     state.markersLayer.clearLayers();
 
     const visibleDevices = state.filteredDevices.filter(hasValidCoordinates);
@@ -241,6 +317,7 @@
     const bounds = [];
 
     renderConnections(visibleDevices);
+    renderRoutes();
 
     visibleDevices.forEach((device) => {
       const marker = createMarker(device);
@@ -283,8 +360,23 @@
     }
 
     try {
-      const payload = await helpers.requestJson('/api/admin/devices/map');
-      state.devices = Array.isArray(payload.data) ? payload.data : [];
+      const [devicesResult, routesResult] = await Promise.allSettled([
+        helpers.requestJson('/api/admin/devices/map'),
+        helpers.requestJson('/api/admin/device-map/routes')
+      ]);
+
+      if (devicesResult.status !== 'fulfilled') {
+        throw devicesResult.reason;
+      }
+
+      state.devices = Array.isArray(devicesResult.value.data) ? devicesResult.value.data : [];
+
+      if (routesResult.status === 'fulfilled') {
+        state.routes = Array.isArray(routesResult.value.data) ? routesResult.value.data : [];
+      } else if (!background || state.routes.length === 0) {
+        state.routes = [];
+      }
+
       ui.setFeedback('');
       applyFilters();
       return true;

@@ -112,6 +112,7 @@
 .device-map-legend-dot[data-status="stale"] { background: #9a5d08; }
 .device-map-legend-dot[data-status="offline"] { background: #64717f; }
 .device-map-legend-dot[data-status="distressed"] { background: #b22929; }
+.device-map-legend-dot[data-status="route"] { background: #f26441; }
 
 .device-map-unavailable-header {
   display: flex;
@@ -238,6 +239,14 @@
   filter: drop-shadow(0 0 12px rgba(178, 41, 41, 0.34));
 }
 
+.device-map-route {
+  filter: drop-shadow(0 0 8px rgba(242, 100, 65, 0.24));
+}
+
+.device-map-route.is-selected {
+  filter: drop-shadow(0 0 12px rgba(201, 63, 41, 0.32));
+}
+
 .device-map-popup .leaflet-popup-content-wrapper {
   border-radius: calc(var(--admin-radius-md) + 0.05rem);
 }
@@ -313,9 +322,19 @@
   color: #0b6b56;
 }
 
+.device-map-popup-pill[data-status="route"] {
+  border: 1px solid rgba(242, 100, 65, 0.24);
+  background: rgba(242, 100, 65, 0.08);
+  color: #c93f29;
+}
+
 .device-map-popup-meta {
   display: grid;
   gap: 0.55rem;
+}
+
+.device-map-route-popup-card {
+  min-width: 248px;
 }
 
 .device-map-popup-distress {

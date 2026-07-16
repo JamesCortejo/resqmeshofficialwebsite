@@ -92,6 +92,20 @@
     return Number.isFinite(numeric) ? numeric.toFixed(6) : String(value);
   }
 
+  function formatDistance(value) {
+    const numeric = Number(value);
+
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      return 'Not available';
+    }
+
+    if (numeric >= 1000) {
+      return `${(numeric / 1000).toFixed(1)} km`;
+    }
+
+    return `${Math.round(numeric)} m`;
+  }
+
   function getStatusDisplay(value) {
     const normalized = String(value || '').toLowerCase();
 
@@ -186,13 +200,16 @@
     const state = {
       devices: [],
       filteredDevices: [],
+      routes: [],
       selectedDeviceId: null,
       selectedDeviceDetails: null,
+      selectedRouteDeploymentId: null,
       loading: false,
       map: null,
       tileLayer: null,
       markersLayer: null,
       connectionsLayer: null,
+      routesLayer: null,
       liveRefreshIntervalId: null,
       hasInitializedViewport: false
     };
@@ -256,6 +273,7 @@
         formatDate,
         formatRelativeTime,
         formatCoordinate,
+        formatDistance,
         getStatusDisplay,
         formatDistressReason,
         detailItem,

@@ -32,6 +32,7 @@ router.patch('/accounts/:id/access-status', adminAccountsController.updateAccess
 router.patch('/accounts/:id/status', adminAccountsController.updateStatus);
 router.get('/devices', deviceManagerController.listDevices);
 router.get('/devices/map', deviceManagerController.listDevicesForMap);
+router.get('/device-map/routes', deviceManagerController.listDeviceMapRoutes);
 router.get('/devices/:id', deviceManagerController.getDeviceDetails);
 router.get('/distress-signals', adminDistressController.listDistressSignals);
 router.get('/distress-signals/:id', adminDistressController.getDistressSignalDetails);

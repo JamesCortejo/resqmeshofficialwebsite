@@ -109,6 +109,53 @@ function listDevicesForMap() {
   `);
 }
 
+function listActiveDeviceMapRoutes() {
+  return all(`
+    SELECT
+      d.id AS deploymentId,
+      d.deployment_code AS deploymentCode,
+      d.mesh_distress_signal_id AS distressId,
+      d.origin_node_id AS originNodeId,
+      d.team_id AS teamId,
+      d.team_leader_rescuer_id AS teamLeaderRescuerId,
+      d.status AS deploymentStatus,
+      d.deployed_at AS deployedAt,
+      d.updated_at AS deploymentUpdatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      t.status AS teamStatus,
+      r.first_name_enc AS leaderFirstNameEnc,
+      r.middle_name_enc AS leaderMiddleNameEnc,
+      r.last_name_enc AS leaderLastNameEnc,
+      m.distress_code AS distressCode,
+      m.reason AS distressReason,
+      m.latitude AS distressLatitude,
+      m.longitude AS distressLongitude,
+      m.origin_node_id AS distressOriginNodeId,
+      n.node_name AS originNodeName,
+      lc.latitude AS leaderLatitude,
+      lc.longitude AS leaderLongitude,
+      lc.recorded_at AS leaderRecordedAt,
+      s.distance_m AS distanceM,
+      s.duration_s AS durationS,
+      s.eta_minutes AS etaMinutes,
+      s.geometry_json AS geometryJson,
+      s.updated_at AS routeUpdatedAt
+    FROM distress_deployments d
+    INNER JOIN deployment_route_snapshots s ON s.deployment_id = d.id
+    INNER JOIN mesh_distress_signals m ON m.id = d.mesh_distress_signal_id
+    LEFT JOIN rescue_teams t ON t.id = d.team_id
+    LEFT JOIN rescuers r ON r.id = d.team_leader_rescuer_id
+    LEFT JOIN mesh_nodes n ON n.node_id = d.origin_node_id
+    LEFT JOIN rescuer_locations_current lc ON lc.rescuer_id = d.team_leader_rescuer_id
+    WHERE d.status = 'deployed'
+      AND m.deleted = 0
+      AND s.geometry_json IS NOT NULL
+      AND TRIM(s.geometry_json) <> ''
+    ORDER BY COALESCE(d.deployed_at, d.created_at) DESC, d.id DESC
+  `);
+}
+
 function getDeviceSummaryById(id) {
   return get(`
     SELECT
@@ -218,6 +265,7 @@ function getTotalAuditCount(nodeId) {
 module.exports = {
   listDevices,
   listDevicesForMap,
+  listActiveDeviceMapRoutes,
   getDeviceSummaryById,
   getLatestHealthRecord,
   getTotalDistressCount,

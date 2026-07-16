@@ -1,12 +1,14 @@
 const {
   listDevices,
   listDevicesForMap,
+  listActiveDeviceMapRoutes,
   getDeviceSummaryById,
   getLatestHealthRecord,
   getTotalDistressCount,
   getTotalMessageCount,
   getTotalAuditCount
 } = require('../repositories/deviceManagerRepository');
+const { decryptText } = require('./encryptionService');
 
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 const STALE_THRESHOLD_MS = 10 * 60 * 1000;
@@ -99,6 +101,23 @@ function statusLabel(value) {
   return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unknown';
 }
 
+function parseCoordinates(value) {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item) => Array.isArray(item) && item.length >= 2) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function fullName(firstName, middleName, lastName) {
+  return [firstName, middleName, lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+}
+
 function summaryResponse(row) {
   const connectivityStatus = getConnectivityStatus(row);
 
@@ -189,6 +208,54 @@ async function getDeviceMapSummaries() {
   return rows.map(mapStatusResponse);
 }
 
+function routeOverlayResponse(row) {
+  const coordinates = parseCoordinates(row.geometryJson);
+
+  if (coordinates.length < 2) {
+    return null;
+  }
+
+  const teamLeaderName = fullName(
+    decryptText(row.leaderFirstNameEnc),
+    decryptText(row.leaderMiddleNameEnc),
+    decryptText(row.leaderLastNameEnc)
+  );
+
+  return {
+    deploymentId: row.deploymentId,
+    deploymentCode: row.deploymentCode,
+    teamId: row.teamId,
+    teamCode: row.teamCode || '',
+    teamName: row.teamName || '',
+    teamStatus: row.teamStatus || 'unknown',
+    teamStatusLabel: statusLabel(row.teamStatus),
+    teamLeaderRescuerId: row.teamLeaderRescuerId,
+    teamLeaderName: teamLeaderName || row.teamCode || row.deploymentCode,
+    distressId: row.distressId,
+    distressCode: row.distressCode || '',
+    distressReason: row.distressReason || '',
+    originNodeId: row.originNodeId || row.distressOriginNodeId || '',
+    originNodeName: row.originNodeName || row.originNodeId || row.distressOriginNodeId || 'Unknown node',
+    distressLatitude: row.distressLatitude,
+    distressLongitude: row.distressLongitude,
+    leaderLatitude: row.leaderLatitude,
+    leaderLongitude: row.leaderLongitude,
+    leaderRecordedAt: toIsoTimestamp(row.leaderRecordedAt),
+    etaMinutes: row.etaMinutes !== null && row.etaMinutes !== undefined ? Number(row.etaMinutes) : null,
+    distanceM: row.distanceM !== null && row.distanceM !== undefined ? Number(row.distanceM) : null,
+    durationS: row.durationS !== null && row.durationS !== undefined ? Number(row.durationS) : null,
+    routeUpdatedAt: toIsoTimestamp(row.routeUpdatedAt || row.deploymentUpdatedAt || row.deployedAt),
+    coordinates
+  };
+}
+
+async function getDeviceMapRoutes() {
+  const rows = await listActiveDeviceMapRoutes();
+  return rows
+    .map(routeOverlayResponse)
+    .filter(Boolean);
+}
+
 async function getDeviceDetails(id) {
   const row = await getDeviceSummaryById(id);
 
@@ -251,5 +318,6 @@ async function getDeviceDetails(id) {
 module.exports = {
   getDeviceSummaries,
   getDeviceMapSummaries,
+  getDeviceMapRoutes,
   getDeviceDetails
 };
