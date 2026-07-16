@@ -99,6 +99,81 @@ async function warnAboutLegacyUserTables() {
   );
 }
 
+async function reconcileDeploymentOperationalStatuses() {
+  await exec(`
+    BEGIN TRANSACTION;
+
+    UPDATE rescue_teams
+    SET
+      status = 'dispatched',
+      updated_at = CASE
+        WHEN EXISTS (
+          SELECT 1
+          FROM distress_deployments d
+          WHERE d.team_id = rescue_teams.id
+            AND d.status = 'deployed'
+        ) THEN '${nowAsIso()}'
+        ELSE updated_at
+      END
+    WHERE EXISTS (
+      SELECT 1
+      FROM distress_deployments d
+      WHERE d.team_id = rescue_teams.id
+        AND d.status = 'deployed'
+    );
+
+    UPDATE rescue_teams
+    SET
+      status = 'active',
+      updated_at = CASE
+        WHEN status = 'dispatched' THEN '${nowAsIso()}'
+        ELSE updated_at
+      END
+    WHERE status = 'dispatched'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM distress_deployments d
+        WHERE d.team_id = rescue_teams.id
+          AND d.status = 'deployed'
+      );
+
+    UPDATE rescuers
+    SET
+      status = 'dispatched',
+      updated_at = CASE
+        WHEN access_status = 'active' THEN '${nowAsIso()}'
+        ELSE updated_at
+      END
+    WHERE access_status = 'active'
+      AND EXISTS (
+        SELECT 1
+        FROM distress_deployment_members dm
+        INNER JOIN distress_deployments d ON d.id = dm.deployment_id
+        WHERE dm.rescuer_id = rescuers.id
+          AND d.status = 'deployed'
+      );
+
+    UPDATE rescuers
+    SET
+      status = 'available',
+      updated_at = CASE
+        WHEN access_status = 'active' THEN '${nowAsIso()}'
+        ELSE updated_at
+      END
+    WHERE access_status = 'active'
+      AND status = 'dispatched'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM distress_deployment_members dm
+        INNER JOIN distress_deployments d ON d.id = dm.deployment_id
+        WHERE dm.rescuer_id = rescuers.id
+          AND d.status = 'deployed'
+      );
+
+    COMMIT;
+  `);
+}
+
 async function ensureAllowedUserStatuses() {
   const usersTableSql = await getTableSql('users');
 
@@ -865,6 +940,7 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_mesh_commands_target_status ON mesh_commands (target_node_id, status);
   `);
 
+  await reconcileDeploymentOperationalStatuses();
   await ensureBootstrapSyncDevice();
 }
 

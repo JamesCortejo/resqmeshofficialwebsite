@@ -243,13 +243,6 @@
   }
 
   function routeMarkerLatLng(route) {
-    const leaderLatitude = Number(route.leaderLatitude);
-    const leaderLongitude = Number(route.leaderLongitude);
-
-    if (Number.isFinite(leaderLatitude) && Number.isFinite(leaderLongitude) && leaderLatitude !== 0 && leaderLongitude !== 0) {
-      return [leaderLatitude, leaderLongitude];
-    }
-
     const firstCoordinate = Array.isArray(route.coordinates) ? route.coordinates[0] : null;
 
     if (!Array.isArray(firstCoordinate) || firstCoordinate.length < 2) {
@@ -318,11 +311,7 @@
           zIndexOffset: 350,
           icon: L.divIcon({
             className: 'device-map-route-team-marker-icon',
-            html: `
-              <div class="device-map-route-team-marker${isSelected ? ' is-selected' : ''}">
-                <i class="fa-solid fa-truck-medical" aria-hidden="true"></i>
-              </div>
-            `,
+            html: `<div class="device-map-route-team-marker${isSelected ? ' is-selected' : ''}"></div>`,
             iconSize: [34, 34],
             iconAnchor: [17, 17],
             popupAnchor: [0, -16]
