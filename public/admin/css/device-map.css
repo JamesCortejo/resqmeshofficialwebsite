@@ -247,6 +247,30 @@
   filter: drop-shadow(0 0 12px rgba(201, 63, 41, 0.32));
 }
 
+.device-map-route-team-marker {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.96);
+  background: linear-gradient(135deg, #f9734c, #c93f29);
+  box-shadow:
+    0 10px 24px rgba(23, 33, 43, 0.28),
+    0 0 0 7px rgba(242, 100, 65, 0.16);
+  color: #ffffff;
+  font-size: 0.92rem;
+}
+
+.device-map-route-team-marker.is-selected {
+  background: linear-gradient(135deg, #ef3d2f, #9f2b1d);
+  box-shadow:
+    0 12px 28px rgba(23, 33, 43, 0.32),
+    0 0 0 8px rgba(239, 61, 47, 0.2),
+    0 0 0 15px rgba(239, 61, 47, 0.1);
+}
+
 .device-map-popup .leaflet-popup-content-wrapper {
   border-radius: calc(var(--admin-radius-md) + 0.05rem);
 }

@@ -52,6 +52,9 @@
 
         return visibleTeams.map((team) => {
           const isSelected = state.selectedTeamId === team.id;
+          const unavailableReason = team.status === 'dispatched'
+            ? 'This team is already dispatched to another emergency.'
+            : 'Inactive teams cannot be deployed.';
           const roster = (team.members || []).map((member) => `
             <span class="distress-signal-team-roster-chip">${helpers.escapeHtml(member.fullName)}</span>
           `).join('');
@@ -67,7 +70,7 @@
               </div>
               <div class="distress-signal-team-roster">${roster || '<span class="distress-signal-team-empty">No active roster available.</span>'}</div>
               <div class="distress-signal-team-footer">
-                <span class="distress-signal-team-footnote">${helpers.escapeHtml(team.assignable ? 'Team is ready for deployment.' : 'Inactive teams cannot be deployed.')}</span>
+                <span class="distress-signal-team-footnote">${helpers.escapeHtml(team.assignable ? 'Team is ready for deployment.' : unavailableReason)}</span>
                 <button type="button" class="distress-signal-team-button ${isSelected ? 'is-selected' : ''}" data-select-distress-team="${helpers.escapeHtml(team.id)}" ${team.assignable ? '' : 'disabled'}>
                   <i class="fa-solid fa-people-group" aria-hidden="true"></i>
                   <span>${isSelected ? 'Selected Team' : 'Select Team'}</span>

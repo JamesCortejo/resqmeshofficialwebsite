@@ -242,6 +242,36 @@
     return Array.isArray(route.coordinates) && route.coordinates.length >= 2;
   }
 
+  function routeMarkerLatLng(route) {
+    const leaderLatitude = Number(route.leaderLatitude);
+    const leaderLongitude = Number(route.leaderLongitude);
+
+    if (Number.isFinite(leaderLatitude) && Number.isFinite(leaderLongitude) && leaderLatitude !== 0 && leaderLongitude !== 0) {
+      return [leaderLatitude, leaderLongitude];
+    }
+
+    const firstCoordinate = Array.isArray(route.coordinates) ? route.coordinates[0] : null;
+
+    if (!Array.isArray(firstCoordinate) || firstCoordinate.length < 2) {
+      return null;
+    }
+
+    const longitude = Number(firstCoordinate[0]);
+    const latitude = Number(firstCoordinate[1]);
+
+    return Number.isFinite(latitude) && Number.isFinite(longitude) ? [latitude, longitude] : null;
+  }
+
+  function openRoutePopupAfterRender(route, latlng, layerType = 'polyline') {
+    window.setTimeout(() => {
+      state.routesLayer?.eachLayer((layer) => {
+        if (layer.__routeDeploymentId === route.deploymentId && layer.__routeLayerType === layerType) {
+          layer.openPopup(latlng);
+        }
+      });
+    }, 0);
+  }
+
   function renderRoutes() {
     if (!state.routesLayer) {
       return;
@@ -274,18 +304,43 @@
       polyline.on('click', (event) => {
         state.selectedRouteDeploymentId = route.deploymentId;
         renderMap({ preserveViewport: true });
-
-        window.setTimeout(() => {
-          state.routesLayer?.eachLayer((layer) => {
-            if (layer.__routeDeploymentId === route.deploymentId) {
-              layer.openPopup(event.latlng);
-            }
-          });
-        }, 0);
+        openRoutePopupAfterRender(route, event.latlng, 'polyline');
       });
 
       polyline.__routeDeploymentId = route.deploymentId;
+      polyline.__routeLayerType = 'polyline';
       polyline.addTo(state.routesLayer);
+
+      const markerLatLng = routeMarkerLatLng(route);
+
+      if (markerLatLng) {
+        const marker = L.marker(markerLatLng, {
+          zIndexOffset: 350,
+          icon: L.divIcon({
+            className: 'device-map-route-team-marker-icon',
+            html: `
+              <div class="device-map-route-team-marker${isSelected ? ' is-selected' : ''}">
+                <i class="fa-solid fa-truck-medical" aria-hidden="true"></i>
+              </div>
+            `,
+            iconSize: [34, 34],
+            iconAnchor: [17, 17],
+            popupAnchor: [0, -16]
+          })
+        }).bindPopup(routePopupMarkup(route), {
+          className: 'device-map-popup device-map-route-popup'
+        });
+
+        marker.on('click', (event) => {
+          state.selectedRouteDeploymentId = route.deploymentId;
+          renderMap({ preserveViewport: true });
+          openRoutePopupAfterRender(route, event.latlng, 'marker');
+        });
+
+        marker.__routeDeploymentId = route.deploymentId;
+        marker.__routeLayerType = 'marker';
+        marker.addTo(state.routesLayer);
+      }
     });
   }
 

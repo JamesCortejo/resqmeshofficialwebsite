@@ -152,7 +152,7 @@ async function buildTeamChoices() {
       members: activeMembers,
       capacity: 5,
       memberCount: activeMembers.length,
-      assignable: team.status === 'active' || team.status === 'dispatched'
+      assignable: team.status === 'active'
     };
   }));
 }
@@ -249,7 +249,7 @@ async function deployDistressSignal(id, payload, adminUser) {
     throw error;
   }
 
-  if (!['active', 'dispatched'].includes(team.status)) {
+  if (team.status !== 'active') {
     const error = new Error('Selected rescue team is not currently deployable.');
     error.statusCode = 400;
     throw error;

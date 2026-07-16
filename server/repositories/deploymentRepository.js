@@ -257,6 +257,20 @@ async function createDeployment(deployment, members) {
   await run('BEGIN IMMEDIATE TRANSACTION');
 
   try {
+    const teamUpdate = await run(`
+      UPDATE rescue_teams
+      SET
+        status = 'dispatched',
+        updated_at = ?
+      WHERE id = ? AND status = 'active'
+    `, [deployment.updatedAt, deployment.teamId]);
+
+    if (!teamUpdate.changes) {
+      const error = new Error('Selected rescue team is not currently deployable.');
+      error.statusCode = 400;
+      throw error;
+    }
+
     const created = await run(`
       INSERT INTO distress_deployments (
         deployment_code,
@@ -301,6 +315,20 @@ async function createDeployment(deployment, members) {
       ]);
     }
 
+    const memberIds = members.map((member) => member.rescuerId).filter(Boolean);
+
+    if (memberIds.length > 0) {
+      const placeholders = memberIds.map(() => '?').join(', ');
+      await run(`
+        UPDATE rescuers
+        SET
+          status = 'dispatched',
+          updated_at = ?
+        WHERE access_status = 'active'
+          AND id IN (${placeholders})
+      `, [deployment.updatedAt, ...memberIds]);
+    }
+
     await run('COMMIT');
     return created;
   } catch (error) {
@@ -309,16 +337,74 @@ async function createDeployment(deployment, members) {
   }
 }
 
-function updateDeploymentStatus(id, status, timestamp) {
-  return run(`
-    UPDATE distress_deployments
-    SET
-      status = ?,
-      canceled_at = CASE WHEN ? = 'canceled' THEN ? ELSE canceled_at END,
-      accomplished_at = CASE WHEN ? = 'accomplished' THEN ? ELSE accomplished_at END,
-      updated_at = ?
-    WHERE id = ?
-  `, [status, status, timestamp, status, timestamp, timestamp, id]);
+async function updateDeploymentStatus(id, status, timestamp) {
+  await run('BEGIN IMMEDIATE TRANSACTION');
+
+  try {
+    const result = await run(`
+      UPDATE distress_deployments
+      SET
+        status = ?,
+        canceled_at = CASE WHEN ? = 'canceled' THEN ? ELSE canceled_at END,
+        accomplished_at = CASE WHEN ? = 'accomplished' THEN ? ELSE accomplished_at END,
+        updated_at = ?
+      WHERE id = ?
+    `, [status, status, timestamp, status, timestamp, timestamp, id]);
+
+    const deployment = await get(`
+      SELECT team_id AS teamId
+      FROM distress_deployments
+      WHERE id = ?
+      LIMIT 1
+    `, [id]);
+
+    if (deployment?.teamId) {
+      await run(`
+        UPDATE rescue_teams
+        SET
+          status = 'active',
+          updated_at = ?
+        WHERE id = ?
+          AND status = 'dispatched'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM distress_deployments
+            WHERE team_id = ?
+              AND status = 'deployed'
+              AND id <> ?
+          )
+      `, [timestamp, deployment.teamId, deployment.teamId, id]);
+
+      await run(`
+        UPDATE rescuers
+        SET
+          status = 'available',
+          updated_at = ?
+        WHERE access_status = 'active'
+          AND status = 'dispatched'
+          AND id IN (
+            SELECT rescuer_id
+            FROM distress_deployment_members
+            WHERE deployment_id = ?
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM distress_deployment_members other_members
+            INNER JOIN distress_deployments other_deployments
+              ON other_deployments.id = other_members.deployment_id
+            WHERE other_members.rescuer_id = rescuers.id
+              AND other_deployments.status = 'deployed'
+              AND other_deployments.id <> ?
+          )
+      `, [timestamp, id, id]);
+    }
+
+    await run('COMMIT');
+    return result;
+  } catch (error) {
+    await run('ROLLBACK');
+    throw error;
+  }
 }
 
 function upsertRescuerLocationCurrent(location) {
