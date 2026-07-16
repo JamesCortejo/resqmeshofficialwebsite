@@ -36,7 +36,17 @@ function leaderName(row) {
 }
 
 function assignmentState(row) {
-  return row.deploymentStatus || 'unassigned';
+  if (row.deploymentStatus) {
+    return row.deploymentStatus;
+  }
+
+  const distressStatus = String(row.distressStatus || '').toLowerCase();
+
+  if (distressStatus === 'canceled' || distressStatus === 'cancelled') {
+    return 'canceled';
+  }
+
+  return 'unassigned';
 }
 
 function assignmentLabel(value) {

@@ -76,8 +76,17 @@ function listDistressSignals() {
     LEFT JOIN rescue_teams t ON t.id = d.team_id
     LEFT JOIN rescuers r ON r.id = d.team_leader_rescuer_id
     WHERE m.deleted = 0
-      AND LOWER(COALESCE(m.status, '')) = 'active'
-    ORDER BY COALESCE(m.updated_at, m.timestamp) DESC, m.id DESC
+    ORDER BY
+      CASE
+        WHEN d.status = 'deployed' THEN 0
+        WHEN LOWER(COALESCE(m.status, '')) = 'active' THEN 1
+        WHEN d.status = 'accomplished' THEN 2
+        WHEN d.status = 'canceled' THEN 3
+        WHEN LOWER(COALESCE(m.status, '')) IN ('canceled', 'cancelled') THEN 4
+        ELSE 5
+      END,
+      COALESCE(d.updated_at, m.updated_at, m.timestamp) DESC,
+      m.id DESC
   `);
 }
 
