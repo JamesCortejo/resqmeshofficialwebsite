@@ -418,8 +418,9 @@
 
 .distress-signal-modal-body {
   overflow: auto;
-  padding: 1.35rem;
-  min-height: 540px;
+  min-height: 0;
+  padding: 1.35rem 1.35rem 2.4rem;
+  scroll-padding-bottom: 7rem;
 }
 
 .distress-signal-status-message {
@@ -430,7 +431,8 @@
 .distress-signal-modal-layout {
   display: grid;
   gap: 1rem;
-  min-height: 500px;
+  min-height: 0;
+  padding-bottom: 0.35rem;
 }
 
 .distress-signal-modal-top-row {
@@ -502,7 +504,7 @@
 }
 
 .distress-signal-deployment-card {
-  min-height: 240px;
+  min-height: 0;
   align-content: start;
 }
 
@@ -513,6 +515,15 @@
 .distress-signal-team-grid {
   display: grid;
   gap: 0.8rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  padding-bottom: 0.45rem;
+  scroll-padding-bottom: 1rem;
+}
+
+#distressSignalLeaderGrid {
+  max-height: 13.5rem;
 }
 
 .distress-signal-team-search {
@@ -762,7 +773,15 @@ body.distress-signal-modal-open {
   }
 
   .distress-signal-modal-body {
-    padding: 1rem;
+    padding: 1rem 1rem 2rem;
+  }
+
+  .distress-signal-team-grid {
+    max-height: 15rem;
+  }
+
+  #distressSignalLeaderGrid {
+    max-height: 11.5rem;
   }
 
   .distress-signal-action-buttons {
