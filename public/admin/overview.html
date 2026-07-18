@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/admin/css/login.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
   <link rel="stylesheet" href="/admin/css/app-shell.css">
+  <link rel="stylesheet" href="/admin/css/overview.css">
   <link rel="stylesheet" href="/admin/css/admin-notifications.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -83,7 +84,7 @@
             Valencia City Emergency Network
           </span>
           <h1 class="admin-topbar-title">Overview</h1>
-          <p class="admin-topbar-desc">A shared operations workspace for monitoring and future control tools.</p>
+          <p class="admin-topbar-desc">Monitor emergency operations, responder readiness, mesh health, and sync activity.</p>
         </div>
 
         <div class="admin-topbar-actions">
@@ -98,15 +99,95 @@
         </div>
       </header>
 
-      <section class="admin-content-panel" aria-labelledby="overview-panel-title">
-        <h2 id="overview-panel-title">Admin Overview</h2>
-        <p>This page is ready for overview widgets, network summaries, and administrative activity panels.</p>
+      <section class="overview-dashboard" aria-labelledby="overview-panel-title">
+        <div class="overview-heading-row">
+          <div>
+            <h2 id="overview-panel-title">Command Summary</h2>
+            <p>Live operational snapshot across the ResQMesh emergency network.</p>
+          </div>
+          <span class="overview-refresh-label" id="overviewRefreshLabel">Loading dashboard...</span>
+        </div>
+
+        <div class="overview-feedback" id="overviewFeedback" hidden></div>
+
+        <div class="overview-stat-grid" id="overviewStatGrid" aria-label="Overview summary cards"></div>
+
+        <div class="overview-grid">
+          <article class="admin-content-panel overview-panel overview-chart-panel" aria-labelledby="overview-emergency-chart-title">
+            <div class="overview-panel-heading">
+              <div>
+                <h3 id="overview-emergency-chart-title">Emergency Outcomes</h3>
+                <p>Current active cases compared with completed and canceled cases.</p>
+              </div>
+            </div>
+            <div class="overview-donut-layout">
+              <div class="overview-donut" id="overviewEmergencyDonut" role="img" aria-label="Emergency outcome chart"></div>
+              <div class="overview-chart-legend" id="overviewEmergencyLegend"></div>
+            </div>
+          </article>
+
+          <article class="admin-content-panel overview-panel overview-chart-panel" aria-labelledby="overview-readiness-chart-title">
+            <div class="overview-panel-heading">
+              <div>
+                <h3 id="overview-readiness-chart-title">Responder Readiness</h3>
+                <p>Rescuer and team availability by operational state.</p>
+              </div>
+            </div>
+            <div class="overview-bar-chart" id="overviewReadinessBars" aria-label="Responder readiness bar chart"></div>
+          </article>
+        </div>
+
+        <div class="overview-grid overview-grid-wide">
+          <article class="admin-content-panel overview-panel overview-line-panel" aria-labelledby="overview-network-trend-title">
+            <div class="overview-panel-heading">
+              <div>
+                <h3 id="overview-network-trend-title">7-Day Network Activity</h3>
+                <p>Distress reports and synced mesh messages over the last week.</p>
+              </div>
+            </div>
+            <div class="overview-line-chart" id="overviewNetworkTrend" aria-label="Network activity line chart"></div>
+          </article>
+
+          <article class="admin-content-panel overview-panel overview-summary-panel" aria-labelledby="overview-sync-title">
+            <div class="overview-panel-heading">
+              <div>
+                <h3 id="overview-sync-title">Sync Health</h3>
+                <p>Firmware activity and latest server-side mesh intake.</p>
+              </div>
+            </div>
+            <div class="overview-mini-summary" id="overviewSyncSummary"></div>
+          </article>
+        </div>
+
+        <div class="overview-grid overview-grid-wide">
+          <article class="admin-content-panel overview-panel" aria-labelledby="overview-recent-emergencies-title">
+            <div class="overview-panel-heading">
+              <div>
+                <h3 id="overview-recent-emergencies-title">Recent Emergencies</h3>
+                <p>Newest distress cases from synced mesh nodes.</p>
+              </div>
+              <a class="overview-panel-link" href="/resqmeshadmin/distress-signals">View all</a>
+            </div>
+            <div class="overview-list" id="overviewRecentEmergencies"></div>
+          </article>
+
+          <article class="admin-content-panel overview-panel" aria-labelledby="overview-recent-activity-title">
+            <div class="overview-panel-heading">
+              <div>
+                <h3 id="overview-recent-activity-title">Recent Activity</h3>
+                <p>Latest admin notifications and operational events.</p>
+              </div>
+            </div>
+            <div class="overview-list" id="overviewRecentActivity"></div>
+          </article>
+        </div>
       </section>
     </section>
   </main>
   <script src="/admin/js/admin-loader.js"></script>
   <script src="/admin/js/admin-auth.js"></script>
   <script src="/admin/js/admin-notifications.js"></script>
+  <script src="/admin/js/overview.js"></script>
 </body>
 
 </html>

@@ -3,6 +3,7 @@ const adminAuthController = require('../controllers/adminAuthController');
 const adminAccountsController = require('../controllers/adminAccountsController');
 const adminNotificationsController = require('../controllers/adminNotificationsController');
 const adminDistressController = require('../controllers/adminDistressController');
+const overviewController = require('../controllers/overviewController');
 const deviceManagerController = require('../controllers/deviceManagerController');
 const rescuerController = require('../controllers/rescuerController');
 const rescueTeamController = require('../controllers/rescueTeamController');
@@ -24,6 +25,7 @@ router.patch('/notifications/read-all', adminNotificationsController.markAllRead
 router.patch('/notifications/:id/read', adminNotificationsController.markRead);
 router.delete('/notifications/:id', adminNotificationsController.deleteOne);
 router.delete('/notifications', adminNotificationsController.clearAll);
+router.get('/overview', overviewController.getOverview);
 router.get('/accounts/pending', adminAccountsController.listPending);
 router.get('/accounts/active', adminAccountsController.listActive);
 router.get('/accounts/:id', adminAccountsController.getDetails);

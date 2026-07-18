@@ -1,0 +1,387 @@
+.overview-dashboard {
+  display: grid;
+  gap: 1rem;
+}
+
+.overview-heading-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.overview-heading-row h2,
+.overview-panel h3 {
+  margin: 0;
+  color: var(--admin-ink);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 900;
+}
+
+.overview-heading-row h2 {
+  font-size: clamp(1.45rem, 2vw, 2rem);
+}
+
+.overview-heading-row p,
+.overview-panel p {
+  margin: 0.35rem 0 0;
+  color: var(--admin-muted);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+}
+
+.overview-refresh-label {
+  color: var(--admin-muted);
+  font: 800 0.78rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.overview-feedback {
+  border: 1px solid rgba(178, 41, 41, 0.2);
+  border-radius: var(--admin-radius-md);
+  background: rgba(178, 41, 41, 0.08);
+  color: #9f1f1f;
+  font: 800 0.9rem 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 0.85rem 1rem;
+}
+
+.overview-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.overview-stat-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(220, 227, 234, 0.9);
+  border-radius: calc(var(--admin-radius-md) + 0.2rem);
+  background:
+    radial-gradient(circle at top right, rgba(231, 75, 50, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 245, 0.92));
+  box-shadow: 0 20px 40px rgba(23, 33, 43, 0.08);
+  padding: 1rem;
+}
+
+.overview-stat-card[data-tone="success"] {
+  background:
+    radial-gradient(circle at top right, rgba(14, 139, 112, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 255, 252, 0.92));
+}
+
+.overview-stat-card[data-tone="warning"] {
+  background:
+    radial-gradient(circle at top right, rgba(237, 138, 25, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 250, 240, 0.92));
+}
+
+.overview-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.overview-stat-icon {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--admin-soft);
+  color: var(--admin-primary-hover);
+}
+
+.overview-stat-label {
+  color: var(--admin-muted);
+  display: block;
+  font: 900 0.76rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.06em;
+  margin-top: 0.9rem;
+  text-transform: uppercase;
+}
+
+.overview-stat-value {
+  color: var(--admin-ink);
+  display: block;
+  font: 950 2.1rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  margin-top: 0.35rem;
+}
+
+.overview-stat-detail {
+  color: var(--admin-muted);
+  font: 700 0.86rem 'Inter', system-ui, -apple-system, sans-serif;
+  margin-top: 0.45rem;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.overview-grid-wide {
+  align-items: stretch;
+}
+
+.overview-panel {
+  display: grid;
+  gap: 1rem;
+  max-height: none;
+  padding: 1.1rem;
+}
+
+.overview-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.overview-panel-link {
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  border-radius: var(--admin-radius-md);
+  color: var(--admin-primary-hover);
+  font: 900 0.82rem 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 0.6rem 0.8rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.overview-panel-link:hover {
+  background: var(--admin-soft);
+}
+
+.overview-donut-layout {
+  display: grid;
+  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.overview-donut {
+  --donut-bg: conic-gradient(#e54b31 0deg, #e54b31 120deg, #64717f 120deg, #64717f 240deg, #0e8b70 240deg, #0e8b70 360deg);
+  position: relative;
+  width: min(100%, 210px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: var(--donut-bg);
+  box-shadow: inset 0 0 0 1px rgba(23, 33, 43, 0.08), 0 18px 34px rgba(23, 33, 43, 0.1);
+}
+
+.overview-donut::after {
+  content: attr(data-total);
+  position: absolute;
+  inset: 28%;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--admin-ink);
+  font: 950 1.9rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  box-shadow: inset 0 0 0 1px rgba(220, 227, 234, 0.9);
+}
+
+.overview-chart-legend,
+.overview-mini-summary,
+.overview-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.overview-legend-row,
+.overview-mini-item,
+.overview-list-item {
+  border: 1px solid rgba(220, 227, 234, 0.82);
+  border-radius: var(--admin-radius-md);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.8rem 0.9rem;
+}
+
+.overview-legend-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.overview-color-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+}
+
+.overview-legend-label,
+.overview-mini-label,
+.overview-list-title {
+  color: var(--admin-ink);
+  font: 900 0.9rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.overview-legend-value,
+.overview-mini-value {
+  color: var(--admin-primary-hover);
+  font: 950 1rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.overview-bar-chart {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.overview-bar-row {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.overview-bar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  color: var(--admin-ink);
+  font: 850 0.86rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.overview-bar-track {
+  overflow: hidden;
+  height: 0.72rem;
+  border-radius: 999px;
+  background: #edf1f5;
+}
+
+.overview-bar-fill {
+  min-width: 0.35rem;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.overview-line-chart {
+  min-height: 240px;
+}
+
+.overview-line-svg {
+  width: 100%;
+  min-height: 210px;
+  overflow: visible;
+}
+
+.overview-line-axis {
+  stroke: rgba(100, 113, 127, 0.18);
+  stroke-width: 1;
+}
+
+.overview-line-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.overview-line-point {
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.overview-line-label {
+  fill: var(--admin-muted);
+  font: 700 0.66rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.overview-line-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+}
+
+.overview-line-legend span {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font: 800 0.78rem 'Inter', system-ui, -apple-system, sans-serif;
+  gap: 0.4rem;
+}
+
+.overview-mini-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.overview-list-item {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.overview-list-meta {
+  color: var(--admin-muted);
+  font: 750 0.82rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.overview-status-pill {
+  justify-self: start;
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  border-radius: 999px;
+  background: var(--admin-soft);
+  color: var(--admin-primary-hover);
+  font: 950 0.68rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.05em;
+  padding: 0.38rem 0.58rem;
+  text-transform: uppercase;
+}
+
+.overview-status-pill[data-status="accomplished"],
+.overview-status-pill[data-status="online"],
+.overview-status-pill[data-status="available"] {
+  border-color: rgba(14, 139, 112, 0.2);
+  background: rgba(14, 139, 112, 0.08);
+  color: #0b6b56;
+}
+
+.overview-status-pill[data-status="canceled"],
+.overview-status-pill[data-status="offline"] {
+  border-color: rgba(100, 113, 127, 0.22);
+  background: #f8fafc;
+  color: var(--admin-muted);
+}
+
+.overview-empty {
+  border: 1px dashed rgba(100, 113, 127, 0.3);
+  border-radius: var(--admin-radius-md);
+  color: var(--admin-muted);
+  font: 800 0.9rem 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 1rem;
+  text-align: center;
+}
+
+@media (max-width: 1180px) {
+  .overview-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .overview-heading-row,
+  .overview-panel-heading,
+  .overview-mini-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .overview-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-donut-layout {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+}
