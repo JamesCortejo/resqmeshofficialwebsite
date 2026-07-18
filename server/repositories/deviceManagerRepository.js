@@ -358,7 +358,7 @@ function listRecentMeshMessages(nodeId, limit = 12) {
   `, [nodeId, limit]);
 }
 
-function listMeshMessageFeed(limit = 120) {
+function listMeshMessageFeed(limit = 120, offset = 0) {
   return all(`
     SELECT
       id,
@@ -381,7 +381,8 @@ function listMeshMessageFeed(limit = 120) {
     FROM mesh_messages
     ORDER BY datetime(COALESCE(message_timestamp, uploaded_at)) DESC, id DESC
     LIMIT ?
-  `, [limit]);
+    OFFSET ?
+  `, [limit, offset]);
 }
 
 module.exports = {

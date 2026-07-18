@@ -1,4 +1,6 @@
 (function createDeviceManagerMessagesModule() {
+  const MESSAGE_PAGE_SIZE = 20;
+
   window.ResQMeshDeviceManagerMessages = {
     init(context) {
       const { dom, state, helpers, ui } = context;
@@ -35,7 +37,7 @@
           clearBadge();
 
           if (!state.messagesLoading && state.meshMessages.length === 0) {
-            loadMessages();
+            loadMessages({ reset: true });
           }
         }
       }
@@ -68,6 +70,39 @@
         }
 
         updateBadge(Math.max(0, latestRecentMessageCount - acknowledgedRecentMessageCount));
+      }
+
+      function getMessageKey(message) {
+        if (message.hasSourceMessageCode && message.messageCode) {
+          return `code:${message.messageCode}`;
+        }
+
+        return [
+          message.type || '',
+          message.sourceNodeId || '',
+          message.destinationNodeId || '',
+          message.senderCode || '',
+          message.sentAt || '',
+          message.content || ''
+        ].join('|');
+      }
+
+      function mergeMessages(primary, secondary) {
+        const seen = new Set();
+        const merged = [];
+
+        [...primary, ...secondary].forEach((message) => {
+          const key = getMessageKey(message);
+
+          if (seen.has(key)) {
+            return;
+          }
+
+          seen.add(key);
+          merged.push(message);
+        });
+
+        return merged;
       }
 
       function applyMessageFilters() {
@@ -110,7 +145,19 @@
         if (dom.deviceMessagesSummary) {
           dom.deviceMessagesSummary.textContent = state.messagesLoading && state.meshMessages.length === 0
             ? 'Loading messages'
-            : `${count} visible message${count === 1 ? '' : 's'}`;
+            : `${count} loaded message${count === 1 ? '' : 's'}`;
+        }
+
+        if (dom.deviceMessagesLoadMoreWrapper) {
+          dom.deviceMessagesLoadMoreWrapper.hidden = count === 0 || !state.messagesHasMore;
+        }
+
+        if (dom.deviceMessagesLoadMoreButton) {
+          dom.deviceMessagesLoadMoreButton.disabled = state.messagesLoadingMore;
+          const label = dom.deviceMessagesLoadMoreButton.querySelector('span');
+          if (label) {
+            label.textContent = state.messagesLoadingMore ? 'Loading more messages...' : 'Load more messages';
+          }
         }
 
         if (count === 0) {
@@ -158,23 +205,49 @@
       }
 
       async function loadMessages(options = {}) {
-        const { background = false } = options;
+        const {
+          background = false,
+          append = false,
+          reset = false
+        } = options;
 
         if (messagesRequestInFlight) {
           return false;
         }
 
+        const offset = append ? state.messagesNextOffset : 0;
         messagesRequestInFlight = true;
 
-        if (!background) {
+        if (append) {
+          state.messagesLoadingMore = true;
+          renderMessages();
+        } else if (!background) {
           state.messagesLoading = true;
           renderMessages();
         }
 
         try {
-          const payload = await helpers.requestJson('/api/admin/devices/messages');
+          const params = new URLSearchParams({
+            limit: String(MESSAGE_PAGE_SIZE),
+            offset: String(offset)
+          });
+          const payload = await helpers.requestJson(`/api/admin/devices/messages?${params.toString()}`);
           const data = payload.data || {};
-          state.meshMessages = Array.isArray(data.messages) ? data.messages : [];
+          const incomingMessages = Array.isArray(data.messages) ? data.messages : [];
+
+          if (append) {
+            state.meshMessages = mergeMessages(state.meshMessages, incomingMessages);
+          } else if (background && !reset && state.meshMessages.length > 0) {
+            state.meshMessages = mergeMessages(incomingMessages, state.meshMessages);
+          } else {
+            state.meshMessages = incomingMessages;
+          }
+
+          if (!background || append || reset || state.meshMessages.length <= incomingMessages.length) {
+            state.messagesNextOffset = Number(data.nextOffset || incomingMessages.length || 0);
+            state.messagesHasMore = Boolean(data.hasMore);
+          }
+
           if (state.activeTab === 'messages') {
             clearBadge();
           }
@@ -182,7 +255,9 @@
           ui.setFeedback('');
           return true;
         } catch (error) {
-          if (!background || state.meshMessages.length === 0) {
+          if (append) {
+            ui.setFeedback(error.message || 'Unable to load more mesh messages.', 'error');
+          } else if (!background || state.meshMessages.length === 0) {
             state.meshMessages = [];
             state.filteredMeshMessages = [];
             renderMessages();
@@ -192,6 +267,7 @@
           return false;
         } finally {
           messagesRequestInFlight = false;
+          state.messagesLoadingMore = false;
           state.messagesLoading = false;
           renderMessages();
         }
@@ -207,6 +283,12 @@
 
       if (dom.deviceMessagesSearchInput) {
         dom.deviceMessagesSearchInput.addEventListener('input', applyMessageFilters);
+      }
+
+      if (dom.deviceMessagesLoadMoreButton) {
+        dom.deviceMessagesLoadMoreButton.addEventListener('click', () => {
+          loadMessages({ append: true });
+        });
       }
 
       context.messages = {

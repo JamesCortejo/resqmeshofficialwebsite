@@ -653,6 +653,16 @@
   box-shadow: 0 14px 28px rgba(23, 33, 43, 0.05);
 }
 
+.device-message-load-more {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.2rem;
+}
+
+.device-message-load-more[hidden] {
+  display: none;
+}
+
 .device-message-route {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);

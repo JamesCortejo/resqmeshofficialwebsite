@@ -486,13 +486,19 @@ async function getDeviceMessages(id, limit = 30) {
   };
 }
 
-async function getMeshMessageFeed(limit = 80) {
-  const safeLimit = Math.max(1, Math.min(Number(limit) || 80, 120));
-  const rows = await listMeshMessageFeed(Math.min(safeLimit * 3, 240));
-  const messages = dedupeMessages(rows.map(messageResponse)).slice(0, safeLimit);
+async function getMeshMessageFeed(limit = 20, offset = 0) {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
+  const safeOffset = Math.max(0, Number(offset) || 0);
+  const rows = await listMeshMessageFeed(safeLimit + 1, safeOffset);
+  const pageRows = rows.slice(0, safeLimit);
+  const messages = dedupeMessages(pageRows.map(messageResponse));
 
   return {
     limit: safeLimit,
+    offset: safeOffset,
+    nextOffset: safeOffset + pageRows.length,
+    hasMore: rows.length > safeLimit,
+    rawCount: pageRows.length,
     totalVisible: messages.length,
     conversations: conversationSummaries(messages),
     messages

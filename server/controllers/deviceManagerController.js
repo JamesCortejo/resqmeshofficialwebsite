@@ -127,7 +127,7 @@ exports.getDeviceMessages = async (req, res) => {
 
 exports.listMeshMessages = async (req, res) => {
   try {
-    const messages = await getMeshMessageFeed(80);
+    const messages = await getMeshMessageFeed(req.query.limit, req.query.offset);
 
     return res.json({
       success: true,
