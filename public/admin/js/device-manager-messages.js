@@ -3,6 +3,8 @@
     init(context) {
       const { dom, state, helpers, ui } = context;
       let messagesRequestInFlight = false;
+      let latestRecentMessageCount = 0;
+      let acknowledgedRecentMessageCount = 0;
 
       function setActiveTab(tab) {
         state.activeTab = tab === 'messages' ? 'messages' : 'nodes';
@@ -29,8 +31,12 @@
           dom.devicesMessagesTab.setAttribute('aria-selected', String(isMessages));
         }
 
-        if (isMessages && !state.messagesLoading && state.meshMessages.length === 0) {
-          loadMessages();
+        if (isMessages) {
+          clearBadge();
+
+          if (!state.messagesLoading && state.meshMessages.length === 0) {
+            loadMessages();
+          }
         }
       }
 
@@ -44,9 +50,24 @@
         dom.devicesMessagesTabBadge.textContent = safeCount > 99 ? '99+' : String(safeCount);
       }
 
+      function clearBadge() {
+        acknowledgedRecentMessageCount = latestRecentMessageCount;
+        updateBadge(0);
+      }
+
       function updateBadgeFromDevices() {
-        const recentCount = state.devices.reduce((total, device) => total + Number(device.recentMessageCount || 0), 0);
-        updateBadge(recentCount);
+        latestRecentMessageCount = state.devices.reduce((total, device) => total + Number(device.recentMessageCount || 0), 0);
+
+        if (latestRecentMessageCount < acknowledgedRecentMessageCount) {
+          acknowledgedRecentMessageCount = latestRecentMessageCount;
+        }
+
+        if (state.activeTab === 'messages') {
+          clearBadge();
+          return;
+        }
+
+        updateBadge(Math.max(0, latestRecentMessageCount - acknowledgedRecentMessageCount));
       }
 
       function applyMessageFilters() {
@@ -154,7 +175,9 @@
           const payload = await helpers.requestJson('/api/admin/devices/messages');
           const data = payload.data || {};
           state.meshMessages = Array.isArray(data.messages) ? data.messages : [];
-          updateBadge(state.meshMessages.length);
+          if (state.activeTab === 'messages') {
+            clearBadge();
+          }
           applyMessageFilters();
           ui.setFeedback('');
           return true;
