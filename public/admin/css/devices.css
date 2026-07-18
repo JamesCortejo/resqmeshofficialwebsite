@@ -283,7 +283,9 @@
 
 .device-card-actions {
   display: flex;
+  gap: 0.7rem;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .device-card-view-button,
@@ -294,6 +296,23 @@
   color: var(--admin-primary-hover);
   cursor: pointer;
   padding: 0.65rem 0.9rem;
+}
+
+.device-card-message-button {
+  position: relative;
+}
+
+.device-card-message-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: var(--admin-primary);
+  color: #ffffff;
+  font: 900 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 0 0.35rem;
 }
 
 .devices-list-empty {
@@ -356,6 +375,10 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 247, 244, 0.96));
   box-shadow: 0 28px 80px rgba(23, 33, 43, 0.22);
   padding: 1.35rem;
+}
+
+.device-messages-modal-dialog {
+  width: min(1080px, 100%);
 }
 
 .device-view-modal-header {
@@ -486,6 +509,107 @@
   margin: 0;
 }
 
+.device-message-monitor-section {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.device-message-monitor-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.device-message-section-heading,
+.device-message-row-header,
+.device-message-row-footer,
+.device-conversation-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.device-message-section-heading p {
+  color: var(--admin-muted);
+  font: 700 0.84rem/1.45 'Inter', system-ui, -apple-system, sans-serif;
+  margin: -0.35rem 0 0;
+}
+
+.device-conversation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.device-conversation-card,
+.device-message-row,
+.device-message-empty {
+  border: 1px solid rgba(220, 227, 234, 0.88);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  padding: 0.85rem;
+}
+
+.device-conversation-card h4,
+.device-message-row strong {
+  color: var(--admin-ink);
+  font: 900 0.9rem/1.35 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+}
+
+.device-conversation-card p,
+.device-message-row-header span,
+.device-message-row-footer {
+  color: var(--admin-muted);
+  font: 750 0.78rem/1.4 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.device-message-list {
+  display: grid;
+  gap: 0.7rem;
+  max-height: 24rem;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+}
+
+.device-message-list-large {
+  max-height: min(48vh, 34rem);
+}
+
+.device-message-row {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.device-message-row p {
+  color: var(--admin-ink);
+  font: 700 0.88rem/1.55 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.device-message-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  border-radius: 999px;
+  background: var(--admin-soft);
+  color: var(--admin-primary-hover);
+  flex: 0 0 auto;
+  font: 900 0.68rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.05em;
+  padding: 0.42rem 0.62rem;
+  text-transform: uppercase;
+}
+
+.device-message-empty {
+  color: var(--admin-muted);
+  font: 800 0.88rem 'Inter', system-ui, -apple-system, sans-serif;
+  text-align: center;
+}
+
 .device-view-modal-actions {
   display: flex;
   align-items: center;
@@ -516,6 +640,10 @@
   .device-detail-section dl {
     grid-template-columns: 1fr;
   }
+
+  .device-conversation-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -542,6 +670,13 @@
   }
 
   .device-detail-hero {
+    flex-direction: column;
+  }
+
+  .device-message-section-heading,
+  .device-message-row-header,
+  .device-message-row-footer,
+  .device-conversation-card {
     flex-direction: column;
   }
 

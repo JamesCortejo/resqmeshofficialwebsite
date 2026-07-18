@@ -2,7 +2,8 @@ const {
   getDeviceSummaries,
   getDeviceMapSummaries,
   getDeviceMapRoutes,
-  getDeviceDetails
+  getDeviceDetails,
+  getDeviceMessages
 } = require('../services/deviceManagerService');
 
 function parseId(value) {
@@ -91,5 +92,34 @@ exports.getDeviceDetails = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to load device details.');
+  }
+};
+
+exports.getDeviceMessages = async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid device id.'
+      });
+    }
+
+    const messages = await getDeviceMessages(id, 30);
+
+    if (!messages) {
+      return res.status(404).json({
+        success: false,
+        message: 'Device not found.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: messages
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load device messages.');
   }
 };

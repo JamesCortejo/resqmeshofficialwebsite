@@ -170,7 +170,11 @@
       deviceViewModal: document.getElementById('deviceViewModal'),
       deviceViewModalCode: document.getElementById('deviceViewModalCode'),
       deviceViewModalBody: document.getElementById('deviceViewModalBody'),
-      deviceViewActionMessage: document.getElementById('deviceViewActionMessage')
+      deviceViewActionMessage: document.getElementById('deviceViewActionMessage'),
+      deviceMessagesModal: document.getElementById('deviceMessagesModal'),
+      deviceMessagesModalCode: document.getElementById('deviceMessagesModalCode'),
+      deviceMessagesModalBody: document.getElementById('deviceMessagesModalBody'),
+      deviceMessagesActionMessage: document.getElementById('deviceMessagesActionMessage')
     };
 
     const state = {
@@ -180,6 +184,8 @@
       statusFilter: 'all',
       selectedDeviceId: null,
       selectedDeviceDetails: null,
+      selectedMessagesDeviceId: null,
+      selectedDeviceMessages: null,
       liveRefreshIntervalId: null
     };
 
@@ -206,8 +212,15 @@
       }
     }
 
+    function setMessagesActionMessage(message) {
+      if (dom.deviceMessagesActionMessage) {
+        dom.deviceMessagesActionMessage.textContent = message || '';
+      }
+    }
+
     function setBodyLock() {
-      const isLocked = dom.deviceViewModal?.classList.contains('is-open');
+      const isLocked = dom.deviceViewModal?.classList.contains('is-open') ||
+        dom.deviceMessagesModal?.classList.contains('is-open');
       document.body.classList.toggle('devices-modal-open', Boolean(isLocked));
     }
 
@@ -234,6 +247,29 @@
       setBodyLock();
     }
 
+    function openDeviceMessagesModal() {
+      if (!dom.deviceMessagesModal) {
+        return;
+      }
+
+      dom.deviceMessagesModal.classList.add('is-open');
+      dom.deviceMessagesModal.setAttribute('aria-hidden', 'false');
+      setBodyLock();
+    }
+
+    function closeDeviceMessagesModal() {
+      if (!dom.deviceMessagesModal) {
+        return;
+      }
+
+      dom.deviceMessagesModal.classList.remove('is-open');
+      dom.deviceMessagesModal.setAttribute('aria-hidden', 'true');
+      state.selectedMessagesDeviceId = null;
+      state.selectedDeviceMessages = null;
+      setMessagesActionMessage('');
+      setBodyLock();
+    }
+
     const context = {
       dom,
       state,
@@ -253,9 +289,12 @@
       ui: {
         setFeedback,
         setViewActionMessage,
+        setMessagesActionMessage,
         setBodyLock,
         openDeviceViewModal,
-        closeDeviceViewModal
+        closeDeviceViewModal,
+        openDeviceMessagesModal,
+        closeDeviceMessagesModal
       },
       list: null,
       view: null

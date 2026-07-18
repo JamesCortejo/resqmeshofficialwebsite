@@ -331,6 +331,33 @@ function getTotalAuditCount(nodeId) {
   `, [nodeId]);
 }
 
+function listRecentMeshMessages(nodeId, limit = 12) {
+  return all(`
+    SELECT
+      id,
+      origin_node_id AS originNodeId,
+      local_message_id AS localMessageId,
+      message_code AS messageCode,
+      msg_type AS msgType,
+      source_node_id AS sourceNodeId,
+      destination_node_id AS destinationNodeId,
+      conversation_node_id AS conversationNodeId,
+      sender_code AS senderCode,
+      sender_first_name AS senderFirstName,
+      sender_last_name AS senderLastName,
+      sender_role AS senderRole,
+      SUBSTR(COALESCE(content, ''), 1, 600) AS content,
+      status,
+      priority,
+      message_timestamp AS messageTimestamp,
+      uploaded_at AS uploadedAt
+    FROM mesh_messages
+    WHERE origin_node_id = ?
+    ORDER BY datetime(COALESCE(message_timestamp, uploaded_at)) DESC, id DESC
+    LIMIT ?
+  `, [nodeId, limit]);
+}
+
 module.exports = {
   listDevices,
   listDevicesForMap,
@@ -339,5 +366,6 @@ module.exports = {
   getLatestHealthRecord,
   getTotalDistressCount,
   getTotalMessageCount,
-  getTotalAuditCount
+  getTotalAuditCount,
+  listRecentMeshMessages
 };

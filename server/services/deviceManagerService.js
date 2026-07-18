@@ -6,7 +6,8 @@ const {
   getLatestHealthRecord,
   getTotalDistressCount,
   getTotalMessageCount,
-  getTotalAuditCount
+  getTotalAuditCount,
+  listRecentMeshMessages
 } = require('../repositories/deviceManagerRepository');
 const { decryptText } = require('./encryptionService');
 
@@ -116,6 +117,96 @@ function parseCoordinates(value) {
 
 function fullName(firstName, middleName, lastName) {
   return [firstName, middleName, lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+}
+
+function messageTypeLabel(value) {
+  const normalized = String(value || '').toLowerCase();
+  if (normalized === 'broadcast') return 'Broadcast';
+  if (normalized === 'voice') return 'Voice';
+  if (normalized === 'text') return 'Text';
+  return normalized ? statusLabel(normalized) : 'Message';
+}
+
+function getConversationKey(message) {
+  if (String(message.msgType || '').toLowerCase() === 'broadcast') {
+    return 'BROADCAST';
+  }
+
+  return message.conversationNodeId || message.destinationNodeId || message.sourceNodeId || message.originNodeId || 'UNKNOWN';
+}
+
+function getConversationLabel(key) {
+  if (key === 'BROADCAST') {
+    return 'Broadcast channel';
+  }
+
+  if (key === 'UNKNOWN') {
+    return 'Unknown mesh conversation';
+  }
+
+  return `Mesh node ${key}`;
+}
+
+function messageResponse(row) {
+  const senderName = fullName(row.senderFirstName, null, row.senderLastName);
+  const conversationKey = getConversationKey(row);
+
+  return {
+    id: row.id,
+    localMessageId: row.localMessageId,
+    messageCode: row.messageCode || `MSG-${row.localMessageId || row.id}`,
+    type: row.msgType || 'text',
+    typeLabel: messageTypeLabel(row.msgType),
+    conversationKey,
+    conversationLabel: getConversationLabel(conversationKey),
+    originNodeId: row.originNodeId,
+    sourceNodeId: row.sourceNodeId || null,
+    destinationNodeId: row.destinationNodeId || null,
+    conversationNodeId: row.conversationNodeId || null,
+    senderCode: row.senderCode || null,
+    senderName: senderName || row.senderCode || 'Unknown sender',
+    senderRole: row.senderRole || 'unknown',
+    senderRoleLabel: statusLabel(row.senderRole),
+    content: row.content || '',
+    status: row.status || 'unknown',
+    statusLabel: statusLabel(row.status),
+    priority: row.priority || 'normal',
+    sentAt: toIsoTimestamp(row.messageTimestamp),
+    uploadedAt: toIsoTimestamp(row.uploadedAt)
+  };
+}
+
+function conversationSummaries(messages) {
+  const map = new Map();
+
+  messages.forEach((message) => {
+    if (!map.has(message.conversationKey)) {
+      map.set(message.conversationKey, {
+        key: message.conversationKey,
+        label: message.conversationLabel,
+        latestAt: message.sentAt || message.uploadedAt,
+        visibleMessageCount: 0,
+        participants: new Set(),
+        messageTypes: new Set(),
+        latestMessage: message
+      });
+    }
+
+    const summary = map.get(message.conversationKey);
+    summary.visibleMessageCount += 1;
+    if (message.senderCode) summary.participants.add(message.senderCode);
+    summary.messageTypes.add(message.typeLabel);
+  });
+
+  return Array.from(map.values()).map((summary) => ({
+    key: summary.key,
+    label: summary.label,
+    latestAt: summary.latestAt,
+    visibleMessageCount: summary.visibleMessageCount,
+    participantCount: summary.participants.size,
+    messageTypes: Array.from(summary.messageTypes),
+    latestMessage: summary.latestMessage
+  }));
 }
 
 function summaryResponse(row) {
@@ -320,9 +411,35 @@ async function getDeviceDetails(id) {
   };
 }
 
+async function getDeviceMessages(id, limit = 30) {
+  const row = await getDeviceSummaryById(id);
+
+  if (!row) {
+    return null;
+  }
+
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 30, 50));
+  const recentMessageRows = await listRecentMeshMessages(row.nodeId, safeLimit);
+  const recentMessages = recentMessageRows.map(messageResponse);
+
+  return {
+    device: {
+      id: row.id,
+      nodeId: row.nodeId,
+      nodeName: row.nodeName,
+      connectivityStatus: getConnectivityStatus(row),
+      connectivityStatusLabel: statusLabel(getConnectivityStatus(row))
+    },
+    limit: safeLimit,
+    conversations: conversationSummaries(recentMessages),
+    recentMessages
+  };
+}
+
 module.exports = {
   getDeviceSummaries,
   getDeviceMapSummaries,
   getDeviceMapRoutes,
-  getDeviceDetails
+  getDeviceDetails,
+  getDeviceMessages
 };

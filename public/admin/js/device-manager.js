@@ -11,6 +11,10 @@
     if (context.dom.deviceViewModal?.classList.contains('is-open')) {
       await context.view.refreshSelectedDetails();
     }
+
+    if (context.dom.deviceMessagesModal?.classList.contains('is-open')) {
+      await context.view.refreshSelectedMessages();
+    }
   }
 
   function refreshNow() {
@@ -29,6 +33,10 @@
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && context.dom.deviceViewModal?.classList.contains('is-open')) {
       context.ui.closeDeviceViewModal();
+    }
+
+    if (event.key === 'Escape' && context.dom.deviceMessagesModal?.classList.contains('is-open')) {
+      context.ui.closeDeviceMessagesModal();
     }
   });
 
