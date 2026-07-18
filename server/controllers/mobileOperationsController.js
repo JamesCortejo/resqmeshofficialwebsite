@@ -90,6 +90,32 @@ exports.listNodes = async (req, res) => {
   }
 };
 
+exports.getMapSnapshot = async (_req, res) => {
+  try {
+    const nodes = await getPublicNodes();
+    return res.json({
+      status: {
+        internet: true,
+        mesh_running: false,
+        node_id: null,
+        node_name: 'ResQMesh Cloud'
+      },
+      nodes,
+      activeDistress: nodes
+        .filter((node) => node.distress)
+        .map((node) => ({
+          id: node.active_distress_id || null,
+          origin_node_id: node.id,
+          node_id: node.id,
+          status: 'active'
+        })),
+      serverTime: new Date().toISOString()
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load map snapshot.');
+  }
+};
+
 exports.getNodeDistress = async (req, res) => {
   try {
     const distress = await getNodeDistress(req.params.nodeId);

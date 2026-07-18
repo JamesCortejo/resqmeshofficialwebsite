@@ -9,6 +9,7 @@ router.post('/auth/rescuer/login', rescuerMobileAuthController.login);
 router.post('/auth/logout', requireRescuerSession, rescuerMobileAuthController.logout);
 
 router.get('/api/nodes', mobileOperationsController.listNodes);
+router.get('/api/map/snapshot', mobileOperationsController.getMapSnapshot);
 router.get('/api/node/:nodeId/distress', mobileOperationsController.getNodeDistress);
 router.get('/api/node/:nodeId/distress/eta', mobileOperationsController.getNodeDistressEta);
 router.get('/api/distress/:id/eta', mobileOperationsController.getDistressEta);
