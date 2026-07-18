@@ -107,37 +107,69 @@
           </div>
         </div>
 
-        <div class="devices-toolbar" aria-label="Device filters">
-          <label class="devices-search" for="devicesSearchInput">
+        <div class="devices-tabs" role="tablist" aria-label="Device manager sections">
+          <button type="button" class="devices-tab-button is-active" id="devicesNodesTab" data-device-tab="nodes" role="tab" aria-selected="true" aria-controls="devicesNodesPanel">
+            <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+            <span>Mesh Nodes</span>
+          </button>
+          <button type="button" class="devices-tab-button" id="devicesMessagesTab" data-device-tab="messages" role="tab" aria-selected="false" aria-controls="devicesMessagesPanel">
+            <i class="fa-regular fa-comments" aria-hidden="true"></i>
+            <span>Offline Messages</span>
+            <span class="devices-tab-badge" id="devicesMessagesTabBadge" hidden>0</span>
+          </button>
+        </div>
+
+        <div class="devices-tab-panel is-active" id="devicesNodesPanel" role="tabpanel" aria-labelledby="devicesNodesTab">
+          <div class="devices-toolbar" aria-label="Device filters">
+            <label class="devices-search" for="devicesSearchInput">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input type="search" id="devicesSearchInput" placeholder="Search node id, node name, or status">
+            </label>
+            <div class="devices-status-filters" id="devicesStatusFilters">
+              <button type="button" class="admin-secondary-button devices-filter-button is-active" data-device-filter="all">All devices</button>
+              <button type="button" class="admin-secondary-button devices-filter-button" data-device-filter="online">Online</button>
+              <button type="button" class="admin-secondary-button devices-filter-button" data-device-filter="offline">Offline</button>
+            </div>
+          </div>
+
+          <div class="devices-feedback" id="devicesFeedback" role="status" hidden></div>
+
+          <div class="devices-grid" id="devicesGrid"></div>
+
+          <div class="devices-pagination" id="devicesPagination" hidden>
+            <span class="devices-pagination-summary" id="devicesPaginationSummary">Showing 0 devices</span>
+            <div class="devices-pagination-actions">
+              <button type="button" class="admin-secondary-button" id="previousDevicesButton">
+                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                <span>Previous</span>
+              </button>
+              <button type="button" class="admin-secondary-button" id="nextDevicesButton">
+                <span>Next</span>
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="devices-list-empty" id="devicesListEmpty" role="status" hidden></div>
+        </div>
+
+        <div class="devices-tab-panel device-messages-panel" id="devicesMessagesPanel" role="tabpanel" aria-labelledby="devicesMessagesTab" hidden>
+          <div class="device-messages-panel-header">
+            <div>
+              <h3>Offline Mesh Messages</h3>
+              <p>Network-wide synced text and broadcast messages. Each message shows where it came from and where it was sent.</p>
+            </div>
+            <span class="device-message-pill" id="deviceMessagesSummary">Loading messages</span>
+          </div>
+
+          <label class="devices-search" for="deviceMessagesSearchInput">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input type="search" id="devicesSearchInput" placeholder="Search node id, node name, or status">
+            <input type="search" id="deviceMessagesSearchInput" placeholder="Search sender, node id, destination, or message">
           </label>
-          <div class="devices-status-filters" id="devicesStatusFilters">
-            <button type="button" class="admin-secondary-button devices-filter-button is-active" data-device-filter="all">All devices</button>
-            <button type="button" class="admin-secondary-button devices-filter-button" data-device-filter="online">Online</button>
-            <button type="button" class="admin-secondary-button devices-filter-button" data-device-filter="offline">Offline</button>
-          </div>
+
+          <div class="device-message-list device-message-feed" id="deviceMessagesFeed"></div>
+          <div class="device-message-empty" id="deviceMessagesEmpty" role="status" hidden></div>
         </div>
-
-        <div class="devices-feedback" id="devicesFeedback" role="status" hidden></div>
-
-        <div class="devices-grid" id="devicesGrid"></div>
-
-        <div class="devices-pagination" id="devicesPagination" hidden>
-          <span class="devices-pagination-summary" id="devicesPaginationSummary">Showing 0 devices</span>
-          <div class="devices-pagination-actions">
-            <button type="button" class="admin-secondary-button" id="previousDevicesButton">
-              <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-              <span>Previous</span>
-            </button>
-            <button type="button" class="admin-secondary-button" id="nextDevicesButton">
-              <span>Next</span>
-              <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="devices-list-empty" id="devicesListEmpty" role="status" hidden></div>
       </section>
     </section>
   </main>
@@ -168,38 +200,13 @@
     </section>
   </div>
 
-  <div class="device-view-modal device-messages-modal" id="deviceMessagesModal" aria-hidden="true">
-    <div class="device-view-modal-backdrop" data-close-device-messages-modal></div>
-    <section class="device-view-modal-dialog device-messages-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="deviceMessagesModalTitle">
-      <header class="device-view-modal-header">
-        <div>
-          <span class="device-view-modal-kicker" id="deviceMessagesModalCode">Offline mesh messages</span>
-          <h2 id="deviceMessagesModalTitle">Mesh Node Messages</h2>
-        </div>
-        <button type="button" class="device-view-icon-button" aria-label="Close device messages" data-close-device-messages-modal>
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
-      </header>
-
-      <div class="device-view-modal-body" id="deviceMessagesModalBody">
-        <div class="device-view-status-message">Loading device messages...</div>
-      </div>
-
-      <footer class="device-view-modal-actions">
-        <div class="device-view-action-message" id="deviceMessagesActionMessage" role="status"></div>
-        <div class="device-view-action-buttons">
-          <button type="button" class="device-view-secondary-button" data-close-device-messages-modal>Close</button>
-        </div>
-      </footer>
-    </section>
-  </div>
-
   <script src="/admin/js/admin-loader.js"></script>
   <script src="/admin/js/admin-auth.js"></script>
   <script src="/admin/js/admin-notifications.js"></script>
   <script src="/admin/js/device-manager-shared.js"></script>
   <script src="/admin/js/device-manager-list.js"></script>
   <script src="/admin/js/device-manager-view.js"></script>
+  <script src="/admin/js/device-manager-messages.js"></script>
   <script src="/admin/js/device-manager.js"></script>
 </body>
 

@@ -7,7 +7,8 @@ const {
   getTotalDistressCount,
   getTotalMessageCount,
   getTotalAuditCount,
-  listRecentMeshMessages
+  listRecentMeshMessages,
+  listMeshMessageFeed
 } = require('../repositories/deviceManagerRepository');
 const { decryptText } = require('./encryptionService');
 
@@ -150,23 +151,39 @@ function getConversationLabel(key) {
 function messageResponse(row) {
   const senderName = fullName(row.senderFirstName, null, row.senderLastName);
   const conversationKey = getConversationKey(row);
+  const type = row.msgType || 'text';
+  const normalizedType = String(type).toLowerCase();
+  const sourceNodeId = row.sourceNodeId || row.originNodeId || null;
+  const destinationNodeId = row.destinationNodeId || null;
+  const fromNodeLabel = sourceNodeId ? `Mesh node ${sourceNodeId}` : 'Unknown source node';
+  const toNodeLabel = normalizedType === 'broadcast'
+    ? 'Broadcast channel'
+    : destinationNodeId
+      ? `Mesh node ${destinationNodeId}`
+      : row.conversationNodeId
+        ? `Mesh node ${row.conversationNodeId}`
+        : 'Mesh network';
 
   return {
     id: row.id,
     localMessageId: row.localMessageId,
     messageCode: row.messageCode || `MSG-${row.localMessageId || row.id}`,
-    type: row.msgType || 'text',
-    typeLabel: messageTypeLabel(row.msgType),
+    hasSourceMessageCode: Boolean(row.messageCode),
+    type,
+    typeLabel: messageTypeLabel(type),
     conversationKey,
     conversationLabel: getConversationLabel(conversationKey),
     originNodeId: row.originNodeId,
-    sourceNodeId: row.sourceNodeId || null,
-    destinationNodeId: row.destinationNodeId || null,
+    sourceNodeId,
+    destinationNodeId,
     conversationNodeId: row.conversationNodeId || null,
     senderCode: row.senderCode || null,
     senderName: senderName || row.senderCode || 'Unknown sender',
     senderRole: row.senderRole || 'unknown',
     senderRoleLabel: statusLabel(row.senderRole),
+    fromLabel: `${senderName || row.senderCode || 'Unknown sender'} from ${fromNodeLabel}`,
+    toLabel: toNodeLabel,
+    syncedFromLabel: row.originNodeId ? `Synced by ${row.originNodeId}` : 'Sync source unknown',
     content: row.content || '',
     status: row.status || 'unknown',
     statusLabel: statusLabel(row.status),
@@ -174,6 +191,39 @@ function messageResponse(row) {
     sentAt: toIsoTimestamp(row.messageTimestamp),
     uploadedAt: toIsoTimestamp(row.uploadedAt)
   };
+}
+
+function messageDedupeKey(message) {
+  if (message.hasSourceMessageCode && message.messageCode) {
+    return `code:${message.messageCode}`;
+  }
+
+  return [
+    message.type || '',
+    message.sourceNodeId || '',
+    message.destinationNodeId || '',
+    message.senderCode || '',
+    message.sentAt || '',
+    message.content || ''
+  ].join('|');
+}
+
+function dedupeMessages(messages) {
+  const seen = new Set();
+  const deduped = [];
+
+  messages.forEach((message) => {
+    const key = messageDedupeKey(message);
+
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    deduped.push(message);
+  });
+
+  return deduped;
 }
 
 function conversationSummaries(messages) {
@@ -436,10 +486,24 @@ async function getDeviceMessages(id, limit = 30) {
   };
 }
 
+async function getMeshMessageFeed(limit = 80) {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 80, 120));
+  const rows = await listMeshMessageFeed(Math.min(safeLimit * 3, 240));
+  const messages = dedupeMessages(rows.map(messageResponse)).slice(0, safeLimit);
+
+  return {
+    limit: safeLimit,
+    totalVisible: messages.length,
+    conversations: conversationSummaries(messages),
+    messages
+  };
+}
+
 module.exports = {
   getDeviceSummaries,
   getDeviceMapSummaries,
   getDeviceMapRoutes,
   getDeviceDetails,
-  getDeviceMessages
+  getDeviceMessages,
+  getMeshMessageFeed
 };

@@ -72,11 +72,6 @@
             </div>
 
             <div class="device-card-actions">
-              <button type="button" class="device-card-view-button device-card-message-button" data-view-device-messages-id="${helpers.escapeHtml(device.id)}">
-                <i class="fa-regular fa-comments" aria-hidden="true"></i>
-                <span>Messages</span>
-                ${Number(device.recentMessageCount || 0) > 0 ? `<span class="device-card-message-badge">${helpers.escapeHtml(device.recentMessageCount)}</span>` : ''}
-              </button>
               <button type="button" class="device-card-view-button" data-view-device-id="${helpers.escapeHtml(device.id)}">
                 <i class="fa-regular fa-eye" aria-hidden="true"></i>
                 <span>View More</span>
@@ -196,6 +191,7 @@
         try {
           const payload = await helpers.requestJson('/api/admin/devices');
           state.devices = Array.isArray(payload.data) ? payload.data : [];
+          context.messages?.updateBadgeFromDevices?.();
           applyFilters();
           ui.setFeedback('');
           return true;
@@ -241,12 +237,6 @@
 
       if (dom.devicesGrid) {
         dom.devicesGrid.addEventListener('click', (event) => {
-          const messagesButton = event.target.closest('[data-view-device-messages-id]');
-          if (messagesButton) {
-            context.view?.openMessages(messagesButton.dataset.viewDeviceMessagesId);
-            return;
-          }
-
           const button = event.target.closest('[data-view-device-id]');
           if (!button) {
             return;

@@ -4,6 +4,7 @@
 
   window.ResQMeshDeviceManagerList.init(context);
   window.ResQMeshDeviceManagerView.init(context);
+  window.ResQMeshDeviceManagerMessages.init(context);
 
   async function refreshLiveData() {
     await context.list.loadDevices({ resetPage: false, background: true });
@@ -12,8 +13,8 @@
       await context.view.refreshSelectedDetails();
     }
 
-    if (context.dom.deviceMessagesModal?.classList.contains('is-open')) {
-      await context.view.refreshSelectedMessages();
+    if (state.activeTab === 'messages') {
+      await context.messages.loadMessages({ background: true });
     }
   }
 
@@ -33,10 +34,6 @@
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && context.dom.deviceViewModal?.classList.contains('is-open')) {
       context.ui.closeDeviceViewModal();
-    }
-
-    if (event.key === 'Escape' && context.dom.deviceMessagesModal?.classList.contains('is-open')) {
-      context.ui.closeDeviceMessagesModal();
     }
   });
 

@@ -3,7 +3,8 @@ const {
   getDeviceMapSummaries,
   getDeviceMapRoutes,
   getDeviceDetails,
-  getDeviceMessages
+  getDeviceMessages,
+  getMeshMessageFeed
 } = require('../services/deviceManagerService');
 
 function parseId(value) {
@@ -121,5 +122,19 @@ exports.getDeviceMessages = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to load device messages.');
+  }
+};
+
+exports.listMeshMessages = async (req, res) => {
+  try {
+    const messages = await getMeshMessageFeed(80);
+
+    return res.json({
+      success: true,
+      count: messages.messages.length,
+      data: messages
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load mesh messages.');
   }
 };

@@ -358,6 +358,32 @@ function listRecentMeshMessages(nodeId, limit = 12) {
   `, [nodeId, limit]);
 }
 
+function listMeshMessageFeed(limit = 120) {
+  return all(`
+    SELECT
+      id,
+      origin_node_id AS originNodeId,
+      local_message_id AS localMessageId,
+      message_code AS messageCode,
+      msg_type AS msgType,
+      source_node_id AS sourceNodeId,
+      destination_node_id AS destinationNodeId,
+      conversation_node_id AS conversationNodeId,
+      sender_code AS senderCode,
+      sender_first_name AS senderFirstName,
+      sender_last_name AS senderLastName,
+      sender_role AS senderRole,
+      SUBSTR(COALESCE(content, ''), 1, 800) AS content,
+      status,
+      priority,
+      message_timestamp AS messageTimestamp,
+      uploaded_at AS uploadedAt
+    FROM mesh_messages
+    ORDER BY datetime(COALESCE(message_timestamp, uploaded_at)) DESC, id DESC
+    LIMIT ?
+  `, [limit]);
+}
+
 module.exports = {
   listDevices,
   listDevicesForMap,
@@ -367,5 +393,6 @@ module.exports = {
   getTotalDistressCount,
   getTotalMessageCount,
   getTotalAuditCount,
-  listRecentMeshMessages
+  listRecentMeshMessages,
+  listMeshMessageFeed
 };
