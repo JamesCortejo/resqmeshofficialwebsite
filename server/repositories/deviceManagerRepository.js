@@ -22,6 +22,11 @@ function listDevices() {
       COALESCE(md.recentSolvedDistressCount, 0) AS recentSolvedDistressCount,
       COALESCE(md.recentCanceledDistressCount, 0) AS recentCanceledDistressCount,
       COALESCE(mm.recentMessageCount, 0) AS recentMessageCount,
+      COALESCE(td.totalDistressCount, 0) AS totalDistressCount,
+      COALESCE(td.totalActiveDistressCount, 0) AS totalActiveDistressCount,
+      COALESCE(td.totalSolvedDistressCount, 0) AS totalSolvedDistressCount,
+      COALESCE(td.totalCanceledDistressCount, 0) AS totalCanceledDistressCount,
+      COALESCE(tm.totalMessageCount, 0) AS totalMessageCount,
       COALESCE(ma.recentAuditCount, 0) AS recentAuditCount
     FROM sync_devices sd
     LEFT JOIN mesh_nodes mn ON mn.node_id = sd.node_id
@@ -33,14 +38,26 @@ function listDevices() {
     ) mc ON mc.target_node_id = sd.node_id
     LEFT JOIN (
       SELECT
-        origin_node_id,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'active' THEN 1 ELSE 0 END) AS recentActiveDistressCount,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'processed' THEN 1 ELSE 0 END) AS recentSolvedDistressCount,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) IN ('canceled', 'cancelled') THEN 1 ELSE 0 END) AS recentCanceledDistressCount
-      FROM mesh_distress_signals
-      WHERE deleted = 0
-        AND datetime(COALESCE(updated_at, created_at)) >= datetime('now', '-1 day')
-      GROUP BY origin_node_id
+        m.origin_node_id,
+        SUM(CASE WHEN LOWER(COALESCE(m.status, 'active')) = 'active' THEN 1 ELSE 0 END) AS recentActiveDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(m.status, 'active')) = 'processed' OR d.status = 'accomplished' THEN 1 ELSE 0 END) AS recentSolvedDistressCount,
+        SUM(CASE
+          WHEN LOWER(COALESCE(m.status, 'active')) IN ('canceled', 'cancelled')
+            AND COALESCE(d.status, '') <> 'accomplished'
+          THEN 1 ELSE 0
+        END) AS recentCanceledDistressCount
+      FROM mesh_distress_signals m
+      LEFT JOIN distress_deployments d
+        ON d.id = (
+          SELECT inner_d.id
+          FROM distress_deployments inner_d
+          WHERE inner_d.mesh_distress_signal_id = m.id
+          ORDER BY datetime(COALESCE(inner_d.updated_at, inner_d.created_at)) DESC, inner_d.id DESC
+          LIMIT 1
+        )
+      WHERE m.deleted = 0
+        AND datetime(COALESCE(d.updated_at, m.updated_at, m.created_at)) >= datetime('now', '-1 day')
+      GROUP BY m.origin_node_id
     ) md ON md.origin_node_id = sd.node_id
     LEFT JOIN (
       SELECT origin_node_id, COUNT(*) AS recentMessageCount
@@ -48,6 +65,34 @@ function listDevices() {
       WHERE datetime(COALESCE(message_timestamp, uploaded_at)) >= datetime('now', '-1 day')
       GROUP BY origin_node_id
     ) mm ON mm.origin_node_id = sd.node_id
+    LEFT JOIN (
+      SELECT
+        m.origin_node_id,
+        COUNT(*) AS totalDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(m.status, 'active')) = 'active' THEN 1 ELSE 0 END) AS totalActiveDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(m.status, 'active')) = 'processed' OR d.status = 'accomplished' THEN 1 ELSE 0 END) AS totalSolvedDistressCount,
+        SUM(CASE
+          WHEN LOWER(COALESCE(m.status, 'active')) IN ('canceled', 'cancelled')
+            AND COALESCE(d.status, '') <> 'accomplished'
+          THEN 1 ELSE 0
+        END) AS totalCanceledDistressCount
+      FROM mesh_distress_signals m
+      LEFT JOIN distress_deployments d
+        ON d.id = (
+          SELECT inner_d.id
+          FROM distress_deployments inner_d
+          WHERE inner_d.mesh_distress_signal_id = m.id
+          ORDER BY datetime(COALESCE(inner_d.updated_at, inner_d.created_at)) DESC, inner_d.id DESC
+          LIMIT 1
+        )
+      WHERE m.deleted = 0
+      GROUP BY m.origin_node_id
+    ) td ON td.origin_node_id = sd.node_id
+    LEFT JOIN (
+      SELECT origin_node_id, COUNT(*) AS totalMessageCount
+      FROM mesh_messages
+      GROUP BY origin_node_id
+    ) tm ON tm.origin_node_id = sd.node_id
     LEFT JOIN (
       SELECT origin_node_id, COUNT(*) AS recentAuditCount
       FROM mesh_audit_logs
@@ -189,14 +234,26 @@ function getDeviceSummaryById(id) {
     ) mc ON mc.target_node_id = sd.node_id
     LEFT JOIN (
       SELECT
-        origin_node_id,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'active' THEN 1 ELSE 0 END) AS recentActiveDistressCount,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'processed' THEN 1 ELSE 0 END) AS recentSolvedDistressCount,
-        SUM(CASE WHEN LOWER(COALESCE(status, 'active')) IN ('canceled', 'cancelled') THEN 1 ELSE 0 END) AS recentCanceledDistressCount
-      FROM mesh_distress_signals
-      WHERE deleted = 0
-        AND datetime(COALESCE(updated_at, created_at)) >= datetime('now', '-1 day')
-      GROUP BY origin_node_id
+        m.origin_node_id,
+        SUM(CASE WHEN LOWER(COALESCE(m.status, 'active')) = 'active' THEN 1 ELSE 0 END) AS recentActiveDistressCount,
+        SUM(CASE WHEN LOWER(COALESCE(m.status, 'active')) = 'processed' OR d.status = 'accomplished' THEN 1 ELSE 0 END) AS recentSolvedDistressCount,
+        SUM(CASE
+          WHEN LOWER(COALESCE(m.status, 'active')) IN ('canceled', 'cancelled')
+            AND COALESCE(d.status, '') <> 'accomplished'
+          THEN 1 ELSE 0
+        END) AS recentCanceledDistressCount
+      FROM mesh_distress_signals m
+      LEFT JOIN distress_deployments d
+        ON d.id = (
+          SELECT inner_d.id
+          FROM distress_deployments inner_d
+          WHERE inner_d.mesh_distress_signal_id = m.id
+          ORDER BY datetime(COALESCE(inner_d.updated_at, inner_d.created_at)) DESC, inner_d.id DESC
+          LIMIT 1
+        )
+      WHERE m.deleted = 0
+        AND datetime(COALESCE(d.updated_at, m.updated_at, m.created_at)) >= datetime('now', '-1 day')
+      GROUP BY m.origin_node_id
     ) md ON md.origin_node_id = sd.node_id
     LEFT JOIN (
       SELECT origin_node_id, COUNT(*) AS recentMessageCount
@@ -237,12 +294,24 @@ function getTotalDistressCount(nodeId) {
   return get(`
     SELECT
       COUNT(*) AS count,
-      SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'active' THEN 1 ELSE 0 END) AS activeCount,
-      SUM(CASE WHEN LOWER(COALESCE(status, 'active')) = 'processed' THEN 1 ELSE 0 END) AS solvedCount,
-      SUM(CASE WHEN LOWER(COALESCE(status, 'active')) IN ('canceled', 'cancelled') THEN 1 ELSE 0 END) AS canceledCount
-    FROM mesh_distress_signals
-    WHERE origin_node_id = ?
-      AND deleted = 0
+      SUM(CASE WHEN LOWER(COALESCE(m.status, 'active')) = 'active' THEN 1 ELSE 0 END) AS activeCount,
+      SUM(CASE WHEN LOWER(COALESCE(m.status, 'active')) = 'processed' OR d.status = 'accomplished' THEN 1 ELSE 0 END) AS solvedCount,
+      SUM(CASE
+        WHEN LOWER(COALESCE(m.status, 'active')) IN ('canceled', 'cancelled')
+          AND COALESCE(d.status, '') <> 'accomplished'
+        THEN 1 ELSE 0
+      END) AS canceledCount
+    FROM mesh_distress_signals m
+    LEFT JOIN distress_deployments d
+      ON d.id = (
+        SELECT inner_d.id
+        FROM distress_deployments inner_d
+        WHERE inner_d.mesh_distress_signal_id = m.id
+        ORDER BY datetime(COALESCE(inner_d.updated_at, inner_d.created_at)) DESC, inner_d.id DESC
+        LIMIT 1
+      )
+    WHERE m.origin_node_id = ?
+      AND m.deleted = 0
   `, [nodeId]);
 }
 

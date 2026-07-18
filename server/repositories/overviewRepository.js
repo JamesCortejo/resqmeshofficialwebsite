@@ -97,7 +97,7 @@ function listRecentEmergencyRows() {
     LEFT JOIN sync_devices sd ON sd.node_id = m.origin_node_id
     WHERE m.deleted = 0
     ORDER BY datetime(COALESCE(m.updated_at, m.timestamp, m.created_at)) DESC, m.id DESC
-    LIMIT 6
+    LIMIT 4
   `);
 }
 
@@ -113,7 +113,7 @@ function listRecentNotificationRows() {
     FROM notifications
     WHERE hidden_at IS NULL
     ORDER BY datetime(created_at) DESC, id DESC
-    LIMIT 6
+    LIMIT 4
   `);
 }
 

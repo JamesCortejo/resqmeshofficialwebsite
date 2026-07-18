@@ -73,11 +73,11 @@
               <h3>Activity Summary</h3>
               <dl>
                 ${helpers.detailItem('Recent Active Distress', details.activity.recentActiveDistressCount)}
-                ${helpers.detailItem('Recent Solved Distress', details.activity.recentSolvedDistressCount)}
+                ${helpers.detailItem('Recent Accomplished Distress', details.activity.recentSolvedDistressCount)}
                 ${helpers.detailItem('Recent Canceled Distress', details.activity.recentCanceledDistressCount)}
                 ${helpers.detailItem('Recent Messages', details.activity.recentMessageCount)}
                 ${helpers.detailItem('Total Active Distress', details.activity.totalActiveDistressCount)}
-                ${helpers.detailItem('Total Solved Distress', details.activity.totalSolvedDistressCount)}
+                ${helpers.detailItem('Total Accomplished Distress', details.activity.totalSolvedDistressCount)}
                 ${helpers.detailItem('Total Canceled Distress', details.activity.totalCanceledDistressCount)}
                 ${helpers.detailItem('Total Messages', details.activity.totalMessageCount)}
               </dl>

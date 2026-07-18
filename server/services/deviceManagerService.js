@@ -145,7 +145,12 @@ function summaryResponse(row) {
       Number(row.recentSolvedDistressCount || 0) +
       Number(row.recentCanceledDistressCount || 0),
     recentMessageCount: Number(row.recentMessageCount || 0),
-    recentAuditCount: Number(row.recentAuditCount || 0)
+    recentAuditCount: Number(row.recentAuditCount || 0),
+    totalDistressCount: Number(row.totalDistressCount || 0),
+    totalActiveDistressCount: Number(row.totalActiveDistressCount || row.recentActiveDistressCount || 0),
+    totalSolvedDistressCount: Number(row.totalSolvedDistressCount || row.recentSolvedDistressCount || 0),
+    totalCanceledDistressCount: Number(row.totalCanceledDistressCount || row.recentCanceledDistressCount || 0),
+    totalMessageCount: Number(row.totalMessageCount || row.recentMessageCount || 0)
   };
 }
 
