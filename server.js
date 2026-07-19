@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
+const config = require('./server/config/env');
 const userRoutes = require('./server/routes/userRoutes');
+const contactRoutes = require('./server/routes/contactRoutes');
 const adminRoutes = require('./server/routes/adminRoutes');
 const deviceSyncRoutes = require('./server/routes/deviceSyncRoutes');
 const mobileRoutes = require('./server/routes/mobileRoutes');
@@ -22,8 +24,16 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static frontend files (CSS, JS, images) while HTML pages are routed below.
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
+app.get('/api/public-config', (req, res) => {
+  res.json({
+    success: true,
+    recaptchaSiteKey: config.recaptcha.siteKey || ''
+  });
+});
+
 // MVC API Routes
 app.use('/api/users', userRoutes);
+app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', deviceSyncRoutes);
 app.use('/', mobileRoutes);

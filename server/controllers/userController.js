@@ -3,6 +3,7 @@ const { encryptText, lookupHash } = require('../services/encryptionService');
 const { hashPassword } = require('../services/passwordService');
 const { convertAndEncryptIdImage } = require('../services/imageService');
 const { notifyPendingRegistrationCreated } = require('../services/notificationService');
+const { verifyRecaptcha } = require('../services/recaptchaService');
 const {
   generateUserCode,
   createUser,
@@ -126,6 +127,11 @@ exports.registerUser = async (req, res) => {
       });
     }
 
+    await verifyRecaptcha(req.body.recaptchaToken, 'register', {
+      remoteIp: req.ip,
+      hostname: req.hostname
+    });
+
     const frontIdImageFile = firstFile(req.files, 'frontIdImageFile');
     const backIdImageFile = firstFile(req.files, 'backIdImageFile');
 
@@ -195,6 +201,13 @@ exports.registerUser = async (req, res) => {
       data: safeUserResponse(createdUser)
     });
   } catch (error) {
+    if (error.statusCode && error.statusCode < 500) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+
     if (error && error.code === 'SQLITE_CONSTRAINT') {
       return res.status(409).json({
         success: false,

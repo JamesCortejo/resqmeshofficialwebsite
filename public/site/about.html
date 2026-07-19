@@ -53,8 +53,12 @@
   <!-- About Hero -->
   <section class="about-hero">
     <div class="container">
-      <h1 class="about-title">About the ResQMesh Initiative</h1>
-      <p class="about-subtitle">Offline Mesh Messaging Engineered for Community Resilience</p>
+      <span class="section-kicker"><span class="section-kicker-line"></span> About ResQMesh</span>
+      <h1 class="about-title">A local emergency network for connected response.</h1>
+      <p class="about-subtitle">
+        ResQMesh helps Valencia City prepare verified civilians, mesh devices, rescuers, and administrators for moments
+        when normal communication becomes unreliable.
+      </p>
     </div>
   </section>
 
@@ -62,54 +66,56 @@
   <section class="container py-medium">
     <div class="tech-highlight">
       <div class="tech-content">
-        <h2>LoRa & Mesh Architecture</h2>
+        <span class="section-kicker"><span class="section-kicker-line"></span> System overview</span>
+        <h2>Designed for offline access, local alerts, and rescue coordination.</h2>
         <p>
-          ResQMesh leverages **LoRa (Long Range)** radio frequency modules that operate at sub-gigahertz ISM bands. Unlike conventional radios, LoRa utilizes chirp spread spectrum (CSS) modulation, which allows transmission of packets over several kilometers under thick canopy, buildings, or heavy weather, all while using minimal power.
+          The website is the control point for registration, approvals, devices, rescue teams, distress signals, and
+          deployments. Mesh nodes keep local communication available when internet or mobile networks are weak.
         </p>
         <p>
-          In a disaster event, individual ResQMesh nodes form a **dynamic, peer-to-peer mesh network**. If Node A cannot reach the main command gateway directly, Node B and Node C automatically act as relays (hops), forwarding the SOS telemetry. This ensures coverage extends organically as more devices join the mesh.
+          The mobile app connects civilians and rescuers to the system. When a mesh node is online, it syncs important
+          records and activity back to the website.
         </p>
       </div>
       
-      <!-- Visual SVG Mesh Diagram -->
-      <div class="mesh-diagram-card">
-        <h3>Network Node Topology</h3>
-        <p style="font-size: 0.85rem; text-align: center; margin-bottom: 1rem;">
-          Hover over nodes to see connections in the self-healing mesh layout.
-        </p>
-        
-        <div class="mesh-svg-wrapper">
-          <svg viewBox="0 0 400 300" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <!-- Connection Lines -->
-            <line x1="80" y1="200" x2="160" y2="100" class="mesh-line active" />
-            <line x1="160" y1="100" x2="300" y2="150" class="mesh-line active" />
-            <line x1="80" y1="200" x2="180" y2="240" class="mesh-line" />
-            <line x1="180" y1="240" x2="300" y2="150" class="mesh-line active" />
-            <line x1="300" y1="150" x2="320" y2="60" class="mesh-line active" />
-            <line x1="160" y1="100" x2="320" y2="60" class="mesh-line" />
-
-            <!-- Node Points -->
-            <circle cx="80" cy="200" r="14" class="mesh-node" />
-            <text x="80" y="204" font-family="sans-serif" font-size="10" fill="#fff" text-anchor="middle">A</text>
-
-            <circle cx="160" cy="100" r="14" class="mesh-node" />
-            <text x="160" y="104" font-family="sans-serif" font-size="10" fill="#fff" text-anchor="middle">B</text>
-
-            <circle cx="180" cy="240" r="14" class="mesh-node" />
-            <text x="180" y="244" font-family="sans-serif" font-size="10" fill="#fff" text-anchor="middle">C</text>
-
-            <!-- Gateway/Command Node -->
-            <circle cx="300" cy="150" r="16" class="mesh-node gateway" />
-            <text x="300" y="154" font-family="sans-serif" font-size="10" fill="#fff" font-weight="bold" text-anchor="middle">GW</text>
-
-            <!-- Server Node -->
-            <circle cx="320" cy="60" r="14" class="mesh-node" />
-            <text x="320" y="64" font-family="sans-serif" font-size="8" fill="#fff" text-anchor="middle">SRV</text>
-          </svg>
+      <div class="mesh-diagram-card" aria-label="ResQMesh system connection overview">
+        <div class="mesh-diagram-header">
+          <span class="mesh-diagram-icon"><i class="fa-solid fa-network-wired"></i></span>
+          <div>
+            <h3>ResQMesh Connection Flow</h3>
+            <p>How the website, mobile app, mesh devices, and rescue teams work together.</p>
+          </div>
         </div>
-        <div style="display: flex; gap: 15px; font-size: 0.8rem;">
-          <span style="display: flex; align-items: center; gap: 5px;"><span style="display: inline-block; width: 10px; height: 10px; background-color: var(--color-primary); border-radius: 50%;"></span> Active Hops</span>
-          <span style="display: flex; align-items: center; gap: 5px;"><span style="display: inline-block; width: 10px; height: 10px; background-color: var(--color-secondary); border-radius: 50%;"></span> Sleep Mode</span>
+
+        <div class="mesh-flow-visual">
+          <div class="mesh-flow-node">
+            <span><i class="fa-solid fa-mobile-screen"></i></span>
+            <strong>Mobile App</strong>
+            <small>Civilians and rescuers</small>
+          </div>
+
+          <div class="mesh-flow-node node-device">
+            <span><i class="fa-solid fa-tower-broadcast"></i></span>
+            <strong>Mesh Device</strong>
+            <small>Offline LoRa communication</small>
+          </div>
+
+          <div class="mesh-flow-node">
+            <span><i class="fa-solid fa-display"></i></span>
+            <strong>Admin Website</strong>
+            <small>Registration and deployments</small>
+          </div>
+
+          <div class="mesh-flow-node">
+            <span><i class="fa-solid fa-truck-medical"></i></span>
+            <strong>Rescue Teams</strong>
+            <small>Respond to active emergencies</small>
+          </div>
+        </div>
+
+        <div class="mesh-diagram-note">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>When internet is unavailable, users connect through mesh devices. When internet returns, devices sync key records and activity back to the website.</span>
         </div>
       </div>
     </div>
@@ -118,29 +124,31 @@
   <!-- Capstone Team / Project details -->
   <section class="team-section">
     <div class="container">
-      <h2>Project Objectives</h2>
-      <p style="max-width: 600px; margin: 0 auto 3rem auto;">
-        Developed as an academic capstone, ResQMesh intends to lower the barriers to entry for disaster communications.
+      <span class="section-kicker"><span class="section-kicker-line"></span> Project goals</span>
+      <h2>Focused on practical emergency readiness.</h2>
+      <p class="team-section-intro">
+        ResQMesh is designed as a practical capstone system for local registration, offline communication, and response
+        coordination.
       </p>
       
       <div class="grid team-grid">
         <div class="card team-card">
           <div class="team-avatar"><i class="fa-solid fa-map-location-dot"></i></div>
           <div class="team-role">Deployment Focus</div>
-          <h3>Valencia City, Bukidnon</h3>
-          <p>Targeted testing across the urban center (Poblacion) and surrounding agricultural barangays susceptible to landslides and typhoons.</p>
+          <h3>Local coverage</h3>
+          <p>Support emergency communication across selected Valencia City areas through synchronized mesh nodes.</p>
         </div>
         <div class="card team-card">
           <div class="team-avatar"><i class="fa-solid fa-microchip"></i></div>
           <div class="team-role">Technology Focus</div>
-          <h3>Open Hardware</h3>
-          <p>Utilizing ESP32 microcontrollers combined with SX1276 LoRa transceivers for inexpensive, community-built deployment kits.</p>
+          <h3>Resilient devices</h3>
+          <p>Use local mesh communication to keep essential messaging available when normal networks are limited.</p>
         </div>
         <div class="card team-card">
           <div class="team-avatar"><i class="fa-solid fa-kit-medical"></i></div>
           <div class="team-role">Mission Focus</div>
-          <h3>Civic Disaster Response</h3>
-          <p>Connecting verified households to civic responders directly during power outages to facilitate medical emergency dispatches.</p>
+          <h3>Faster coordination</h3>
+          <p>Help administrators monitor emergencies and deploy rescue teams with clearer operational information.</p>
         </div>
       </div>
     </div>
@@ -152,7 +160,7 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <img src="/assets/logo-full.png" alt="ResQMesh Full Logo" class="footer-logo-img">
-          <p class="footer-desc">Providing localized, peer-to-peer crisis messaging solutions for the community of Valencia City, Bukidnon.</p>
+          <p class="footer-desc">Supporting local emergency communication, mesh-device readiness, and coordinated response for Valencia City, Bukidnon.</p>
         </div>
         <div>
           <h4 class="footer-heading">Navigation</h4>
@@ -168,28 +176,16 @@
           <ul class="footer-links">
             <li><a href="/contact" class="footer-link">Valencia CDRRMO</a></li>
             <li><a href="/contact" class="footer-link">Emergency Hotlines</a></li>
-            <li><a href="/about" class="footer-link">LoRa Mesh Network Map</a></li>
+            <li><a href="/about" class="footer-link">How ResQMesh Works</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <p class="footer-copyright">&copy; 2026 ResQMesh. Localized Capstone Project. Valencia City, Bukidnon.</p>
+        <p class="footer-copyright">&copy; 2026 ResQMesh. Emergency communication network for Valencia City, Bukidnon.</p>
       </div>
     </div>
   </footer>
 
-  <script>
-    // Mobile navigation toggle
-    const toggleBtn = document.getElementById('nav-toggle');
-    const navMenu = document.getElementById('nav-menu');
-    
-    toggleBtn.addEventListener('click', () => {
-      navMenu.classList.toggle('active');
-    });
-
-    window.addEventListener('load', () => {
-      setTimeout(() => document.body.classList.remove('site-loading'), 300);
-    });
-  </script>
+  <script src="/site/js/home.js"></script>
 </body>
 </html>

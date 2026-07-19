@@ -87,6 +87,10 @@ const config = {
   databasePath: resolveFromRoot(required('SQLITE_DB_PATH')),
   encryptedUploadDir: resolveFromRoot(required('ENCRYPTED_UPLOAD_DIR')),
   encryptionKey: parseEncryptionKey(required('APP_ENCRYPTION_KEY')),
+  recaptcha: {
+    siteKey: optional(process.env.RECAPTCHA_SITE_KEY),
+    secretKey: optional(process.env.RECAPTCHA_SECRET_KEY)
+  },
   openRouteServiceApiKey: optional(process.env.OPENROUTESERVICE_API_KEY),
   routeSync: {
     snapshotMaxAgeSeconds: parsePositiveInteger(process.env.ROUTE_SNAPSHOT_MAX_AGE_SECONDS, 10, 'ROUTE_SNAPSHOT_MAX_AGE_SECONDS'),

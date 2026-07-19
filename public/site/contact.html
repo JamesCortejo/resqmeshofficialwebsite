@@ -57,8 +57,9 @@
       <!-- Info Left Side -->
       <div class="contact-info-container">
         <div class="contact-header">
+          <span class="section-kicker"><span class="section-kicker-line"></span> Contact ResQMesh</span>
           <h1>Get In Touch</h1>
-          <p>Have questions about device distribution, node installations, or administrative verification? Reach out to our technical team or local coordinators.</p>
+          <p>Use this page for ResQMesh inquiries, device coordination, and local emergency contact references.</p>
         </div>
         
         <!-- Emergency Hotlines Specific to Valencia City -->
@@ -98,7 +99,7 @@
             <span class="contact-detail-icon"><i class="fa-solid fa-envelope"></i></span>
             <div class="contact-detail-text">
               <h4>General Inquiry Email</h4>
-              <p>support@resqmesh.net</p>
+              <p>resqmesh@gmail.com</p>
             </div>
           </li>
         </ul>
@@ -106,7 +107,9 @@
 
       <!-- Form Right Side -->
       <div class="card contact-form-card">
+        <span class="contact-form-eyebrow">General inquiry</span>
         <h3 class="contact-form-title">Send a Message</h3>
+        <p class="contact-form-desc">For urgent emergencies, call the listed hotlines first. Use this form for non-urgent ResQMesh support.</p>
         <div id="contact-alert-container"></div>
         
         <form id="contact-form">
@@ -123,10 +126,12 @@
           <div class="form-group">
             <label for="subject" class="form-label">Subject</label>
             <select id="subject" class="form-control">
-              <option value="node-inquiry">Node Registration & Placement</option>
-              <option value="device-hardware">Hardware Troubleshooting</option>
-              <option value="partnership">Barangay Partnership</option>
-              <option value="other">General Feedback</option>
+              <option value="registration-help">Civilian Registration Help</option>
+              <option value="account-approval">Account Approval Status</option>
+              <option value="app-access">Mobile App Access Problem</option>
+              <option value="mesh-connection">Mesh Device Connection Help</option>
+              <option value="emergency-guidance">Emergency Use Guidance</option>
+              <option value="other">Other Civilian Concern</option>
             </select>
           </div>
 
@@ -148,7 +153,7 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <img src="/assets/logo-full.png" alt="ResQMesh Full Logo" class="footer-logo-img">
-          <p class="footer-desc">Providing localized, peer-to-peer crisis messaging solutions for the community of Valencia City, Bukidnon.</p>
+          <p class="footer-desc">Supporting local emergency communication, mesh-device readiness, and coordinated response for Valencia City, Bukidnon.</p>
         </div>
         <div>
           <h4 class="footer-heading">Navigation</h4>
@@ -164,52 +169,86 @@
           <ul class="footer-links">
             <li><a href="/contact" class="footer-link">Valencia CDRRMO</a></li>
             <li><a href="/contact" class="footer-link">Emergency Hotlines</a></li>
-            <li><a href="/about" class="footer-link">LoRa Mesh Network Map</a></li>
+            <li><a href="/about" class="footer-link">How ResQMesh Works</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <p class="footer-copyright">&copy; 2026 ResQMesh. Localized Capstone Project. Valencia City, Bukidnon.</p>
+        <p class="footer-copyright">&copy; 2026 ResQMesh. Emergency communication network for Valencia City, Bukidnon.</p>
       </div>
     </div>
   </footer>
 
+  <script src="/site/js/home.js"></script>
+  <script src="/site/js/recaptcha.js"></script>
   <script>
-    // Mobile navigation toggle
-    const toggleBtn = document.getElementById('nav-toggle');
-    const navMenu = document.getElementById('nav-menu');
-    
-    toggleBtn.addEventListener('click', () => {
-      navMenu.classList.toggle('active');
-    });
-
-    window.addEventListener('load', () => {
-      setTimeout(() => document.body.classList.remove('site-loading'), 300);
-    });
-
-    // Handle Contact Form Submission (Mock)
     const contactForm = document.getElementById('contact-form');
     const alertContainer = document.getElementById('contact-alert-container');
+    const submitButton = contactForm.querySelector('button[type="submit"]');
 
-    contactForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      
-      // Clear inputs
-      contactForm.reset();
-      
-      // Render success alert
+    function renderContactAlert(type, title, message) {
+      const isSuccess = type === 'success';
+
       alertContainer.innerHTML = `
-        <div class="alert alert-warning" style="background-color: rgba(46, 204, 113, 0.1); border-color: rgba(46, 204, 113, 0.3); color: #ffffff; margin-bottom: 2rem;">
-          <span style="color: var(--color-success); font-size: 1.2rem;">&#10004;</span>
+        <div class="alert alert-warning contact-alert-${type}" role="alert">
+          <span class="contact-alert-icon">${isSuccess ? '&#10004;' : '&#9888;'}</span>
           <div>
-            <strong style="color: var(--color-success); display: block; margin-bottom: 3px;">Message Sent Successfully!</strong>
-            Our technical team will review your inquiry and reach out via email.
+            <strong>${title}</strong>
+            <span>${message}</span>
           </div>
         </div>
       `;
-      
-      // Scroll to alert
+
       alertContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    contactForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
+      alertContainer.innerHTML = '';
+
+      try {
+        const recaptchaToken = await window.ResQMeshRecaptcha.getToken('contact');
+        const payload = {
+          name: document.getElementById('name').value,
+          email: document.getElementById('email').value,
+          subject: document.getElementById('subject').value,
+          message: document.getElementById('message').value,
+          recaptchaToken
+        };
+
+        const response = await fetch('/api/contact', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Unable to send your message right now.');
+        }
+
+        contactForm.reset();
+        renderContactAlert(
+          'success',
+          'Message sent successfully',
+          result.message || 'The ResQMesh team will review your inquiry and respond by email.'
+        );
+      } catch (error) {
+        renderContactAlert(
+          'error',
+          'Message not sent',
+          error.message || 'Please try again later.'
+        );
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Send Message';
+      }
     });
   </script>
 </body>

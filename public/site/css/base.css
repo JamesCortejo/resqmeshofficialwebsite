@@ -1,8 +1,8 @@
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
 
-/* Global Reset & Base Setup */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -14,43 +14,65 @@ html {
 }
 
 body {
-  background-color: var(--color-bg-dark);
-  color: var(--color-text-light);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 8% 4%, rgba(237, 66, 47, 0.12), transparent 25rem),
+    radial-gradient(circle at 92% 18%, rgba(16, 24, 40, 0.08), transparent 24rem),
+    linear-gradient(180deg, #fffaf6 0%, #f6f8fb 44%, #edf3f8 100%);
+  color: var(--color-ink);
   font-family: var(--font-family);
-  line-height: 1.6;
+  line-height: 1.65;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Scrollbar styling */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(16, 24, 40, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 24, 40, 0.028) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.4), transparent 62%);
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 9px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-dark);
+  background: #edf2f7;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-secondary);
-  border-radius: var(--border-radius-sm);
+  background: #a9b6c6;
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary);
 }
 
-/* Typography elements */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-ink);
   font-family: var(--font-heading);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  margin-bottom: 0.5em;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 0.65em;
 }
 
 p {
-  color: var(--color-text-muted);
+  color: var(--color-muted);
   margin-bottom: 1rem;
 }
 
@@ -65,27 +87,42 @@ a:hover {
 }
 
 img {
-  max-width: 100%;
-  height: auto;
   display: block;
+  height: auto;
+  max-width: 100%;
 }
 
-/* Utility Helpers */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 .container {
   width: 100%;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding-left: var(--container-pad);
+  padding-right: var(--container-pad);
 }
 
-.text-center { text-align: center; }
-.text-primary { color: var(--color-primary); }
-.text-secondary { color: var(--color-secondary); }
+.text-center {
+  text-align: center;
+}
+
+.text-primary {
+  color: var(--color-primary);
+}
+
+.text-secondary {
+  color: var(--color-muted);
+}
 
 .flex-center {
+  align-items: center;
   display: flex;
   justify-content: center;
-  align-items: center;
 }
 
 .grid {
@@ -93,37 +130,35 @@ img {
   gap: 1.5rem;
 }
 
-/* Spacers */
-.py-large { padding-top: 5rem; padding-bottom: 5rem; }
-.py-medium { padding-top: 3rem; padding-bottom: 3rem; }
-.my-medium { margin-top: 2rem; margin-bottom: 2rem; }
+.py-large {
+  padding-bottom: var(--section-space);
+  padding-top: var(--section-space);
+}
+
+.py-medium {
+  padding-bottom: clamp(3.5rem, 7vw, 5.5rem);
+  padding-top: clamp(3.5rem, 7vw, 5.5rem);
+}
+
+.my-medium {
+  margin-bottom: 2rem;
+  margin-top: 2rem;
+}
 
 @media (max-width: 768px) {
   html {
     font-size: 15px;
   }
 
-  .container {
-    padding: 0 1rem;
-  }
-
-  .py-large {
-    padding-top: 3rem;
-    padding-bottom: 3rem;
-  }
-
-  .py-medium {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
+  body {
+    background:
+      radial-gradient(circle at 10% 0%, rgba(237, 66, 47, 0.11), transparent 18rem),
+      linear-gradient(180deg, #fffaf6 0%, #f5f8fb 54%, #edf3f8 100%);
   }
 }
 
 @media (max-width: 480px) {
   html {
     font-size: 14px;
-  }
-
-  .container {
-    padding: 0 0.875rem;
   }
 }

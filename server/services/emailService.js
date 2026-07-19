@@ -105,9 +105,38 @@ function sendReactivationEmail(user) {
   });
 }
 
+function sendContactEmail(contact) {
+  const subjectLabel = contact.subjectLabel || 'General inquiry';
+  const submittedAt = contact.submittedAt || new Date().toISOString();
+
+  const text = plainTextMessage([
+    'New ResQMesh public contact message',
+    '',
+    `Name: ${contact.name}`,
+    `Email: ${contact.email}`,
+    `Subject: ${subjectLabel}`,
+    `Submitted at: ${submittedAt}`,
+    `IP address: ${contact.ipAddress || 'Unavailable'}`,
+    '',
+    'Message:',
+    contact.message,
+    '',
+    'Reply directly to this email to respond to the sender.'
+  ]);
+
+  return transporter.sendMail({
+    from: sender(),
+    to: config.smtp.fromEmail,
+    replyTo: contact.email,
+    subject: `ResQMesh contact: ${subjectLabel}`,
+    text
+  });
+}
+
 module.exports = {
   sendApprovalEmail,
   sendDeclineEmail,
   sendSuspensionEmail,
-  sendReactivationEmail
+  sendReactivationEmail,
+  sendContactEmail
 };

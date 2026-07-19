@@ -1,11 +1,39 @@
 ﻿const toggleBtn = document.getElementById('nav-toggle');
-    const navMenu = document.getElementById('nav-menu');
+const navMenu = document.getElementById('nav-menu');
     
-    if (toggleBtn && navMenu) {
-      toggleBtn.addEventListener('click', () => {
-        navMenu.classList.toggle('active');
-      });
+if (toggleBtn && navMenu) {
+  toggleBtn.setAttribute('aria-expanded', 'false');
+
+  const closeMenu = () => {
+    navMenu.classList.remove('active');
+    toggleBtn.setAttribute('aria-expanded', 'false');
+  };
+
+  toggleBtn.addEventListener('click', () => {
+    const isOpen = navMenu.classList.toggle('active');
+    toggleBtn.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  navMenu.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', closeMenu);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!navMenu.classList.contains('active')) {
+      return;
     }
+
+    if (!navMenu.contains(event.target) && !toggleBtn.contains(event.target)) {
+      closeMenu();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 820) {
+      closeMenu();
+    }
+  });
+}
 
 const registerRootElement = document.getElementById('register-root');
 
@@ -339,6 +367,9 @@ const { useState, useRef } = React;
 
         try {
           setIsSubmitting(true);
+          const recaptchaToken = await window.ResQMeshRecaptcha.getToken('register');
+          payload.append('recaptchaToken', recaptchaToken);
+
           const response = await fetch('/api/users/register', {
             method: 'POST',
             body: payload
@@ -372,9 +403,10 @@ const { useState, useRef } = React;
           <main class="register-container">
             <div class="card success-card">
               <div class="success-icon-wrapper"><i class="fa-solid fa-circle-check"></i></div>
-              <h2 class="success-title">Submission Successful</h2>
+              <h2 class="success-title">Registration submitted</h2>
               <p class="success-message">
-                Registration submitted. Please verify your account and wait for admin approval.
+                Your civilian account request has been sent to the ResQMesh admin team for verification. Once approved,
+                your account can be synced to mesh nodes for emergency app access.
               </p>
               {registrationCode && (
                 <p class="success-message">
@@ -390,8 +422,14 @@ const { useState, useRef } = React;
       return (
         <main class="register-container">
           <div class="card register-card">
-            
-            <h2 class="text-center" style={{ marginBottom: '2.5rem' }}>ResQMesh Verification</h2>
+            <div className="register-intro">
+              <span className="register-kicker">Civilian account registration</span>
+              <h2>Prepare your ResQMesh access before an emergency</h2>
+              <p>
+                Submit your profile for admin approval. Approved civilian records are synced to ResQMesh devices so the
+                mobile app can be used through nearby mesh nodes when internet service is unavailable.
+              </p>
+            </div>
 
             {/* Steps Progress Indicator */}
             <div class="steps-container">

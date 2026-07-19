@@ -1,163 +1,269 @@
-/* About Header */
 .about-hero {
+  padding: clamp(4rem, 8vw, 6.5rem) 0 clamp(2.5rem, 5vw, 4rem);
   text-align: center;
-  padding: 6rem 0 4rem 0;
+}
+
+.about-hero .section-kicker {
+  justify-content: center;
+  margin-bottom: 1.1rem;
 }
 
 .about-title {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  font-size: clamp(2.7rem, 6vw, 5rem);
+  letter-spacing: -0.065em;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 860px;
 }
 
 .about-subtitle {
-  font-size: 1.2rem;
-  color: var(--color-primary);
-  max-width: 600px;
-  margin: 0 auto 2rem auto;
+  color: var(--color-ink-soft);
+  font-size: clamp(1rem, 2vw, 1.18rem);
+  line-height: 1.8;
+  margin: 0 auto;
+  max-width: 760px;
 }
 
-/* Technology Highlight */
 .tech-highlight {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
   align-items: center;
-  margin: 4rem 0;
+  display: grid;
+  gap: clamp(2rem, 6vw, 4.5rem);
+  grid-template-columns: minmax(0, 0.8fr) minmax(360px, 1fr);
+  margin: 1rem 0 clamp(2rem, 5vw, 4rem);
 }
 
 .tech-content h2 {
-  font-size: 2rem;
-  margin-bottom: 1.5rem;
+  font-size: clamp(2.1rem, 4vw, 3.4rem);
+  margin-bottom: 1.15rem;
 }
 
-/* Mesh Diagram wrapper */
+.tech-content p {
+  color: var(--color-ink-soft);
+  font-size: 1.02rem;
+  line-height: 1.85;
+}
+
 .mesh-diagram-card {
-  background-color: var(--color-bg-card);
+  background:
+    radial-gradient(circle at 80% 14%, rgba(237, 66, 47, 0.14), transparent 18rem),
+    rgba(255, 255, 255, 0.92);
   border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-lg);
-  padding: 3rem;
+  border-radius: 32px;
+  box-shadow: var(--shadow-card);
+  display: grid;
+  gap: 1.35rem;
+  padding: clamp(1.35rem, 3vw, 2rem);
+}
+
+.mesh-diagram-header {
+  align-items: flex-start;
   display: flex;
-  flex-direction: column;
+  gap: 1rem;
+}
+
+.mesh-diagram-icon,
+.mesh-flow-node span,
+.team-avatar {
   align-items: center;
+  background: #fff0eb;
+  color: var(--color-primary);
+  display: inline-flex;
+  justify-content: center;
 }
 
-.mesh-svg-wrapper {
-  width: 100%;
-  max-width: 450px;
-  height: auto;
-  margin: 2rem 0;
+.mesh-diagram-icon {
+  border-radius: 18px;
+  flex: 0 0 52px;
+  font-size: 1.22rem;
+  height: 52px;
+  width: 52px;
 }
 
-.mesh-node {
-  fill: var(--color-bg-dark);
-  stroke: var(--color-secondary);
-  stroke-width: 2px;
-  transition: all var(--transition-normal);
+.mesh-diagram-header h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.32rem;
 }
 
-.mesh-node:hover, .mesh-node.gateway {
-  stroke: var(--color-primary);
-  fill: rgba(231, 75, 50, 0.1);
-  filter: drop-shadow(0 0 8px rgba(231, 75, 50, 0.4));
+.mesh-diagram-header p {
+  line-height: 1.6;
+  margin: 0;
 }
 
-.mesh-line {
-  stroke: var(--color-border);
-  stroke-width: 1.5px;
-  stroke-dasharray: 4;
-  animation: dash 30s linear infinite;
+.mesh-flow-visual {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.mesh-line.active {
-  stroke: var(--color-primary);
-  stroke-width: 2px;
-  stroke-dasharray: none;
+.mesh-flow-node {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 0.42rem;
+  min-height: 166px;
+  padding: 1.2rem;
 }
 
-@keyframes dash {
-  to {
-    stroke-dashoffset: -1000;
-  }
+.mesh-flow-node span {
+  border-radius: 18px;
+  font-size: 1.2rem;
+  height: 54px;
+  width: 54px;
 }
 
-/* Team Grid */
+.mesh-flow-node.node-device {
+  background:
+    linear-gradient(145deg, rgba(237, 66, 47, 0.95), rgba(201, 44, 32, 0.95));
+  border-color: rgba(237, 66, 47, 0.4);
+}
+
+.mesh-flow-node.node-device span {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.mesh-flow-node.node-device strong,
+.mesh-flow-node.node-device small {
+  color: #ffffff;
+}
+
+.mesh-flow-node strong {
+  color: var(--color-ink);
+  font-size: 1.02rem;
+}
+
+.mesh-flow-node small {
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.mesh-diagram-note {
+  align-items: flex-start;
+  background: #fff4ef;
+  border: 1px solid rgba(237, 66, 47, 0.18);
+  border-radius: 20px;
+  color: var(--color-ink-soft);
+  display: flex;
+  font-size: 0.92rem;
+  font-weight: 700;
+  gap: 0.75rem;
+  line-height: 1.62;
+  padding: 1rem;
+}
+
+.mesh-diagram-note i {
+  color: var(--color-primary);
+  margin-top: 0.22rem;
+}
+
 .team-section {
-  padding: 5rem 0;
+  padding: var(--section-space) 0;
   text-align: center;
+}
+
+.team-section .section-kicker {
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.team-section h2 {
+  font-size: clamp(2.1rem, 4vw, 3.35rem);
+}
+
+.team-section-intro {
+  line-height: 1.8;
+  margin: 0 auto 2.4rem;
+  max-width: 650px;
 }
 
 .team-grid {
-  grid-template-columns: repeat(3, 1fr);
-  margin-top: 3.5rem;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .team-card {
-  text-align: center;
+  text-align: left;
 }
 
 .team-avatar {
-  width: 100px;
-  height: 100px;
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 2px solid var(--color-secondary);
-  border-radius: 50%;
-  margin: 0 auto 1.5rem auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-primary);
-  font-size: 2rem;
-}
-
-.team-card:hover .team-avatar {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 15px rgba(231, 75, 50, 0.2);
+  border-radius: 22px;
+  font-size: 1.55rem;
+  height: 66px;
+  margin-bottom: 1.35rem;
+  width: 66px;
 }
 
 .team-role {
-  color: var(--color-primary);
-  font-size: 0.85rem;
+  color: var(--color-primary-strong);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.6rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
 }
 
-/* Responsive About */
-@media (max-width: 768px) {
+.team-card h3 {
+  font-size: 1.25rem;
+}
+
+.team-card p {
+  line-height: 1.7;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .tech-highlight,
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
   .about-hero {
-    padding: 4rem 0 2rem 0;
+    text-align: left;
+  }
+
+  .about-hero .section-kicker,
+  .team-section .section-kicker {
+    justify-content: flex-start;
+  }
+
+  .about-title {
+    font-size: clamp(2.3rem, 11vw, 3rem);
   }
 
   .tech-highlight {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-    margin: 2rem 0;
+    gap: 2rem;
   }
 
-  .mesh-diagram-card {
-    padding: 1.5rem;
+  .mesh-flow-visual {
+    grid-template-columns: 1fr;
   }
 
-  .mesh-diagram-card > div:last-child {
-    flex-wrap: wrap;
-    justify-content: center;
+  .mesh-flow-node {
+    grid-template-columns: auto minmax(0, 1fr);
+    min-height: auto;
   }
-  
-  .team-grid {
-    grid-template-columns: 1fr;
-    margin-top: 2rem;
+
+  .mesh-flow-node span {
+    grid-row: span 2;
   }
 
   .team-section {
-    padding: 3rem 0;
+    text-align: left;
   }
-  
-  .about-title {
-    font-size: clamp(2rem, 10vw, 2.4rem);
+}
+
+@media (max-width: 430px) {
+  .mesh-diagram-card {
+    border-radius: 26px;
   }
 
-  .about-subtitle {
-    font-size: 1rem;
+  .mesh-diagram-header {
+    flex-direction: column;
   }
 }
