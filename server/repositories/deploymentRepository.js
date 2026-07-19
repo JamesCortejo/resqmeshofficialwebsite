@@ -941,6 +941,9 @@ function listPublicNodes() {
       n.longitude,
       n.status,
       n.last_seen_at AS lastSeen,
+      sd.status AS deviceStatus,
+      sd.last_seen_at AS deviceLastSeen,
+      sd.last_sync_at AS lastSyncAt,
       n.users_connected AS users,
       CASE WHEN EXISTS (
         SELECT 1
@@ -959,6 +962,7 @@ function listPublicNodes() {
         LIMIT 1
       ) AS activeDistressId
     FROM mesh_nodes n
+    LEFT JOIN sync_devices sd ON sd.node_id = n.node_id
     WHERE n.deleted = 0
     ORDER BY COALESCE(n.updated_at, n.created_at) DESC, n.id DESC
   `);

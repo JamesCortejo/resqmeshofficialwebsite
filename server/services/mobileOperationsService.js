@@ -19,6 +19,9 @@ const {
   ensureDeploymentRouteSnapshot
 } = require('./deploymentRouteService');
 
+const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
+const STALE_THRESHOLD_MS = 10 * 60 * 1000;
+
 function ensurePositiveInteger(value) {
   const parsed = Number.parseInt(String(value || ''), 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
@@ -34,6 +37,80 @@ function ensureCoordinate(value, label) {
   }
 
   return parsed;
+}
+
+function normalizeTimestampValue(value) {
+  if (!value || typeof value !== 'string') {
+    return value;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.includes('T') || /[zZ]$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(trimmed)) {
+    return `${trimmed.replace(' ', 'T')}Z`;
+  }
+
+  return trimmed;
+}
+
+function parseDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(normalizeTimestampValue(value));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toIsoTimestamp(value) {
+  const date = parseDate(value);
+  return date ? date.toISOString() : null;
+}
+
+function latestNodeActivityAt(row) {
+  const candidates = [
+    parseDate(row.lastSyncAt),
+    parseDate(row.lastSeen),
+    parseDate(row.deviceLastSeen)
+  ].filter(Boolean);
+
+  if (!candidates.length) {
+    return null;
+  }
+
+  return new Date(Math.max(...candidates.map((date) => date.getTime())));
+}
+
+function getPublicNodeConnectivity(row) {
+  if (row.deviceStatus === 'revoked') {
+    return 'offline';
+  }
+
+  const latestActivity = latestNodeActivityAt(row);
+
+  if (!latestActivity) {
+    return 'offline';
+  }
+
+  const ageMs = Date.now() - latestActivity.getTime();
+
+  if (ageMs <= ONLINE_THRESHOLD_MS) {
+    return 'online';
+  }
+
+  if (ageMs <= STALE_THRESHOLD_MS) {
+    return 'stale';
+  }
+
+  return 'offline';
 }
 
 function assignmentSummary(row) {
@@ -216,20 +293,32 @@ async function getEtaByDistressId(distressId) {
 
 async function getPublicNodes() {
   const rows = await listPublicNodes();
-  return rows.map((row) => ({
-    id: row.id,
-    node_id: row.id,
-    nodeId: row.id,
-    name: row.name || row.id,
-    latitude: row.latitude,
-    longitude: row.longitude,
-    status: row.status || 'offline',
-    users: Number(row.users || 0),
-    distress: Boolean(row.distress),
-    active_distress_id: row.activeDistressId || null,
-    lastSeen: row.lastSeen || null,
-    last_seen: row.lastSeen || null
-  }));
+  return rows.map((row) => {
+    const connectivityStatus = getPublicNodeConnectivity(row);
+    const latestActivity = latestNodeActivityAt(row);
+    const latestActivityIso = latestActivity ? latestActivity.toISOString() : null;
+
+    return {
+      id: row.id,
+      node_id: row.id,
+      nodeId: row.id,
+      name: row.name || row.id,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      status: connectivityStatus === 'online' ? 'active' : connectivityStatus,
+      nodeStatus: row.status || 'unknown',
+      deviceStatus: row.deviceStatus || null,
+      connectivityStatus,
+      users: Number(row.users || 0),
+      distress: Boolean(row.distress),
+      active_distress_id: row.activeDistressId || null,
+      lastSeen: latestActivityIso,
+      last_seen: latestActivityIso,
+      nodeLastSeen: toIsoTimestamp(row.lastSeen),
+      deviceLastSeen: toIsoTimestamp(row.deviceLastSeen),
+      lastSyncAt: toIsoTimestamp(row.lastSyncAt)
+    };
+  });
 }
 
 async function getNodeDistress(nodeId) {
