@@ -106,6 +106,16 @@
     return `${Math.round(numeric)} m`;
   }
 
+  function formatSignalStrength(value, qualityLabel) {
+    const numeric = Number(value);
+
+    if (!Number.isFinite(numeric) || numeric < -140 || numeric > -20) {
+      return 'RSSI unavailable';
+    }
+
+    return `${numeric} dBm${qualityLabel ? ` (${qualityLabel})` : ''}`;
+  }
+
   function getStatusDisplay(value) {
     const normalized = String(value || '').toLowerCase();
 
@@ -274,6 +284,7 @@
         formatRelativeTime,
         formatCoordinate,
         formatDistance,
+        formatSignalStrength,
         getStatusDisplay,
         formatDistressReason,
         detailItem,
