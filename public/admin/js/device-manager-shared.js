@@ -96,7 +96,7 @@
   function formatSignalStrength(value, qualityLabel) {
     const numeric = Number(value);
 
-    if (!Number.isFinite(numeric)) {
+    if (!Number.isFinite(numeric) || numeric < -140 || numeric > -20) {
       return 'RSSI unavailable';
     }
 
@@ -106,7 +106,7 @@
   function getSignalLevel(value) {
     const numeric = Number(value);
 
-    if (!Number.isFinite(numeric)) {
+    if (!Number.isFinite(numeric) || numeric < -140 || numeric > -20) {
       return 0;
     }
 

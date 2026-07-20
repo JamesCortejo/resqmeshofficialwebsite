@@ -331,6 +331,16 @@ function normalizeInteger(value) {
   return Number.isInteger(number) ? number : null;
 }
 
+function normalizeRssiDbm(value) {
+  const rssi = normalizeInteger(value);
+
+  if (rssi === null) {
+    return null;
+  }
+
+  return rssi >= -140 && rssi <= -20 ? rssi : null;
+}
+
 function normalizeBoolean(value) {
   return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
 }
@@ -422,7 +432,7 @@ async function syncNodeNeighborsBatch(payload, syncDevice, requestIp) {
     await upsertMeshNodeLink({
       reportingNodeId,
       neighborNodeId,
-      rssi: normalizeInteger(item.rssi ?? item.signalStrength ?? item.signal_strength),
+      rssi: normalizeRssiDbm(item.rssi ?? item.signalStrength ?? item.signal_strength),
       lastSeenAt,
       updatedAt: normalizeString(item.updatedAt || item.updated_at) || nowAsIso()
     });

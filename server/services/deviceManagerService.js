@@ -106,7 +106,7 @@ function statusLabel(value) {
 function signalQuality(value) {
   const numeric = Number(value);
 
-  if (!Number.isFinite(numeric)) {
+  if (!Number.isFinite(numeric) || numeric < -140 || numeric > -20) {
     return 'unknown';
   }
 
@@ -284,6 +284,8 @@ function conversationSummaries(messages) {
 
 function summaryResponse(row) {
   const connectivityStatus = getConnectivityStatus(row);
+  const signalStrengthDbm = Number(row.signalStrengthDbm);
+  const hasValidSignalStrength = Number.isFinite(signalStrengthDbm) && signalStrengthDbm >= -140 && signalStrengthDbm <= -20;
 
   return {
     id: row.id,
@@ -299,11 +301,9 @@ function summaryResponse(row) {
     lastSyncAt: toIsoTimestamp(row.lastSyncAt),
     latitude: row.latitude,
     longitude: row.longitude,
-    signalStrengthDbm: row.signalStrengthDbm !== null && row.signalStrengthDbm !== undefined
-      ? Number(row.signalStrengthDbm)
-      : null,
-    signalQuality: signalQuality(row.signalStrengthDbm),
-    signalQualityLabel: signalQualityLabel(row.signalStrengthDbm),
+    signalStrengthDbm: hasValidSignalStrength ? signalStrengthDbm : null,
+    signalQuality: signalQuality(hasValidSignalStrength ? signalStrengthDbm : null),
+    signalQualityLabel: signalQualityLabel(hasValidSignalStrength ? signalStrengthDbm : null),
     signalReportedByNodeId: row.signalReportedByNodeId || null,
     signalLastSeenAt: toIsoTimestamp(row.signalLastSeenAt),
     usersConnected: Number(row.usersConnected || 0),
