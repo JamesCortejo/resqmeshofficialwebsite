@@ -388,6 +388,15 @@
   text-align: right;
 }
 
+.device-map-popup-row-signal .device-card-signal {
+  justify-content: flex-end;
+  max-width: 11rem;
+}
+
+.device-map-popup-row-signal .device-card-signal span:last-child {
+  white-space: nowrap;
+}
+
 .device-map-popup-actions {
   display: flex;
   justify-content: flex-end;

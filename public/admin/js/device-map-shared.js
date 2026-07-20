@@ -116,6 +116,33 @@
     return `${numeric} dBm${qualityLabel ? ` (${qualityLabel})` : ''}`;
   }
 
+  function getSignalLevel(value) {
+    const numeric = Number(value);
+
+    if (!Number.isFinite(numeric) || numeric < -140 || numeric > -20) {
+      return 0;
+    }
+
+    if (numeric >= -70) return 4;
+    if (numeric >= -85) return 3;
+    if (numeric >= -100) return 2;
+    return 1;
+  }
+
+  function signalDotsMarkup(value, qualityLabel) {
+    const level = getSignalLevel(value);
+    const label = formatSignalStrength(value, qualityLabel);
+
+    return `
+      <span class="device-card-signal" data-level="${level}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">
+        <span class="device-card-signal-dots" aria-hidden="true">
+          ${[1, 2, 3, 4].map((index) => `<span class="device-card-signal-dot${index <= level ? ' is-active' : ''}"></span>`).join('')}
+        </span>
+        <span>${escapeHtml(label)}</span>
+      </span>
+    `;
+  }
+
   function getStatusDisplay(value) {
     const normalized = String(value || '').toLowerCase();
 
@@ -285,6 +312,7 @@
         formatCoordinate,
         formatDistance,
         formatSignalStrength,
+        signalDotsMarkup,
         getStatusDisplay,
         formatDistressReason,
         detailItem,
