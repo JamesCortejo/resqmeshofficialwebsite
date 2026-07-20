@@ -159,6 +159,29 @@ function upsertMeshNodeHealthLog(item) {
   ]);
 }
 
+function upsertMeshNodeLink(item) {
+  return run(`
+    INSERT INTO mesh_node_links (
+      reporting_node_id,
+      neighbor_node_id,
+      rssi,
+      last_seen_at,
+      created_at,
+      updated_at
+    ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, COALESCE(?, CURRENT_TIMESTAMP))
+    ON CONFLICT(reporting_node_id, neighbor_node_id) DO UPDATE SET
+      rssi = excluded.rssi,
+      last_seen_at = excluded.last_seen_at,
+      updated_at = excluded.updated_at
+  `, [
+    item.reportingNodeId,
+    item.neighborNodeId,
+    item.rssi,
+    item.lastSeenAt,
+    item.updatedAt || item.lastSeenAt || null
+  ]);
+}
+
 function upsertMeshDistressSignal(item) {
   return run(`
     INSERT INTO mesh_distress_signals (
@@ -431,6 +454,7 @@ module.exports = {
   listRescueTeamsForSync,
   upsertMeshNode,
   upsertMeshNodeHealthLog,
+  upsertMeshNodeLink,
   upsertMeshDistressSignal,
   getMeshDistressSignalByOrigin,
   upsertMeshMessage,

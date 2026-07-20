@@ -50,6 +50,8 @@
               <dl>
                 ${helpers.detailItem('Node Status', details.latestNode?.statusLabel || helpers.getStatusDisplay(details.latestNode?.status))}
                 ${helpers.detailItem('Users Connected', details.latestNode?.usersConnected ?? 0)}
+                ${helpers.detailItem('Discovery Signal', helpers.formatSignalStrength(details.latestNode?.signalStrengthDbm, details.latestNode?.signalQualityLabel))}
+                ${helpers.detailItem('Signal Reported By', details.latestNode?.signalReportedByNodeId || 'Not available')}
                 ${helpers.detailItem('Latitude', helpers.formatCoordinate(details.latestNode?.latitude))}
                 ${helpers.detailItem('Longitude', helpers.formatCoordinate(details.latestNode?.longitude))}
                 ${helpers.detailItem('Last Node Seen', helpers.formatDate(details.latestNode?.lastSeenAt))}
@@ -60,7 +62,7 @@
               <h3>Health Snapshot</h3>
               <dl>
                 ${helpers.detailItem('Battery Voltage', details.latestHealth?.batteryVoltage ?? 'Not available')}
-                ${helpers.detailItem('Signal Strength', details.latestHealth?.signalStrength ?? 'Not available')}
+                ${helpers.detailItem('Telemetry Signal', details.latestHealth?.signalStrength ?? 'Not available')}
                 ${helpers.detailItem('GPS Status', helpers.getStatusDisplay(details.latestHealth?.gpsStatus))}
                 ${helpers.detailItem('CPU Temperature', details.latestHealth?.cpuTemp ?? 'Not available')}
                 ${helpers.detailItem('Storage Remaining', details.latestHealth?.storageRemaining ?? 'Not available')}

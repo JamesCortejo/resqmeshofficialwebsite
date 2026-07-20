@@ -49,6 +49,10 @@
                   <span>Coordinates</span>
                   <strong>${helpers.escapeHtml(`${helpers.formatCoordinate(device.latitude)}, ${helpers.formatCoordinate(device.longitude)}`)}</strong>
                 </div>
+                <div class="device-card-meta-row device-card-meta-row-signal">
+                  <span>Signal</span>
+                  ${helpers.signalDotsMarkup(device.signalStrengthDbm, device.signalQualityLabel)}
+                </div>
               </div>
 
               <div class="device-card-activity">

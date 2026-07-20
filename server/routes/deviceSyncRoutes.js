@@ -21,6 +21,7 @@ router.get('/device-sync/deployment-routes', deviceSyncController.listDeployment
 router.get('/device-sync/mesh-commands', deviceSyncController.listMeshCommands);
 router.post('/device-sync/nodes/batch', deviceSyncController.syncNodesBatch);
 router.post('/device-sync/node-health/batch', deviceSyncController.syncNodeHealthBatch);
+router.post('/device-sync/node-neighbors/batch', deviceSyncController.syncNodeNeighborsBatch);
 router.post('/device-sync/distress-signals/batch', deviceSyncController.syncDistressSignalsBatch);
 router.post('/device-sync/messages/batch', deviceSyncController.syncMessagesBatch);
 router.post('/device-sync/audit-logs/batch', deviceSyncController.syncAuditLogsBatch);

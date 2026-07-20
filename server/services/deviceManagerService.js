@@ -103,6 +103,29 @@ function statusLabel(value) {
   return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unknown';
 }
 
+function signalQuality(value) {
+  const numeric = Number(value);
+
+  if (!Number.isFinite(numeric)) {
+    return 'unknown';
+  }
+
+  if (numeric >= -70) return 'strong';
+  if (numeric >= -85) return 'good';
+  if (numeric >= -100) return 'weak';
+  return 'poor';
+}
+
+function signalQualityLabel(value) {
+  const quality = signalQuality(value);
+
+  if (quality === 'strong') return 'Strong';
+  if (quality === 'good') return 'Good';
+  if (quality === 'weak') return 'Weak';
+  if (quality === 'poor') return 'Poor';
+  return 'Unknown';
+}
+
 function parseCoordinates(value) {
   if (!value) {
     return [];
@@ -276,6 +299,13 @@ function summaryResponse(row) {
     lastSyncAt: toIsoTimestamp(row.lastSyncAt),
     latitude: row.latitude,
     longitude: row.longitude,
+    signalStrengthDbm: row.signalStrengthDbm !== null && row.signalStrengthDbm !== undefined
+      ? Number(row.signalStrengthDbm)
+      : null,
+    signalQuality: signalQuality(row.signalStrengthDbm),
+    signalQualityLabel: signalQualityLabel(row.signalStrengthDbm),
+    signalReportedByNodeId: row.signalReportedByNodeId || null,
+    signalLastSeenAt: toIsoTimestamp(row.signalLastSeenAt),
     usersConnected: Number(row.usersConnected || 0),
     pendingCommandCount: Number(row.pendingCommandCount || 0),
     recentActiveDistressCount: Number(row.recentActiveDistressCount || 0),
@@ -328,6 +358,11 @@ function mapStatusResponse(row) {
     lastSeenAt: summary.lastSeenAt,
     lastSyncAt: summary.lastSyncAt,
     usersConnected: summary.usersConnected,
+    signalStrengthDbm: summary.signalStrengthDbm,
+    signalQuality: summary.signalQuality,
+    signalQualityLabel: summary.signalQualityLabel,
+    signalReportedByNodeId: summary.signalReportedByNodeId,
+    signalLastSeenAt: summary.signalLastSeenAt,
     hasActiveDistress,
     activeDistressCount,
     activeDistress: hasActiveDistress ? {
@@ -438,6 +473,11 @@ async function getDeviceDetails(id) {
       status: row.nodeStatus || 'unknown',
       statusLabel: statusLabel(row.nodeStatus),
       usersConnected: Number(row.usersConnected || 0),
+      signalStrengthDbm: summary.signalStrengthDbm,
+      signalQuality: summary.signalQuality,
+      signalQualityLabel: summary.signalQualityLabel,
+      signalReportedByNodeId: summary.signalReportedByNodeId,
+      signalLastSeenAt: summary.signalLastSeenAt,
       lastSeenAt: toIsoTimestamp(row.nodeLastSeenAt || row.deviceLastSeenAt)
     },
     activity: {

@@ -6,6 +6,7 @@ const {
   getDeploymentRouteSnapshotsDelta,
   syncNodesBatch,
   syncNodeHealthBatch,
+  syncNodeNeighborsBatch,
   syncDistressSignalsBatch,
   syncMessagesBatch,
   syncAuditLogsBatch,
@@ -111,6 +112,15 @@ exports.syncNodeHealthBatch = async (req, res) => {
     return res.json({ success: true, data: result });
   } catch (error) {
     return errorResponse(res, error, 'Unable to sync node health logs.');
+  }
+};
+
+exports.syncNodeNeighborsBatch = async (req, res) => {
+  try {
+    const result = await syncNodeNeighborsBatch(req.body || {}, req.syncDevice, requestIp(req));
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to sync node neighbor RSSI.');
   }
 };
 

@@ -6,6 +6,7 @@ const {
   listRescueTeamsForSync,
   upsertMeshNode,
   upsertMeshNodeHealthLog,
+  upsertMeshNodeLink,
   upsertMeshDistressSignal,
   getMeshDistressSignalByOrigin,
   upsertMeshMessage,
@@ -402,6 +403,37 @@ async function syncNodeHealthBatch(payload, syncDevice, requestIp) {
   return result;
 }
 
+async function syncNodeNeighborsBatch(payload, syncDevice, requestIp) {
+  const items = requireItemsArray(payload);
+
+  const result = await processBatch(items, async (item) => {
+    const reportingNodeId = normalizeString(item.reportingNodeId || item.nodeId || item.reporting_node_id);
+    const neighborNodeId = normalizeString(item.neighborNodeId || item.neighborId || item.neighbor_node_id);
+    const lastSeenAt = normalizeString(item.lastSeenAt || item.last_seen_at);
+
+    if (!reportingNodeId || !neighborNodeId || !lastSeenAt) {
+      throw new Error('reportingNodeId, neighborNodeId, and lastSeenAt are required.');
+    }
+
+    if (reportingNodeId !== syncDevice.nodeId) {
+      throw new Error('reportingNodeId must match the authenticated sync device.');
+    }
+
+    await upsertMeshNodeLink({
+      reportingNodeId,
+      neighborNodeId,
+      rssi: normalizeInteger(item.rssi ?? item.signalStrength ?? item.signal_strength),
+      lastSeenAt,
+      updatedAt: normalizeString(item.updatedAt || item.updated_at) || nowAsIso()
+    });
+
+    return { reportingNodeId, neighborNodeId };
+  }, 'node neighbor');
+
+  await finalizeBatchSync(syncDevice, requestIp, 'device_sync_node_neighbors_batch', result);
+  return result;
+}
+
 async function syncDistressSignalsBatch(payload, syncDevice, requestIp) {
   const items = requireItemsArray(payload);
 
@@ -601,6 +633,7 @@ module.exports = {
   getDeploymentRouteSnapshotsDelta,
   syncNodesBatch,
   syncNodeHealthBatch,
+  syncNodeNeighborsBatch,
   syncDistressSignalsBatch,
   syncMessagesBatch,
   syncAuditLogsBatch,

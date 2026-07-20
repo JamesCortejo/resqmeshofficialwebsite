@@ -17,6 +17,9 @@ function listDevices() {
       mn.longitude,
       mn.last_seen_at AS nodeLastSeenAt,
       mn.users_connected AS usersConnected,
+      mnl.rssi AS signalStrengthDbm,
+      mnl.reporting_node_id AS signalReportedByNodeId,
+      mnl.last_seen_at AS signalLastSeenAt,
       COALESCE(mc.pendingCommandCount, 0) AS pendingCommandCount,
       COALESCE(md.recentActiveDistressCount, 0) AS recentActiveDistressCount,
       COALESCE(md.recentSolvedDistressCount, 0) AS recentSolvedDistressCount,
@@ -30,6 +33,14 @@ function listDevices() {
       COALESCE(ma.recentAuditCount, 0) AS recentAuditCount
     FROM sync_devices sd
     LEFT JOIN mesh_nodes mn ON mn.node_id = sd.node_id
+    LEFT JOIN mesh_node_links mnl
+      ON mnl.id = (
+        SELECT inner_mnl.id
+        FROM mesh_node_links inner_mnl
+        WHERE inner_mnl.neighbor_node_id = sd.node_id
+        ORDER BY datetime(COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at)) DESC, inner_mnl.id DESC
+        LIMIT 1
+      )
     LEFT JOIN (
       SELECT target_node_id, COUNT(*) AS pendingCommandCount
       FROM mesh_commands
@@ -120,6 +131,9 @@ function listDevicesForMap() {
       mn.longitude,
       mn.last_seen_at AS nodeLastSeenAt,
       mn.users_connected AS usersConnected,
+      mnl.rssi AS signalStrengthDbm,
+      mnl.reporting_node_id AS signalReportedByNodeId,
+      mnl.last_seen_at AS signalLastSeenAt,
       COALESCE(md.activeDistressCount, 0) AS activeDistressCount,
       ad.distress_code AS activeDistressCode,
       ad.user_code AS activeDistressUserCode,
@@ -131,6 +145,14 @@ function listDevicesForMap() {
       ad.timestamp AS activeDistressTimestamp
     FROM sync_devices sd
     LEFT JOIN mesh_nodes mn ON mn.node_id = sd.node_id
+    LEFT JOIN mesh_node_links mnl
+      ON mnl.id = (
+        SELECT inner_mnl.id
+        FROM mesh_node_links inner_mnl
+        WHERE inner_mnl.neighbor_node_id = sd.node_id
+        ORDER BY datetime(COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at)) DESC, inner_mnl.id DESC
+        LIMIT 1
+      )
     LEFT JOIN (
       SELECT
         origin_node_id,
@@ -218,6 +240,9 @@ function getDeviceSummaryById(id) {
       mn.longitude,
       mn.last_seen_at AS nodeLastSeenAt,
       mn.users_connected AS usersConnected,
+      mnl.rssi AS signalStrengthDbm,
+      mnl.reporting_node_id AS signalReportedByNodeId,
+      mnl.last_seen_at AS signalLastSeenAt,
       COALESCE(mc.pendingCommandCount, 0) AS pendingCommandCount,
       COALESCE(md.recentActiveDistressCount, 0) AS recentActiveDistressCount,
       COALESCE(md.recentSolvedDistressCount, 0) AS recentSolvedDistressCount,
@@ -226,6 +251,14 @@ function getDeviceSummaryById(id) {
       COALESCE(ma.recentAuditCount, 0) AS recentAuditCount
     FROM sync_devices sd
     LEFT JOIN mesh_nodes mn ON mn.node_id = sd.node_id
+    LEFT JOIN mesh_node_links mnl
+      ON mnl.id = (
+        SELECT inner_mnl.id
+        FROM mesh_node_links inner_mnl
+        WHERE inner_mnl.neighbor_node_id = sd.node_id
+        ORDER BY datetime(COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at)) DESC, inner_mnl.id DESC
+        LIMIT 1
+      )
     LEFT JOIN (
       SELECT target_node_id, COUNT(*) AS pendingCommandCount
       FROM mesh_commands

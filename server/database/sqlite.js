@@ -632,6 +632,17 @@ async function initializeDatabase() {
       UNIQUE (node_id, recorded_at)
     );
 
+    CREATE TABLE IF NOT EXISTS mesh_node_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reporting_node_id TEXT NOT NULL,
+      neighbor_node_id TEXT NOT NULL,
+      rssi INTEGER,
+      last_seen_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (reporting_node_id, neighbor_node_id)
+    );
+
     CREATE TABLE IF NOT EXISTS mesh_distress_signals (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       origin_node_id TEXT NOT NULL,
@@ -812,6 +823,8 @@ async function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_mesh_nodes_updated_at ON mesh_nodes (updated_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_node_health_logs_recorded_at ON mesh_node_health_logs (recorded_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_node_links_neighbor ON mesh_node_links (neighbor_node_id, last_seen_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_node_links_reporting ON mesh_node_links (reporting_node_id, last_seen_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_distress_signals_updated_at ON mesh_distress_signals (updated_at);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_distress_deployments_active_unique
       ON distress_deployments(mesh_distress_signal_id)
@@ -923,6 +936,8 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_sync_devices_last_sync ON sync_devices (last_sync_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_nodes_updated_at ON mesh_nodes (updated_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_node_health_logs_recorded_at ON mesh_node_health_logs (recorded_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_node_links_neighbor ON mesh_node_links (neighbor_node_id, last_seen_at);
+    CREATE INDEX IF NOT EXISTS idx_mesh_node_links_reporting ON mesh_node_links (reporting_node_id, last_seen_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_distress_signals_updated_at ON mesh_distress_signals (updated_at);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_distress_deployments_active_unique
       ON distress_deployments(mesh_distress_signal_id)
