@@ -66,6 +66,9 @@ app.get('/about', (req, res) => {
 app.get('/contact', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'site', 'contact.html'));
 });
+app.get('/download', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'site', 'download.html'));
+});
 app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'site', 'register.html'));
 });

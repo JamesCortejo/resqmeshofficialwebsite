@@ -147,6 +147,7 @@
 }
 
 .system-flow-section,
+.app-download-section,
 .registration-cta-section {
   padding: var(--section-space) 0;
 }
@@ -218,6 +219,114 @@
   margin: 0;
 }
 
+.app-download-section {
+  background:
+    radial-gradient(circle at 12% 20%, rgba(237, 66, 47, 0.12), transparent 22rem),
+    rgba(255, 255, 255, 0.42);
+}
+
+.app-download-panel {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 244, 0.9));
+  border: 1px solid rgba(237, 66, 47, 0.16);
+  border-radius: 32px;
+  box-shadow: var(--shadow-card);
+  display: grid;
+  gap: clamp(1.5rem, 5vw, 3rem);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.42fr);
+  padding: clamp(1.7rem, 5vw, 3.2rem);
+}
+
+.app-download-copy h2 {
+  font-size: clamp(2.1rem, 4vw, 3.25rem);
+  margin-bottom: 1rem;
+}
+
+.app-download-copy p {
+  line-height: 1.8;
+  max-width: 760px;
+}
+
+.app-download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 1.7rem;
+}
+
+.app-download-device {
+  display: grid;
+  place-items: center;
+}
+
+.app-download-phone {
+  align-items: center;
+  background: #101928;
+  border: 8px solid #1d2939;
+  border-radius: 34px;
+  box-shadow: 0 26px 55px rgba(16, 24, 40, 0.18);
+  color: #ffffff;
+  display: grid;
+  gap: 0.65rem;
+  min-height: 310px;
+  padding: 2rem 1.25rem 1.4rem;
+  position: relative;
+  text-align: center;
+  width: min(100%, 245px);
+}
+
+.app-download-phone-top {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  height: 6px;
+  left: 50%;
+  position: absolute;
+  top: 14px;
+  transform: translateX(-50%);
+  width: 58px;
+}
+
+.app-download-phone img {
+  background: #05070a;
+  height: 72px;
+  margin: 0 auto 0.35rem;
+  width: 72px;
+}
+
+.app-download-phone strong {
+  font-size: 1.25rem;
+}
+
+.app-download-phone span {
+  color: #d8e1ec;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.app-download-phone-status {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  width: 100%;
+}
+
+.app-download-phone-status span {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0.55rem 0.8rem;
+}
+
+.app-download-phone-status i {
+  color: #ffb9ad;
+}
+
 .registration-cta-panel {
   align-items: center;
   background:
@@ -256,6 +365,7 @@
 
 @media (max-width: 960px) {
   .hero-grid,
+  .app-download-panel,
   .system-flow-header {
     grid-template-columns: 1fr;
   }
@@ -290,9 +400,14 @@
   }
 
   .hero-cta,
+  .app-download-actions,
   .registration-cta-panel {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .app-download-phone {
+    min-height: 265px;
   }
 
   .hero-trust-row span {

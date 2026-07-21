@@ -218,7 +218,7 @@
   }
 
   .nav-menu.active {
-    max-height: 340px;
+    max-height: 420px;
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
