@@ -121,6 +121,26 @@ const { useState, useRef } = React;
       // Error tracking state
       const [errors, setErrors] = useState({});
       const birthDateInputRef = useRef(null);
+      const registerCardRef = useRef(null);
+
+      const scrollRegistrationToTop = () => {
+        window.requestAnimationFrame(() => {
+          const target = registerCardRef.current || registerRootElement;
+
+          if (!target) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+          }
+
+          const navbarOffset = 96;
+          const top = target.getBoundingClientRect().top + window.pageYOffset - navbarOffset;
+
+          window.scrollTo({
+            top: Math.max(0, top),
+            behavior: 'smooth'
+          });
+        });
+      };
 
       const parseBirthDate = (value) => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) {
@@ -278,15 +298,22 @@ const { useState, useRef } = React;
 
       const handleNext = () => {
         if (currentStep === 1) {
-          if (validateStep1()) setCurrentStep(2);
+          if (validateStep1()) {
+            setCurrentStep(2);
+            scrollRegistrationToTop();
+          }
         } else if (currentStep === 2) {
-          if (validateStep2()) setCurrentStep(3);
+          if (validateStep2()) {
+            setCurrentStep(3);
+            scrollRegistrationToTop();
+          }
         }
       };
 
       const handlePrev = () => {
         setErrors({});
         setCurrentStep(prev => prev - 1);
+        scrollRegistrationToTop();
       };
 
       const handleFileChange = (e, fileKey) => {
@@ -421,7 +448,7 @@ const { useState, useRef } = React;
 
       return (
         <main class="register-container">
-          <div class="card register-card">
+          <div class="card register-card" ref={registerCardRef}>
             <div className="register-intro">
               <span className="register-kicker">Civilian account registration</span>
               <h2>Prepare your ResQMesh access before an emergency</h2>
