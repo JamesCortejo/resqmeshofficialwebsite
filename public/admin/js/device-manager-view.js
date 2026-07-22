@@ -64,9 +64,9 @@
                 ${helpers.detailItem('Battery Voltage', details.latestHealth?.batteryVoltage ?? 'Not available')}
                 ${helpers.detailItem('Telemetry Signal', details.latestHealth?.signalStrength ?? 'Not available')}
                 ${helpers.detailItem('GPS Status', helpers.getStatusDisplay(details.latestHealth?.gpsStatus))}
-                ${helpers.detailItem('CPU Temperature', details.latestHealth?.cpuTemp ?? 'Not available')}
-                ${helpers.detailItem('Storage Remaining', details.latestHealth?.storageRemaining ?? 'Not available')}
-                ${helpers.detailItem('RAM Usage', details.latestHealth?.ramUsage ?? 'Not available')}
+                ${helpers.detailItem('CPU Temperature', helpers.formatTemperature(details.latestHealth?.cpuTemp))}
+                ${helpers.detailItem('Storage Remaining', helpers.formatStorageRemaining(details.latestHealth?.storageRemaining))}
+                ${helpers.detailItem('RAM Usage', helpers.formatPercent(details.latestHealth?.ramUsage))}
                 ${helpers.detailItem('Recorded At', helpers.formatDate(details.latestHealth?.recordedAt))}
               </dl>
             </section>

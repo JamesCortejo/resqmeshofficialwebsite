@@ -116,6 +116,40 @@
     return `${numeric} dBm${qualityLabel ? ` (${qualityLabel})` : ''}`;
   }
 
+  function formatTemperature(value) {
+    const numeric = Number(value);
+
+    if (!Number.isFinite(numeric)) {
+      return 'Not available';
+    }
+
+    return `${Math.round(numeric)}°C`;
+  }
+
+  function formatPercent(value) {
+    const numeric = Number(value);
+
+    if (!Number.isFinite(numeric)) {
+      return 'Not available';
+    }
+
+    return `${Math.round(numeric)}%`;
+  }
+
+  function formatStorageRemaining(value) {
+    const numeric = Number(value);
+
+    if (!Number.isFinite(numeric) || numeric < 0) {
+      return 'Not available';
+    }
+
+    if (numeric >= 1024) {
+      return `${(numeric / 1024).toFixed(1)} GB`;
+    }
+
+    return `${Math.round(numeric)} MB`;
+  }
+
   function getSignalLevel(value) {
     const numeric = Number(value);
 
@@ -312,6 +346,9 @@
         formatCoordinate,
         formatDistance,
         formatSignalStrength,
+        formatTemperature,
+        formatPercent,
+        formatStorageRemaining,
         signalDotsMarkup,
         getStatusDisplay,
         formatDistressReason,
