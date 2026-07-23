@@ -1,4 +1,4 @@
-const { all, get, run } = require('../database/sqlite');
+const { all, get, run } = require('../database/postgres');
 
 function createNotification(notification) {
   return run(`

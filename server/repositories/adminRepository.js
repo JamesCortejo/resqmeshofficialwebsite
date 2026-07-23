@@ -1,4 +1,4 @@
-const { get } = require('../database/sqlite');
+const { get } = require('../database/postgres');
 
 function findAdminCandidateByUsernameHash(usernameLookupHash) {
   return get(`

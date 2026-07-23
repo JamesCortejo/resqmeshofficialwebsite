@@ -6,7 +6,7 @@ const contactRoutes = require('./server/routes/contactRoutes');
 const adminRoutes = require('./server/routes/adminRoutes');
 const deviceSyncRoutes = require('./server/routes/deviceSyncRoutes');
 const mobileRoutes = require('./server/routes/mobileRoutes');
-const { initializeDatabase } = require('./server/database/sqlite');
+const { initializeDatabase } = require('./server/database/postgres');
 const {
   redirectAuthenticatedAdmin,
   requireAdminPageSession

@@ -1,24 +1,18 @@
-const { run, get, all } = require('../database/sqlite');
+const { run, get, all, transaction } = require('../database/postgres');
 
 function formatUserCode(value) {
   return `RMU${String(value).padStart(3, '0')}`;
 }
 
 async function generateUserCode() {
-  await run('BEGIN IMMEDIATE TRANSACTION');
-
-  try {
-    const row = await get('SELECT last_value FROM code_sequence WHERE id = 1');
+  return transaction(async (trx) => {
+    const row = await trx.get('SELECT last_value FROM code_sequence WHERE id = 1 FOR UPDATE');
     const nextValue = row.last_value + 1;
 
-    await run('UPDATE code_sequence SET last_value = ? WHERE id = 1', [nextValue]);
-    await run('COMMIT');
+    await trx.run('UPDATE code_sequence SET last_value = ? WHERE id = 1', [nextValue]);
 
     return formatUserCode(nextValue);
-  } catch (error) {
-    await run('ROLLBACK');
-    throw error;
-  }
+  });
 }
 
 async function createUser(user) {
@@ -56,6 +50,7 @@ async function createUser(user) {
       back_id_encrypted_size,
       status
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    RETURNING id
   `, [
     user.userCode,
     user.firstNameEnc,

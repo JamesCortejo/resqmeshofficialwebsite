@@ -1,4 +1,4 @@
-const { all, get, run } = require('../database/sqlite');
+const { all, get, run } = require('../database/postgres');
 const { USER_STATUSES } = require('../models/userModel');
 
 function listUsersForSync(cursor, limit) {

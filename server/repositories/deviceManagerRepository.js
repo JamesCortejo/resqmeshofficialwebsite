@@ -1,4 +1,4 @@
-const { all, get } = require('../database/sqlite');
+const { all, get } = require('../database/postgres');
 
 function listDevices() {
   return all(`

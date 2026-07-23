@@ -1,4 +1,4 @@
-const { get, run } = require('../database/sqlite');
+const { get, run } = require('../database/postgres');
 
 function createAuthSession(session) {
   return run(`
@@ -15,6 +15,7 @@ function createAuthSession(session) {
       user_agent,
       created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    RETURNING id
   `, [
     session.principalType,
     session.principalId,

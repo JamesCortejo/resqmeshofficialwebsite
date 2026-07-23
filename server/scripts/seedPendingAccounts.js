@@ -2,7 +2,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const sharp = require('sharp');
 const config = require('../config/env');
-const { db, initializeDatabase } = require('../database/sqlite');
+const { initializeDatabase, close } = require('../database/postgres');
 const { encryptBuffer, encryptText, lookupHash } = require('../services/encryptionService');
 const { hashPassword } = require('../services/passwordService');
 const { createUser, generateUserCode, findByLookupHashes } = require('../repositories/userRepository');
@@ -142,6 +142,6 @@ main()
     console.error('Unable to seed pending accounts:', error);
     process.exitCode = 1;
   })
-  .finally(() => {
-    db.close();
+  .finally(async () => {
+    await close();
   });

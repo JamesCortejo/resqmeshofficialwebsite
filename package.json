@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "seed:pending": "node server/scripts/seedPendingAccounts.js",
-    "audit:users": "node server/scripts/auditUsers.js"
+    "audit:users": "node server/scripts/auditUsers.js",
+    "admin:create": "node server/scripts/createAdmin.js",
+    "device:upsert": "node server/scripts/upsertSyncDevice.js"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
@@ -14,7 +16,7 @@
     "multer": "^2.1.1",
     "nodemailer": "^8.0.10",
     "sharp": "^0.34.5",
-    "sqlite3": "^6.0.1"
+    "pg": "^8.13.1"
   },
   "author": "",
   "license": "ISC"

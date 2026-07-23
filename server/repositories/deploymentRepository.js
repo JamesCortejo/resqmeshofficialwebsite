@@ -1,24 +1,18 @@
-const { all, get, run } = require('../database/sqlite');
+const { all, get, run, transaction } = require('../database/postgres');
 
 function formatDeploymentCode(value) {
   return `DPL-${String(value).padStart(3, '0')}`;
 }
 
 async function generateDeploymentCode() {
-  await run('BEGIN IMMEDIATE TRANSACTION');
-
-  try {
-    const row = await get('SELECT last_value FROM deployment_code_sequence WHERE id = 1');
+  return transaction(async (trx) => {
+    const row = await trx.get('SELECT last_value FROM deployment_code_sequence WHERE id = 1 FOR UPDATE');
     const nextValue = row.last_value + 1;
 
-    await run('UPDATE deployment_code_sequence SET last_value = ? WHERE id = 1', [nextValue]);
-    await run('COMMIT');
+    await trx.run('UPDATE deployment_code_sequence SET last_value = ? WHERE id = 1', [nextValue]);
 
     return formatDeploymentCode(nextValue);
-  } catch (error) {
-    await run('ROLLBACK');
-    throw error;
-  }
+  });
 }
 
 function listDistressSignals() {
@@ -254,10 +248,8 @@ function listDeploymentMembers(deploymentId) {
 }
 
 async function createDeployment(deployment, members) {
-  await run('BEGIN IMMEDIATE TRANSACTION');
-
-  try {
-    const teamUpdate = await run(`
+  return transaction(async (trx) => {
+    const teamUpdate = await trx.run(`
       UPDATE rescue_teams
       SET
         status = 'dispatched',
@@ -271,7 +263,7 @@ async function createDeployment(deployment, members) {
       throw error;
     }
 
-    const created = await run(`
+    const created = await trx.run(`
       INSERT INTO distress_deployments (
         deployment_code,
         mesh_distress_signal_id,
@@ -285,6 +277,7 @@ async function createDeployment(deployment, members) {
         deployed_at,
         updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING id
     `, [
       deployment.deploymentCode,
       deployment.meshDistressSignalId,
@@ -300,7 +293,7 @@ async function createDeployment(deployment, members) {
     ]);
 
     for (const member of members) {
-      await run(`
+      await trx.run(`
         INSERT INTO distress_deployment_members (
           deployment_id,
           rescuer_id,
@@ -319,7 +312,7 @@ async function createDeployment(deployment, members) {
 
     if (memberIds.length > 0) {
       const placeholders = memberIds.map(() => '?').join(', ');
-      await run(`
+      await trx.run(`
         UPDATE rescuers
         SET
           status = 'dispatched',
@@ -329,19 +322,13 @@ async function createDeployment(deployment, members) {
       `, [deployment.updatedAt, ...memberIds]);
     }
 
-    await run('COMMIT');
     return created;
-  } catch (error) {
-    await run('ROLLBACK');
-    throw error;
-  }
+  });
 }
 
 async function updateDeploymentStatus(id, status, timestamp) {
-  await run('BEGIN IMMEDIATE TRANSACTION');
-
-  try {
-    const result = await run(`
+  return transaction(async (trx) => {
+    const result = await trx.run(`
       UPDATE distress_deployments
       SET
         status = ?,
@@ -351,7 +338,7 @@ async function updateDeploymentStatus(id, status, timestamp) {
       WHERE id = ?
     `, [status, status, timestamp, status, timestamp, timestamp, id]);
 
-    const deployment = await get(`
+    const deployment = await trx.get(`
       SELECT team_id AS teamId
       FROM distress_deployments
       WHERE id = ?
@@ -359,7 +346,7 @@ async function updateDeploymentStatus(id, status, timestamp) {
     `, [id]);
 
     if (deployment?.teamId) {
-      await run(`
+      await trx.run(`
         UPDATE rescue_teams
         SET
           status = 'active',
@@ -375,7 +362,7 @@ async function updateDeploymentStatus(id, status, timestamp) {
           )
       `, [timestamp, deployment.teamId, deployment.teamId, id]);
 
-      await run(`
+      await trx.run(`
         UPDATE rescuers
         SET
           status = 'available',
@@ -399,12 +386,8 @@ async function updateDeploymentStatus(id, status, timestamp) {
       `, [timestamp, id, id]);
     }
 
-    await run('COMMIT');
     return result;
-  } catch (error) {
-    await run('ROLLBACK');
-    throw error;
-  }
+  });
 }
 
 function upsertRescuerLocationCurrent(location) {

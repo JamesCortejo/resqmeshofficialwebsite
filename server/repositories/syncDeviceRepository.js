@@ -1,4 +1,4 @@
-const { get, run } = require('../database/sqlite');
+const { get, run } = require('../database/postgres');
 
 function findSyncDeviceByNodeId(nodeId) {
   return get(`
@@ -50,7 +50,8 @@ function createSyncDevice(device) {
       last_sync_at,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
+    RETURNING id
   `, [
     device.nodeId,
     device.nodeName,
@@ -59,8 +60,8 @@ function createSyncDevice(device) {
     device.allowedIp || null,
     device.lastSeenAt || null,
     device.lastSyncAt || null,
-    device.createdAt,
-    device.updatedAt
+    device.createdAt || null,
+    device.updatedAt || null
   ]);
 }
 
@@ -110,6 +111,7 @@ module.exports = {
   findSyncDeviceById,
   createSyncDevice,
   updateSyncDeviceBootstrap,
+  updateSyncDevice: updateSyncDeviceBootstrap,
   touchSyncDeviceLastSeen,
   touchSyncDeviceLastSync
 };

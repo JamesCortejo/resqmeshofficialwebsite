@@ -1,24 +1,18 @@
-const { run, get, all } = require('../database/sqlite');
+const { run, get, all, transaction } = require('../database/postgres');
 
 function formatRescueTeamCode(value) {
   return `RST-${String(value).padStart(3, '0')}`;
 }
 
 async function generateRescueTeamCode() {
-  await run('BEGIN IMMEDIATE TRANSACTION');
-
-  try {
-    const row = await get('SELECT last_value FROM rescue_team_code_sequence WHERE id = 1');
+  return transaction(async (trx) => {
+    const row = await trx.get('SELECT last_value FROM rescue_team_code_sequence WHERE id = 1 FOR UPDATE');
     const nextValue = row.last_value + 1;
 
-    await run('UPDATE rescue_team_code_sequence SET last_value = ? WHERE id = 1', [nextValue]);
-    await run('COMMIT');
+    await trx.run('UPDATE rescue_team_code_sequence SET last_value = ? WHERE id = 1', [nextValue]);
 
     return formatRescueTeamCode(nextValue);
-  } catch (error) {
-    await run('ROLLBACK');
-    throw error;
-  }
+  });
 }
 
 function findRescueTeamByName(name) {
@@ -45,6 +39,7 @@ function createRescueTeam(team) {
       agency,
       status
     ) VALUES (?, ?, ?, ?)
+    RETURNING id
   `, [
     team.teamCode,
     team.name,

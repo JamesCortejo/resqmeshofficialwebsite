@@ -84,7 +84,7 @@ function parsePositiveInteger(value, fallback, name) {
 
 const config = {
   appRoot,
-  databasePath: resolveFromRoot(required('SQLITE_DB_PATH')),
+  databaseUrl: required('DATABASE_URL'),
   encryptedUploadDir: resolveFromRoot(required('ENCRYPTED_UPLOAD_DIR')),
   encryptionKey: parseEncryptionKey(required('APP_ENCRYPTION_KEY')),
   recaptcha: {
