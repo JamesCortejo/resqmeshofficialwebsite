@@ -73,7 +73,7 @@ function updateSyncDeviceBootstrap(id, device) {
       status = ?,
       api_key_hash = ?,
       allowed_ip = ?,
-      updated_at = ?
+      updated_at = COALESCE(?, CURRENT_TIMESTAMP)
     WHERE id = ?
   `, [
     device.nodeName,

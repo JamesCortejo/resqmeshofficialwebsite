@@ -37,7 +37,8 @@ async function main() {
     nodeName,
     status: 'active',
     apiKeyHash: hashApiKey(apiKey),
-    allowedIp
+    allowedIp,
+    updatedAt: new Date().toISOString()
   };
 
   if (existing) {
