@@ -2,7 +2,6 @@
   const REFRESH_INTERVAL_MS = 10000;
 
   const dom = {
-    refreshLabel: document.getElementById('overviewRefreshLabel'),
     feedback: document.getElementById('overviewFeedback'),
     statGrid: document.getElementById('overviewStatGrid'),
     emergencyDonut: document.getElementById('overviewEmergencyDonut'),
@@ -294,9 +293,6 @@
     renderRecentEmergencies(data.recentEmergencies);
     renderRecentActivity(data.recentNotifications);
 
-    if (dom.refreshLabel) {
-      dom.refreshLabel.textContent = `Updated ${formatRelativeTime(data.generatedAt)}`;
-    }
   }
 
   async function loadOverview() {

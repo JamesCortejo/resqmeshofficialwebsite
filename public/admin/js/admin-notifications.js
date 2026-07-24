@@ -147,6 +147,15 @@
     badge.textContent = count > 99 ? '99+' : String(count);
   }
 
+  function dispatchNotificationsRefreshed(count) {
+    window.dispatchEvent(new CustomEvent('resqmesh:admin-notifications-refreshed', {
+      detail: {
+        unreadCount: count || 0,
+        notifications
+      }
+    }));
+  }
+
   function renderNotifications() {
     if (notifications.length === 0) {
       list.innerHTML = '<div class="admin-notifications-empty">No notifications yet.</div>';
@@ -182,6 +191,7 @@
       notifications = itemsPayload.data || [];
       renderNotifications();
       renderBadge(countPayload.count || 0);
+      dispatchNotificationsRefreshed(countPayload.count || 0);
     } catch (error) {
       list.innerHTML = `<div class="admin-notifications-empty">${escapeHtml(error.message)}</div>`;
     }
@@ -199,6 +209,7 @@
       notifications = itemsPayload.data || [];
       renderDistressAlertState();
       renderBadge(countPayload.count || 0);
+      dispatchNotificationsRefreshed(countPayload.count || 0);
     } catch (error) {
       // Keep badge state stable if a background poll fails.
     }

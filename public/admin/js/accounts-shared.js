@@ -559,15 +559,20 @@
       pagination.hidden = false;
     }
 
-    async function load() {
-      tableWrap.hidden = true;
-      pagination.hidden = true;
-      setStatus(config.loadingMessage);
+    async function loadAccounts(options = {}) {
+      const shouldReset = options.reset !== false;
+
+      if (shouldReset) {
+        tableWrap.hidden = true;
+        pagination.hidden = true;
+        setStatus(config.loadingMessage);
+        searchInput.value = '';
+        sortDirection = 'desc';
+        currentPage = 1;
+        updateSortButton();
+      }
+
       refreshButton.disabled = true;
-      searchInput.value = '';
-      sortDirection = 'desc';
-      currentPage = 1;
-      updateSortButton();
 
       try {
         const payload = await fetchJson(config.endpoint);
@@ -582,6 +587,14 @@
       } finally {
         refreshButton.disabled = false;
       }
+    }
+
+    function load() {
+      return loadAccounts({ reset: true });
+    }
+
+    function refresh() {
+      return loadAccounts({ reset: false });
     }
 
     tableBody.addEventListener('click', (event) => {
@@ -625,6 +638,7 @@
 
     return {
       load,
+      refresh,
       render,
       setStatus
     };
