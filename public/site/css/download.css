@@ -55,6 +55,39 @@
   padding: 0.95rem 1rem;
 }
 
+.download-recaptcha-notice {
+  max-width: 420px;
+}
+
+.download-security-status {
+  border-radius: 14px;
+  color: var(--color-ink-soft) !important;
+  font-size: 0.88rem !important;
+  font-weight: 800;
+  line-height: 1.5 !important;
+  margin-top: 0.85rem;
+  max-width: 520px;
+  padding: 0.8rem 0.9rem;
+}
+
+.download-security-status[data-tone="success"] {
+  background: var(--color-success-soft);
+  border: 1px solid rgba(21, 128, 61, 0.2);
+  color: var(--color-success) !important;
+}
+
+.download-security-status[data-tone="warning"],
+.download-security-status[data-tone="neutral"] {
+  background: #fff7ed;
+  border: 1px solid rgba(237, 66, 47, 0.18);
+}
+
+.download-security-status[data-tone="error"] {
+  background: #fff2ee;
+  border: 1px solid rgba(220, 38, 38, 0.24);
+  color: var(--color-error) !important;
+}
+
 .download-card {
   background:
     radial-gradient(circle at 50% 18%, rgba(237, 66, 47, 0.18), transparent 13rem),

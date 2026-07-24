@@ -63,12 +63,22 @@
             messaging, distress alerts, and rescue route visibility when connected to ResQMesh devices.
           </p>
           <div class="download-actions">
-            <a href="/downloads/resqmesh.apk" class="btn btn-primary" download>
+            <a href="/downloads/resqmesh.apk" class="btn btn-primary" data-secure-download download>
               <i class="fa-brands fa-android"></i>
-              Download Android APK
+              <span data-download-label>Download Android APK</span>
             </a>
             <a href="/register" class="btn btn-secondary">Register as Civilian</a>
           </div>
+          <div class="recaptcha-notice download-recaptcha-notice" data-recaptcha-notice hidden>
+            <span class="recaptcha-notice-icon">
+              <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+            </span>
+            <span>
+              Protected by reCAPTCHA v3
+              <strong data-recaptcha-state>Loading</strong>
+            </span>
+          </div>
+          <p class="download-security-status" id="downloadSecurityStatus" hidden></p>
           <p class="download-note">
             Android may ask you to allow installation from your browser or file manager. Only install the APK from this
             official ResQMesh website.
@@ -158,6 +168,8 @@
   </footer>
 
   <script src="/site/js/home.js"></script>
+  <script src="/site/js/recaptcha.js"></script>
+  <script src="/site/js/download.js"></script>
 </body>
 
 </html>

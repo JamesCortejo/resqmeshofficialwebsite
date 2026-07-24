@@ -67,24 +67,17 @@ if (!registerRootElement) {
   throw new Error('ResQMesh registration bootstrap failed: #register-root was not found.');
 }
 
-const { useState, useRef } = React;
-
-    // List of 31 Barangays in Valencia City, Bukidnon
-    const VALENCIA_BARANGAYS = [
-      "Bagontaas", "Banlag", "Barobo", "Batangan", "Catumbalon", 
-      "Colonia", "Concepcion", "Dagat-Kidavao", "Guinoyoran", "Kahaponan", 
-      "Laligan", "Lilingayon", "Lourdes", "Lumbayao", "Lumbo", 
-      "Luyungan", "Maapag", "Mabuhay", "Mailag", "Mount Nebo", 
-      "Nabag-o", "Pinatilan", "Poblacion", "San Carlos", "San Isidro", 
-      "Sinabuagan", "Sinayawan", "Sugod", "Tongantongan", "Tugaya", "Vintar"
-    ];
+const { useEffect, useState, useRef } = React;
+const registerConfig = window.ResQMeshRegisterConfig;
+const registerUtils = window.ResQMeshRegisterUtils;
+const VALENCIA_BARANGAYS = registerConfig.barangays;
 
     function ResQMeshRegistration() {
       const [currentStep, setCurrentStep] = useState(1);
       const [submitted, setSubmitted] = useState(false);
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [submitError, setSubmitError] = useState('');
-      const [registrationCode, setRegistrationCode] = useState('');
+      const [toast, setToast] = useState(null);
       
       // Form fields state
       const [formData, setFormData] = useState({
@@ -122,6 +115,61 @@ const { useState, useRef } = React;
       const [errors, setErrors] = useState({});
       const birthDateInputRef = useRef(null);
       const registerCardRef = useRef(null);
+      const toastTimerRef = useRef(null);
+
+      useEffect(() => {
+        window.ResQMeshRecaptcha?.ready?.().catch(() => {
+          // The submit handler will show the actionable security error if needed.
+        });
+      }, [currentStep, submitted]);
+
+      const showToast = (message, tone = 'error') => {
+        window.clearTimeout(toastTimerRef.current);
+        setToast({ message, tone });
+        toastTimerRef.current = window.setTimeout(() => {
+          setToast(null);
+        }, 4200);
+      };
+
+      const scrollToField = (field) => {
+        if (!field) {
+          scrollRegistrationToTop();
+          return;
+        }
+
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            const targetId = registerConfig.fieldTargets[field] || field;
+            const target = document.getElementById(targetId) || registerCardRef.current || registerRootElement;
+
+            if (!target) {
+              return;
+            }
+
+            const navbarOffset = 106;
+            const top = target.getBoundingClientRect().top + window.pageYOffset - navbarOffset;
+
+            window.scrollTo({
+              top: Math.max(0, top),
+              behavior: 'smooth'
+            });
+
+            if (typeof target.focus === 'function') {
+              window.setTimeout(() => target.focus({ preventScroll: true }), 250);
+            }
+          });
+        });
+      };
+
+      const showValidationErrors = (errorMap, step = currentStep) => {
+        const field = registerUtils.firstErrorField(errorMap, step);
+        const message = field && errorMap[field]
+          ? errorMap[field]
+          : 'Please complete the required fields before continuing.';
+
+        showToast(message, 'error');
+        scrollToField(field);
+      };
 
       const scrollRegistrationToTop = () => {
         window.requestAnimationFrame(() => {
@@ -140,43 +188,6 @@ const { useState, useRef } = React;
             behavior: 'smooth'
           });
         });
-      };
-
-      const parseBirthDate = (value) => {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) {
-          return null;
-        }
-
-        const [year, month, day] = value.split('-').map(Number);
-        const date = new Date(Date.UTC(year, month - 1, day));
-
-        if (
-          date.getUTCFullYear() !== year ||
-          date.getUTCMonth() !== month - 1 ||
-          date.getUTCDate() !== day
-        ) {
-          return null;
-        }
-
-        return date;
-      };
-
-      const calculateAge = (value) => {
-        const date = parseBirthDate(value);
-
-        if (!date) {
-          return null;
-        }
-
-        const now = new Date();
-        let age = now.getFullYear() - date.getUTCFullYear();
-        const monthDiff = now.getMonth() - date.getUTCMonth();
-
-        if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getUTCDate())) {
-          age -= 1;
-        }
-
-        return age;
       };
 
       const openBirthDatePicker = (event) => {
@@ -225,8 +236,8 @@ const { useState, useRef } = React;
           }
         });
 
-        const birthDate = parseBirthDate(formData.birthDate);
-        const age = calculateAge(formData.birthDate);
+        const birthDate = registerUtils.parseBirthDate(formData.birthDate);
+        const age = registerUtils.calculateAge(formData.birthDate);
 
         if (formData.birthDate && !birthDate) {
           step1Errors.birthDate = 'Please enter a valid birthdate.';
@@ -237,7 +248,7 @@ const { useState, useRef } = React;
         }
 
         setErrors(step1Errors);
-        return Object.keys(step1Errors).length === 0;
+        return step1Errors;
       };
 
       const validateStep2 = () => {
@@ -274,7 +285,7 @@ const { useState, useRef } = React;
         }
 
         setErrors(step2Errors);
-        return Object.keys(step2Errors).length === 0;
+        return step2Errors;
       };
 
       const validateStep3 = () => {
@@ -293,19 +304,27 @@ const { useState, useRef } = React;
         }
 
         setErrors(step3Errors);
-        return Object.keys(step3Errors).length === 0;
+        return step3Errors;
       };
 
       const handleNext = () => {
         if (currentStep === 1) {
-          if (validateStep1()) {
+          const stepErrors = validateStep1();
+
+          if (Object.keys(stepErrors).length === 0) {
             setCurrentStep(2);
             scrollRegistrationToTop();
+          } else {
+            showValidationErrors(stepErrors, 1);
           }
         } else if (currentStep === 2) {
-          if (validateStep2()) {
+          const stepErrors = validateStep2();
+
+          if (Object.keys(stepErrors).length === 0) {
             setCurrentStep(3);
             scrollRegistrationToTop();
+          } else {
+            showValidationErrors(stepErrors, 2);
           }
         }
       };
@@ -319,13 +338,29 @@ const { useState, useRef } = React;
       const handleFileChange = (e, fileKey) => {
         const file = e.target.files[0];
         if (!file) return;
+        const errorKey = fileKey === 'frontIdImageFile' ? 'frontIdImage' : 'backIdImage';
 
         // Ensure file is an image
         if (!file.type.startsWith('image/')) {
           setErrors(prev => ({
             ...prev,
-            [fileKey === 'frontIdImageFile' ? 'frontIdImage' : 'backIdImage']: 'Only image files are allowed.'
+            [errorKey]: 'Only image files are allowed.'
           }));
+          showToast('Only image files are allowed.', 'error');
+          scrollToField(errorKey);
+          e.target.value = '';
+          return;
+        }
+
+        if (file.size > registerConfig.maxIdImageSizeBytes) {
+          const message = 'ID images must be 5MB or smaller.';
+          setErrors(prev => ({
+            ...prev,
+            [errorKey]: message
+          }));
+          showToast(message, 'error');
+          scrollToField(errorKey);
+          e.target.value = '';
           return;
         }
 
@@ -357,11 +392,39 @@ const { useState, useRef } = React;
         }));
       };
 
+      const handleServerError = (message) => {
+        const safeMessage = message || 'Registration failed. Please try again.';
+        const field = registerUtils.mapServerErrorToField(safeMessage);
+
+        setSubmitError(safeMessage);
+        showToast(safeMessage, 'error');
+
+        if (!field) {
+          scrollRegistrationToTop();
+          return;
+        }
+
+        const fieldStep = registerConfig.fieldSteps[field] || currentStep;
+        setErrors(prev => ({
+          ...prev,
+          [field]: safeMessage
+        }));
+
+        if (fieldStep !== currentStep) {
+          setCurrentStep(fieldStep);
+        }
+
+        scrollToField(field);
+      };
+
       const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitError('');
 
-        if (!validateStep3()) {
+        const stepErrors = validateStep3();
+
+        if (Object.keys(stepErrors).length > 0) {
+          showValidationErrors(stepErrors, 3);
           return;
         }
 
@@ -394,23 +457,18 @@ const { useState, useRef } = React;
 
         try {
           setIsSubmitting(true);
-          const recaptchaToken = await window.ResQMeshRecaptcha.getToken('register');
+          const recaptchaToken = await registerUtils.timeoutPromise(
+            window.ResQMeshRecaptcha.ready().then(() => window.ResQMeshRecaptcha.getToken('register')),
+            registerConfig.recaptchaTimeoutMs,
+            'Security verification timed out. Please refresh the page and try again.'
+          );
           payload.append('recaptchaToken', recaptchaToken);
 
-          const response = await fetch('/api/users/register', {
-            method: 'POST',
-            body: payload
-          });
-          const result = await response.json();
-
-          if (!response.ok) {
-            throw new Error(result.message || 'Registration failed. Please try again.');
-          }
-
-          setRegistrationCode(result.data?.userCode || '');
+          await registerUtils.fetchRegistration(payload);
+          showToast('Registration submitted. Please check your email for account confirmation after admin review.', 'success');
           setSubmitted(true);
         } catch (error) {
-          setSubmitError(error.message);
+          handleServerError(error.message);
         } finally {
           setIsSubmitting(false);
         }
@@ -418,28 +476,35 @@ const { useState, useRef } = React;
 
       // Progress bar percentage calculation
       const progressPercent = ((currentStep - 1) / 2) * 100;
-      const computedAge = calculateAge(formData.birthDate);
+      const computedAge = registerUtils.calculateAge(formData.birthDate);
       const maxBirthDate = (() => {
         const date = new Date();
         date.setFullYear(date.getFullYear() - 18);
         return date.toISOString().split('T')[0];
       })();
+      const toastElement = toast ? (
+        <div className={`register-toast register-toast-${toast.tone || 'error'}`} role="status" aria-live="polite">
+          <span class="register-toast-icon">
+            <i className={`fa-solid ${toast.tone === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation'}`} aria-hidden="true"></i>
+          </span>
+          <span>{toast.message}</span>
+        </div>
+      ) : null;
 
       if (submitted) {
         return (
           <main class="register-container">
+            {toastElement}
             <div class="card success-card">
               <div class="success-icon-wrapper"><i class="fa-solid fa-circle-check"></i></div>
               <h2 class="success-title">Registration submitted</h2>
               <p class="success-message">
-                Your civilian account request has been sent to the ResQMesh admin team for verification. Once approved,
-                your account can be synced to mesh nodes for emergency app access.
+                Your civilian account request has been sent to the ResQMesh admin team for verification.
+                Please wait for the approval or decline confirmation through the email address you entered.
               </p>
-              {registrationCode && (
-                <p class="success-message">
-                  Your registration code is <strong class="text-primary">{registrationCode}</strong>.
-                </p>
-              )}
+              <p class="success-message">
+                Once approved, your account can be synced to mesh nodes for emergency app access.
+              </p>
               <a href="/" class="btn btn-primary">Return to Homepage</a>
             </div>
           </main>
@@ -448,6 +513,7 @@ const { useState, useRef } = React;
 
       return (
         <main class="register-container">
+          {toastElement}
           <div class="card register-card" ref={registerCardRef}>
             <div className="register-intro">
               <span className="register-kicker">Civilian account registration</span>
@@ -739,7 +805,19 @@ const { useState, useRef } = React;
                       <label class="form-label">Upload {formData.idType} Front Image <span class="required-indicator">*</span></label>
                       
                       {!formData.frontIdImagePreview ? (
-                        <div class="file-upload-zone" onClick={() => document.getElementById('frontIdImageFileInput').click()}>
+                        <div
+                          className={`file-upload-zone ${errors.frontIdImage ? 'error-border' : ''}`}
+                          id="frontIdImageUploadZone"
+                          role="button"
+                          tabIndex="0"
+                          onClick={() => document.getElementById('frontIdImageFileInput').click()}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              document.getElementById('frontIdImageFileInput').click();
+                            }
+                          }}
+                        >
                           <div class="upload-icon">&#128203;</div>
                           <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', display: 'block' }}>
                             Click to select Front image
@@ -770,7 +848,19 @@ const { useState, useRef } = React;
                       <label class="form-label">Upload {formData.idType} Back Image <span class="required-indicator">*</span></label>
                       
                       {!formData.backIdImagePreview ? (
-                        <div class="file-upload-zone" onClick={() => document.getElementById('backIdImageFileInput').click()}>
+                        <div
+                          className={`file-upload-zone ${errors.backIdImage ? 'error-border' : ''}`}
+                          id="backIdImageUploadZone"
+                          role="button"
+                          tabIndex="0"
+                          onClick={() => document.getElementById('backIdImageFileInput').click()}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              document.getElementById('backIdImageFileInput').click();
+                            }
+                          }}
+                        >
                           <div class="upload-icon">&#128203;</div>
                           <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', display: 'block' }}>
                             Click to select Back image
@@ -816,6 +906,16 @@ const { useState, useRef } = React;
               )}
 
               {/* Navigation Controls */}
+              <div class="recaptcha-notice" data-recaptcha-notice hidden>
+                <span class="recaptcha-notice-icon">
+                  <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                </span>
+                <span>
+                  Protected by reCAPTCHA v3
+                  <strong data-recaptcha-state>Loading</strong>
+                </span>
+              </div>
+
               <div class="form-navigation">
                 {currentStep > 1 ? (
                   <button type="button" class="btn btn-secondary" onClick={handlePrev}>
