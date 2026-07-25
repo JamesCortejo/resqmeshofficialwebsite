@@ -34,6 +34,7 @@ async function createUser(user) {
       email_enc,
       email_lookup_hash,
       phone_enc,
+      phone_lookup_hash,
       password_hash,
       id_type_enc,
       id_number_enc,
@@ -49,7 +50,7 @@ async function createUser(user) {
       back_id_original_size,
       back_id_encrypted_size,
       status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     RETURNING id
   `, [
     user.userCode,
@@ -68,6 +69,7 @@ async function createUser(user) {
     user.emailEnc,
     user.emailLookupHash,
     user.phoneEnc,
+    user.phoneLookupHash,
     user.passwordHash,
     user.idTypeEnc,
     user.idNumberEnc,
@@ -118,9 +120,57 @@ function listUserSummaries() {
   `);
 }
 
+function findUserAuthCandidateByPhoneLookupHash(phoneLookupHash) {
+  return get(`
+    SELECT
+      id,
+      user_code AS userCode,
+      first_name_enc AS firstNameEnc,
+      middle_name_enc AS middleNameEnc,
+      last_name_enc AS lastNameEnc,
+      birth_date_enc AS birthDateEnc,
+      username_enc AS usernameEnc,
+      street_address_enc AS streetAddressEnc,
+      barangay_enc AS barangayEnc,
+      occupation_enc AS occupationEnc,
+      blood_type_enc AS bloodTypeEnc,
+      medical_complications_enc AS medicalComplicationsEnc,
+      allergies_enc AS allergiesEnc,
+      email_enc AS emailEnc,
+      phone_enc AS phoneEnc,
+      password_hash AS passwordHash,
+      status,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM users
+    WHERE phone_lookup_hash = ?
+    LIMIT 1
+  `, [phoneLookupHash]);
+}
+
+function findUserSessionPrincipalById(id) {
+  return get(`
+    SELECT
+      id,
+      user_code AS userCode,
+      first_name_enc AS firstNameEnc,
+      middle_name_enc AS middleNameEnc,
+      last_name_enc AS lastNameEnc,
+      phone_enc AS phoneEnc,
+      status,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM users
+    WHERE id = ?
+    LIMIT 1
+  `, [id]);
+}
+
 module.exports = {
   generateUserCode,
   createUser,
   findByLookupHashes,
-  listUserSummaries
+  listUserSummaries,
+  findUserAuthCandidateByPhoneLookupHash,
+  findUserSessionPrincipalById
 };

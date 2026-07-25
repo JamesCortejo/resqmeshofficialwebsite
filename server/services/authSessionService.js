@@ -17,6 +17,7 @@ const {
   updateAuthSessionLastSeen
 } = require('../repositories/authSessionRepository');
 const { findAdminById } = require('../repositories/adminRepository');
+const { findUserSessionPrincipalById } = require('../repositories/userRepository');
 const { findRescuerSessionPrincipalById } = require('../repositories/rescuerRepository');
 const {
   findSyncDeviceById,
@@ -205,22 +206,22 @@ async function createDeviceSyncSession(syncDevice, req) {
   };
 }
 
-async function createMobileAppSession(rescuer, req) {
+async function createMobileAppSession(principal, req, principalType = SESSION_PRINCIPAL_TYPES.RESCUER) {
   const issuedAt = new Date();
   const expiresAt = addHours(issuedAt, ADMIN_SESSION_TTL_HOURS);
   const sessionToken = crypto.randomBytes(32).toString('hex');
   const timestamp = issuedAt.toISOString();
 
   await revokeAuthSessionsForPrincipal(
-    SESSION_PRINCIPAL_TYPES.RESCUER,
-    rescuer.id,
+    principalType,
+    principal.id,
     SESSION_CLIENT_TYPES.MOBILE_APP,
     timestamp
   );
 
   const result = await createAuthSession({
-    principalType: SESSION_PRINCIPAL_TYPES.RESCUER,
-    principalId: rescuer.id,
+    principalType,
+    principalId: principal.id,
     clientType: SESSION_CLIENT_TYPES.MOBILE_APP,
     sessionTokenHash: hashToken(sessionToken),
     csrfSecret: null,
@@ -399,6 +400,51 @@ async function validateMobileAppSession(req) {
   };
 }
 
+async function validateCivilianMobileAppSession(req) {
+  const sessionToken = readBearerTokenFromRequest(req);
+
+  if (!sessionToken) {
+    return null;
+  }
+
+  const session = await findAuthSessionByTokenHash(hashToken(sessionToken));
+
+  if (!session) {
+    return null;
+  }
+
+  const now = new Date();
+  const expiresAt = new Date(session.expiresAt);
+
+  if (
+    session.revokedAt
+    || session.principalType !== SESSION_PRINCIPAL_TYPES.USER
+    || session.clientType !== SESSION_CLIENT_TYPES.MOBILE_APP
+    || Number.isNaN(expiresAt.getTime())
+    || expiresAt.getTime() <= now.getTime()
+  ) {
+    return null;
+  }
+
+  const user = await findUserSessionPrincipalById(session.principalId);
+
+  if (!user || user.status !== 'approved') {
+    return null;
+  }
+
+  if (shouldTouchLastSeen(session.lastSeenAt)) {
+    const nextLastSeenAt = nowAsIso();
+    await updateAuthSessionLastSeen(session.id, nextLastSeenAt);
+    session.lastSeenAt = nextLastSeenAt;
+  }
+
+  return {
+    session,
+    principal: user,
+    token: sessionToken
+  };
+}
+
 function isSafeMethod(method) {
   return SAFE_HTTP_METHODS.has(String(method || 'GET').toUpperCase());
 }
@@ -445,6 +491,7 @@ module.exports = {
   revokeAuthenticatedSession,
   validateAdminWebSession,
   validateMobileAppSession,
+  validateCivilianMobileAppSession,
   createDeviceSyncSession,
   validateDeviceSyncSession
 };

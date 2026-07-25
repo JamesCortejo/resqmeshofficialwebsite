@@ -144,6 +144,7 @@ exports.registerUser = async (req, res) => {
 
     const usernameLookupHash = lookupHash(req.body.username);
     const emailLookupHash = lookupHash(req.body.email);
+    const phoneLookupHash = lookupHash(req.body.phone);
     const idNumberLookupHash = lookupHash(req.body.idNumber);
     const existingUser = await findByLookupHashes(usernameLookupHash, emailLookupHash, idNumberLookupHash);
 
@@ -185,6 +186,7 @@ exports.registerUser = async (req, res) => {
       emailEnc: encryptText(req.body.email),
       emailLookupHash,
       phoneEnc: encryptText(req.body.phone),
+      phoneLookupHash,
       passwordHash: hashPassword(req.body.password),
       idTypeEnc: encryptText(req.body.idType),
       idNumberEnc: encryptText(req.body.idNumber),

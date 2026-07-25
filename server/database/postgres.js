@@ -336,6 +336,32 @@ function hashApiKey(apiKey) {
   return crypto.createHash('sha256').update(apiKey).digest('hex');
 }
 
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 12;
+const TAG_LENGTH = 16;
+
+function decryptText(value) {
+  if (!value) {
+    return '';
+  }
+
+  const payload = Buffer.from(value, 'base64');
+  const iv = payload.subarray(0, IV_LENGTH);
+  const tag = payload.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH);
+  const encrypted = payload.subarray(IV_LENGTH + TAG_LENGTH);
+  const decipher = crypto.createDecipheriv(ALGORITHM, config.encryptionKey, iv);
+
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+}
+
+function lookupHash(value) {
+  return crypto
+    .createHmac('sha256', config.encryptionKey)
+    .update(String(value).trim().toLowerCase())
+    .digest('hex');
+}
+
 async function ensureSequenceTables() {
   await exec(`
     INSERT INTO code_sequence (id, last_value) VALUES (1, 0)
@@ -442,6 +468,38 @@ async function ensurePostgresColumnTypes() {
   `);
 }
 
+async function ensureUserPhoneLookupHashes() {
+  await exec(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS phone_lookup_hash TEXT;
+  `);
+
+  const rows = await all(`
+    SELECT id, phone_enc AS "phoneEnc"
+    FROM users
+    WHERE phone_lookup_hash IS NULL OR phone_lookup_hash = ''
+  `);
+
+  for (const row of rows) {
+    const phone = decryptText(row.phoneEnc);
+
+    if (!phone) {
+      continue;
+    }
+
+    await run(`
+      UPDATE users
+      SET phone_lookup_hash = ?
+      WHERE id = ?
+    `, [lookupHash(phone), row.id]);
+  }
+
+  await exec(`
+    CREATE INDEX IF NOT EXISTS idx_users_phone_lookup_hash
+      ON users (phone_lookup_hash);
+  `);
+}
+
 async function initializeDatabase() {
   await exec(`
     CREATE TABLE IF NOT EXISTS code_sequence (
@@ -482,6 +540,7 @@ async function initializeDatabase() {
       email_enc TEXT NOT NULL,
       email_lookup_hash TEXT NOT NULL UNIQUE,
       phone_enc TEXT NOT NULL,
+      phone_lookup_hash TEXT,
       password_hash TEXT NOT NULL,
       id_type_enc TEXT NOT NULL,
       id_number_enc TEXT NOT NULL,
@@ -814,6 +873,7 @@ async function initializeDatabase() {
   `);
 
   await ensurePostgresColumnTypes();
+  await ensureUserPhoneLookupHashes();
   await ensureSequenceTables();
   await run(`
     UPDATE mesh_distress_signals

@@ -43,11 +43,11 @@ exports.login = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
-    await revokeAuthenticatedSession(req.rescuerSession?.id);
+    await revokeAuthenticatedSession(req.mobileSession?.id || req.rescuerSession?.id);
 
     return res.json({
       success: true,
-      message: 'Rescuer session ended.'
+      message: 'Mobile session ended.'
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to log out rescuer.');

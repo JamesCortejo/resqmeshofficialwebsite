@@ -1,12 +1,14 @@
 const express = require('express');
+const civilianMobileAuthController = require('../controllers/civilianMobileAuthController');
 const rescuerMobileAuthController = require('../controllers/rescuerMobileAuthController');
 const mobileOperationsController = require('../controllers/mobileOperationsController');
-const { requireRescuerSession } = require('../middleware/rescuerSessionMiddleware');
+const { requireMobileSession, requireRescuerSession } = require('../middleware/rescuerSessionMiddleware');
 
 const router = express.Router();
 
 router.post('/auth/rescuer/login', rescuerMobileAuthController.login);
-router.post('/auth/logout', requireRescuerSession, rescuerMobileAuthController.logout);
+router.post('/auth/civilian/login', civilianMobileAuthController.login);
+router.post('/auth/logout', requireMobileSession, rescuerMobileAuthController.logout);
 
 router.get('/api/nodes', mobileOperationsController.listNodes);
 router.get('/api/map/snapshot', mobileOperationsController.getMapSnapshot);
