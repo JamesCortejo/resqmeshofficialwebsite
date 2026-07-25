@@ -2,10 +2,16 @@ const { decryptText } = require('./encryptionService');
 const {
   cancelActiveOnlineDistressForUser,
   createOnlineDistressSignal,
+  findActiveDeploymentByOnlineDistressSignalId,
   findActiveOnlineDistressByUserId,
   generateOnlineDistressCode,
   listActiveOnlineDistressSignals
 } = require('../repositories/deploymentRepository');
+const { cancelDeployment } = require('./distressDeploymentService');
+const {
+  notifyOnlineDistressSignalActive,
+  notifyOnlineDistressSignalCanceled
+} = require('./notificationService');
 
 const VALID_REASONS = new Set(['flooding', 'fire', 'medical', 'landslide', 'earthquake', 'accident', 'other']);
 
@@ -128,7 +134,9 @@ async function createCivilianOnlineDistress(civilian, payload) {
     updatedAt: timestamp
   });
 
-  return getActiveCivilianOnlineDistress({ id: civilian.id });
+  const distress = await getActiveCivilianOnlineDistress({ id: civilian.id });
+  await notifyOnlineDistressSignalActive(distress);
+  return distress;
 }
 
 async function cancelCivilianOnlineDistress(civilian, id) {
@@ -140,6 +148,21 @@ async function cancelCivilianOnlineDistress(civilian, id) {
   }
 
   const timestamp = new Date().toISOString();
+  const activeDistress = await findActiveOnlineDistressByUserId(civilian.id);
+
+  if (!activeDistress || Number(activeDistress.id) !== distressId) {
+    const error = new Error('Active online distress signal not found.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const activeDeployment = await findActiveDeploymentByOnlineDistressSignalId(distressId);
+  if (activeDeployment?.id) {
+    await cancelDeployment(activeDeployment.id);
+    await notifyOnlineDistressSignalCanceled(normalizeOnlineDistress(activeDistress));
+    return { id: distressId, status: 'canceled', canceledAt: timestamp };
+  }
+
   const result = await cancelActiveOnlineDistressForUser(distressId, civilian.id, timestamp);
   if (!result.changes) {
     const error = new Error('Active online distress signal not found.');
@@ -147,6 +170,7 @@ async function cancelCivilianOnlineDistress(civilian, id) {
     throw error;
   }
 
+  await notifyOnlineDistressSignalCanceled(normalizeOnlineDistress(activeDistress));
   return { id: distressId, status: 'canceled', canceledAt: timestamp };
 }
 

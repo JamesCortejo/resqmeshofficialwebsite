@@ -266,6 +266,25 @@ function notifyDistressSignalActive(distress) {
   });
 }
 
+function notifyOnlineDistressSignalActive(distress) {
+  return safeCreateNotification({
+    type: 'distress.active',
+    title: 'New online emergency reported',
+    message: `Online emergency ${distress.distressCode} was activated by ${distress.user?.firstName || 'a civilian'}.`,
+    relatedEntityType: 'online-distress-signal',
+    relatedEntityId: distress.id,
+    relatedEntityCode: distress.distressCode,
+    metadata: {
+      status: 'active',
+      sourceType: 'online',
+      reason: distress.reason || null,
+      latitude: distress.latitude ?? null,
+      longitude: distress.longitude ?? null,
+      userCode: distress.userCode || null
+    }
+  });
+}
+
 function notifyDistressSignalCanceled(distress) {
   return safeCreateNotification({
     type: 'distress.canceled',
@@ -280,6 +299,25 @@ function notifyDistressSignalCanceled(distress) {
       originDistressId: distress.originDistressId,
       reason: distress.reason || null,
       priority: distress.priority || null
+    }
+  });
+}
+
+function notifyOnlineDistressSignalCanceled(distress) {
+  return safeCreateNotification({
+    type: 'distress.canceled',
+    title: 'Online emergency canceled',
+    message: `Online emergency ${distress.distressCode} was canceled.`,
+    relatedEntityType: 'online-distress-signal',
+    relatedEntityId: distress.id,
+    relatedEntityCode: distress.distressCode,
+    metadata: {
+      status: 'canceled',
+      sourceType: 'online',
+      reason: distress.reason || null,
+      latitude: distress.latitude ?? null,
+      longitude: distress.longitude ?? null,
+      userCode: distress.userCode || null
     }
   });
 }
@@ -310,7 +348,9 @@ module.exports = {
   notifyDeploymentCanceled,
   notifyDeploymentAccomplished,
   notifyDistressSignalActive,
+  notifyOnlineDistressSignalActive,
   notifyDistressSignalCanceled,
+  notifyOnlineDistressSignalCanceled,
   getNotifications,
   getUnreadNotificationCount,
   markNotificationRead,
