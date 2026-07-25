@@ -99,7 +99,7 @@ async function fetchOpenRouteServiceRoute(origin, destination) {
   }
 
   const response = await postJson(
-    'https://api.heigit.org/v2/directions/driving-car/geojson',
+    'https://api.heigit.org/openrouteservice/v2/directions/driving-car/geojson',
     {
       coordinates: [
         [origin.longitude, origin.latitude],
