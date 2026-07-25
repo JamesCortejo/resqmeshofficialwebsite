@@ -137,6 +137,11 @@
   }
 
   function routePopupMarkup(route) {
+    const sourceLabel = route.sourceLabel || (route.distressSource === 'online' ? 'ONLINE' : 'MESH');
+    const routeStatus = route.routeStatus === 'ready'
+      ? 'Route Ready'
+      : (route.routeMessage || 'Route Calculating');
+
     return `
       <div class="device-map-popup-card device-map-route-popup-card">
         <div>
@@ -145,12 +150,15 @@
         </div>
         <div class="device-map-popup-pills">
           <span class="device-map-popup-pill" data-status="route">Active team route</span>
+          <span class="device-map-popup-pill" data-status="${helpers.escapeHtml(route.distressSource === 'online' ? 'online' : 'distressed')}">${helpers.escapeHtml(sourceLabel)}</span>
           <span class="device-map-popup-pill" data-status="distressed">${helpers.escapeHtml(route.distressCode)}</span>
         </div>
         <div class="device-map-popup-meta">
           <div class="device-map-popup-row"><span>Team</span><strong>${helpers.escapeHtml(route.teamName || 'Unknown team')}</strong></div>
           <div class="device-map-popup-row"><span>Leader</span><strong>${helpers.escapeHtml(route.teamLeaderName || 'Unknown leader')}</strong></div>
+          <div class="device-map-popup-row"><span>Source</span><strong>${helpers.escapeHtml(route.distressSource === 'online' ? 'Online distress signal' : (route.originNodeName || 'Mesh distress signal'))}</strong></div>
           <div class="device-map-popup-row"><span>Distress</span><strong>${helpers.escapeHtml(helpers.formatDistressReason(route.distressReason))}</strong></div>
+          <div class="device-map-popup-row"><span>Status</span><strong>${helpers.escapeHtml(routeStatus)}</strong></div>
           <div class="device-map-popup-row"><span>ETA</span><strong>${helpers.escapeHtml(route.etaMinutes != null ? `${route.etaMinutes} min` : 'Not available')}</strong></div>
           <div class="device-map-popup-row"><span>Distance</span><strong>${helpers.escapeHtml(helpers.formatDistance(route.distanceM))}</strong></div>
           <div class="device-map-popup-row"><span>Updated</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(route.routeUpdatedAt))}</strong></div>
@@ -243,17 +251,58 @@
     return Array.isArray(route.coordinates) && route.coordinates.length >= 2;
   }
 
-  function routeMarkerLatLng(route) {
-    const firstCoordinate = Array.isArray(route.coordinates) ? route.coordinates[0] : null;
+  function numericLatLng(latitudeValue, longitudeValue) {
+    const latitude = Number(latitudeValue);
+    const longitude = Number(longitudeValue);
 
-    if (!Array.isArray(firstCoordinate) || firstCoordinate.length < 2) {
+    return Number.isFinite(latitude) && Number.isFinite(longitude) && latitude !== 0 && longitude !== 0
+      ? [latitude, longitude]
+      : null;
+  }
+
+  function coordinateLatLng(coordinate) {
+    if (!Array.isArray(coordinate) || coordinate.length < 2) {
       return null;
     }
 
-    const longitude = Number(firstCoordinate[0]);
-    const latitude = Number(firstCoordinate[1]);
+    return numericLatLng(coordinate[1], coordinate[0]);
+  }
 
-    return Number.isFinite(latitude) && Number.isFinite(longitude) ? [latitude, longitude] : null;
+  function routeMarkerLatLng(route) {
+    const firstCoordinate = Array.isArray(route.coordinates) ? route.coordinates[0] : null;
+    const routeStartLatLng = coordinateLatLng(firstCoordinate);
+
+    return routeStartLatLng || numericLatLng(route.leaderLatitude, route.leaderLongitude);
+  }
+
+  function routeDistressLatLng(route) {
+    return numericLatLng(route.distressLatitude, route.distressLongitude);
+  }
+
+  function routeBoundsLatLngs(route) {
+    const bounds = [];
+    const leaderLatLng = routeMarkerLatLng(route);
+    const distressLatLng = routeDistressLatLng(route);
+
+    if (leaderLatLng) {
+      bounds.push(leaderLatLng);
+    }
+
+    if (distressLatLng) {
+      bounds.push(distressLatLng);
+    }
+
+    if (Array.isArray(route.coordinates)) {
+      route.coordinates.forEach((coordinate) => {
+        const latLng = coordinateLatLng(coordinate);
+
+        if (latLng) {
+          bounds.push(latLng);
+        }
+      });
+    }
+
+    return bounds;
   }
 
   function openRoutePopupAfterRender(route, latlng, layerType = 'polyline') {
@@ -273,37 +322,38 @@
 
     state.routesLayer.clearLayers();
 
-    const visibleRoutes = state.routes.filter(hasRenderableRoute);
-
-    if (!visibleRoutes.some((route) => route.deploymentId === state.selectedRouteDeploymentId)) {
+    if (!state.routes.some((route) => route.deploymentId === state.selectedRouteDeploymentId)) {
       state.selectedRouteDeploymentId = null;
     }
 
-    visibleRoutes.forEach((route) => {
+    state.routes.forEach((route) => {
       const isSelected = state.selectedRouteDeploymentId === route.deploymentId;
-      const polyline = L.polyline(
-        route.coordinates.map((coordinate) => [Number(coordinate[1]), Number(coordinate[0])]),
-        {
-          className: `device-map-route${isSelected ? ' is-selected' : ''}`,
-          color: isSelected ? '#c93f29' : '#f26441',
-          weight: isSelected ? 6 : 4,
-          opacity: isSelected ? 0.94 : 0.66,
-          lineCap: 'round',
-          lineJoin: 'round'
-        }
-      ).bindPopup(routePopupMarkup(route), {
-        className: 'device-map-popup device-map-route-popup'
-      });
 
-      polyline.on('click', (event) => {
-        state.selectedRouteDeploymentId = route.deploymentId;
-        renderMap({ preserveViewport: true });
-        openRoutePopupAfterRender(route, event.latlng, 'polyline');
-      });
+      if (hasRenderableRoute(route)) {
+        const polyline = L.polyline(
+          route.coordinates.map((coordinate) => [Number(coordinate[1]), Number(coordinate[0])]),
+          {
+            className: `device-map-route${isSelected ? ' is-selected' : ''}`,
+            color: isSelected ? '#c93f29' : '#f26441',
+            weight: isSelected ? 6 : 4,
+            opacity: isSelected ? 0.94 : 0.66,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }
+        ).bindPopup(routePopupMarkup(route), {
+          className: 'device-map-popup device-map-route-popup'
+        });
 
-      polyline.__routeDeploymentId = route.deploymentId;
-      polyline.__routeLayerType = 'polyline';
-      polyline.addTo(state.routesLayer);
+        polyline.on('click', (event) => {
+          state.selectedRouteDeploymentId = route.deploymentId;
+          renderMap({ preserveViewport: true });
+          openRoutePopupAfterRender(route, event.latlng, 'polyline');
+        });
+
+        polyline.__routeDeploymentId = route.deploymentId;
+        polyline.__routeLayerType = 'polyline';
+        polyline.addTo(state.routesLayer);
+      }
 
       const markerLatLng = routeMarkerLatLng(route);
 
@@ -330,6 +380,35 @@
         marker.__routeDeploymentId = route.deploymentId;
         marker.__routeLayerType = 'marker';
         marker.addTo(state.routesLayer);
+      }
+
+      if (route.distressSource === 'online') {
+        const distressLatLng = routeDistressLatLng(route);
+
+        if (distressLatLng) {
+          const distressMarker = L.marker(distressLatLng, {
+            zIndexOffset: 320,
+            icon: L.divIcon({
+              className: 'device-map-online-distress-marker-icon',
+              html: `<div class="device-map-online-distress-marker${isSelected ? ' is-selected' : ''}"></div>`,
+              iconSize: [30, 30],
+              iconAnchor: [15, 15],
+              popupAnchor: [0, -14]
+            })
+          }).bindPopup(routePopupMarkup(route), {
+            className: 'device-map-popup device-map-route-popup'
+          });
+
+          distressMarker.on('click', (event) => {
+            state.selectedRouteDeploymentId = route.deploymentId;
+            renderMap({ preserveViewport: true });
+            openRoutePopupAfterRender(route, event.latlng, 'distress-marker');
+          });
+
+          distressMarker.__routeDeploymentId = route.deploymentId;
+          distressMarker.__routeLayerType = 'distress-marker';
+          distressMarker.addTo(state.routesLayer);
+        }
       }
     });
   }
@@ -368,6 +447,12 @@
       const marker = createMarker(device);
       marker.addTo(state.markersLayer);
       bounds.push([Number(device.latitude), Number(device.longitude)]);
+    });
+
+    state.routes.forEach((route) => {
+      routeBoundsLatLngs(route).forEach((latLng) => {
+        bounds.push(latLng);
+      });
     });
 
     if (preserveViewport || state.hasInitializedViewport) {

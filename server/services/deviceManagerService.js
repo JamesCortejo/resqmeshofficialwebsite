@@ -390,9 +390,26 @@ async function getDeviceMapSummaries() {
 }
 
 function routeOverlayResponse(row) {
-  const coordinates = parseCoordinates(row.geometryJson);
+  const routeProvider = row.routeProvider || null;
+  const coordinates = routeProvider === 'fallback-direct' ? [] : parseCoordinates(row.geometryJson);
+  const distressLatitude = row.distressLatitude !== null && row.distressLatitude !== undefined
+    ? Number(row.distressLatitude)
+    : null;
+  const distressLongitude = row.distressLongitude !== null && row.distressLongitude !== undefined
+    ? Number(row.distressLongitude)
+    : null;
+  const leaderLatitude = row.leaderLatitude !== null && row.leaderLatitude !== undefined
+    ? Number(row.leaderLatitude)
+    : null;
+  const leaderLongitude = row.leaderLongitude !== null && row.leaderLongitude !== undefined
+    ? Number(row.leaderLongitude)
+    : null;
 
-  if (coordinates.length < 2) {
+  if (
+    coordinates.length < 2
+    && (!Number.isFinite(distressLatitude) || !Number.isFinite(distressLongitude))
+    && (!Number.isFinite(leaderLatitude) || !Number.isFinite(leaderLongitude))
+  ) {
     return null;
   }
 
@@ -405,6 +422,8 @@ function routeOverlayResponse(row) {
   return {
     deploymentId: row.deploymentId,
     deploymentCode: row.deploymentCode,
+    distressSource: row.distressSource || 'mesh',
+    sourceLabel: String(row.distressSource || 'mesh').toLowerCase() === 'online' ? 'ONLINE' : 'MESH',
     teamId: row.teamId,
     teamCode: row.teamCode || '',
     teamName: row.teamName || '',
@@ -417,14 +436,19 @@ function routeOverlayResponse(row) {
     distressReason: row.distressReason || '',
     originNodeId: row.originNodeId || row.distressOriginNodeId || '',
     originNodeName: row.originNodeName || row.originNodeId || row.distressOriginNodeId || 'Unknown node',
-    distressLatitude: row.distressLatitude,
-    distressLongitude: row.distressLongitude,
-    leaderLatitude: row.leaderLatitude,
-    leaderLongitude: row.leaderLongitude,
+    distressLatitude,
+    distressLongitude,
+    leaderLatitude,
+    leaderLongitude,
     leaderRecordedAt: toIsoTimestamp(row.leaderRecordedAt),
     etaMinutes: row.etaMinutes !== null && row.etaMinutes !== undefined ? Number(row.etaMinutes) : null,
     distanceM: row.distanceM !== null && row.distanceM !== undefined ? Number(row.distanceM) : null,
     durationS: row.durationS !== null && row.durationS !== undefined ? Number(row.durationS) : null,
+    routeProvider,
+    routeStatus: coordinates.length >= 2 ? 'ready' : (routeProvider ? 'calculating' : 'waiting'),
+    routeMessage: coordinates.length >= 2
+      ? 'Route snapshot available.'
+      : 'Waiting for route snapshot.',
     routeUpdatedAt: toIsoTimestamp(row.routeUpdatedAt || row.deploymentUpdatedAt || row.deployedAt),
     coordinates
   };
