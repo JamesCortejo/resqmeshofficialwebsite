@@ -252,6 +252,27 @@
   text-transform: uppercase;
 }
 
+.distress-signals-source-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 0.35rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  background: rgba(239, 68, 68, 0.08);
+  color: #c2410c;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.distress-signals-source-pill[data-source="online"] {
+  border-color: rgba(20, 184, 166, 0.28);
+  background: rgba(20, 184, 166, 0.12);
+  color: #0f766e;
+}
+
 .distress-signals-priority-pill {
   border: 1px solid rgba(187, 114, 14, 0.22);
   background: rgba(187, 114, 14, 0.08);

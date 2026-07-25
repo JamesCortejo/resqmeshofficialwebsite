@@ -29,6 +29,7 @@
           <tr>
             <td>
               <span class="distress-signals-primary-text">${helpers.escapeHtml(signal.distressCode)}</span>
+              <span class="distress-signals-source-pill" data-source="${helpers.escapeHtml(signal.sourceType || 'mesh')}">${helpers.escapeHtml(signal.sourceLabel || 'MESH')}</span>
               <span class="distress-signals-muted-text">${helpers.escapeHtml(helpers.formatShortDate(signal.reportedAt))}</span>
             </td>
             <td>
@@ -47,7 +48,7 @@
               <span class="distress-signals-muted-text">${helpers.escapeHtml(signal.team?.name || 'No team selected')}</span>
             </td>
             <td class="distress-signals-action-cell">
-              <button type="button" class="distress-signal-view-button" data-view-distress-id="${helpers.escapeHtml(signal.id)}">
+              <button type="button" class="distress-signal-view-button" data-view-distress-id="${helpers.escapeHtml(signal.sourceKey || signal.id)}">
                 <i class="fa-regular fa-eye" aria-hidden="true"></i>
                 <span>Manage</span>
               </button>

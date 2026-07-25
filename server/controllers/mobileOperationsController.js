@@ -8,7 +8,8 @@ const {
   getEtaByNodeId,
   getEtaByDistressId,
   getPublicNodes,
-  getNodeDistress
+  getNodeDistress,
+  getOnlineDistressMarkers
 } = require('../services/mobileOperationsService');
 
 function parseId(value) {
@@ -93,6 +94,7 @@ exports.listNodes = async (req, res) => {
 exports.getMapSnapshot = async (_req, res) => {
   try {
     const nodes = await getPublicNodes();
+    const onlineDistress = await getOnlineDistressMarkers();
     return res.json({
       status: {
         internet: true,
@@ -108,7 +110,21 @@ exports.getMapSnapshot = async (_req, res) => {
           origin_node_id: node.id,
           node_id: node.id,
           status: 'active'
-        })),
+        }))
+        .concat(onlineDistress.map((distress) => ({
+          id: distress.id,
+          sourceType: 'online',
+          sourceLabel: 'ONLINE',
+          distressCode: distress.distressCode,
+          reason: distress.reason,
+          latitude: distress.latitude,
+          longitude: distress.longitude,
+          recordedAt: distress.recordedAt,
+          timestamp: distress.recordedAt,
+          status: 'active',
+          user: distress.user
+        }))),
+      onlineDistress,
       serverTime: new Date().toISOString()
     });
   } catch (error) {

@@ -14,6 +14,7 @@ const {
   insertRescuerLocationHistory
 } = require('../repositories/deploymentRepository');
 const { accomplishDeployment } = require('./distressDeploymentService');
+const { listPublicOnlineDistressSignals } = require('./civilianDistressService');
 const {
   buildLiveRouteResponse,
   ensureDeploymentRouteSnapshot
@@ -123,6 +124,8 @@ function assignmentSummary(row) {
   return {
     id: row.id,
     distress_id: row.meshDistressSignalId,
+    online_distress_id: row.onlineDistressSignalId || null,
+    distressSource: row.distressSource || 'mesh',
     status: row.status,
     assigned_at: row.deployedAt || row.createdAt,
     status_updated_at: statusTimestamp || row.updatedAt || row.deployedAt || row.createdAt,
@@ -134,12 +137,14 @@ function assignmentSummary(row) {
       longitude: row.longitude,
       timestamp: row.timestamp,
       priority: row.priority,
+      distressSource: row.distressSource || 'mesh',
       user: {
         firstName: row.firstName,
         lastName: row.lastName,
         phone: row.phone,
         bloodType: row.bloodType,
-        age: row.age
+        age: row.age,
+        occupation: row.occupation || ''
       }
     },
     node: {
@@ -321,6 +326,10 @@ async function getPublicNodes() {
   });
 }
 
+async function getOnlineDistressMarkers() {
+  return listPublicOnlineDistressSignals();
+}
+
 async function getNodeDistress(nodeId) {
   const distress = await getNodeActiveDistress(nodeId);
 
@@ -357,5 +366,6 @@ module.exports = {
   getEtaByNodeId,
   getEtaByDistressId,
   getPublicNodes,
-  getNodeDistress
+  getNodeDistress,
+  getOnlineDistressMarkers
 };

@@ -157,7 +157,7 @@
               </div>
             `;
 
-        dom.distressSignalModalCode.textContent = details.distressCode;
+        dom.distressSignalModalCode.innerHTML = `${helpers.escapeHtml(details.distressCode)} <span class="distress-signals-source-pill" data-source="${helpers.escapeHtml(details.sourceType || 'mesh')}">${helpers.escapeHtml(details.sourceLabel || 'MESH')}</span>`;
         dom.distressSignalModalBody.innerHTML = `
           <div class="distress-signal-modal-layout">
             <div class="distress-signal-modal-top-row">
@@ -195,11 +195,11 @@
                   <div class="distress-signal-detail-grid">
                     <div class="distress-signal-detail-item">
                       <span>Mesh node</span>
-                      <strong>${helpers.escapeHtml(details.nodeName)}</strong>
+                      <strong>${helpers.escapeHtml(details.sourceType === 'online' ? 'Civilian online location' : details.nodeName)}</strong>
                     </div>
                     <div class="distress-signal-detail-item">
-                      <span>Node ID</span>
-                      <strong>${helpers.escapeHtml(details.nodeId || 'Unknown node')}</strong>
+                      <span>${details.sourceType === 'online' ? 'Source' : 'Node ID'}</span>
+                      <strong>${helpers.escapeHtml(details.sourceType === 'online' ? 'Online mode' : details.nodeId || 'Unknown node')}</strong>
                     </div>
                     <div class="distress-signal-detail-item">
                       <span>Coordinates</span>
@@ -244,7 +244,7 @@
       }
 
       async function openDetails(signalId) {
-        state.selectedSignalId = Number(signalId);
+        state.selectedSignalId = String(signalId);
         state.selectedSignalDetails = null;
         state.selectedTeamId = null;
         state.selectedLeaderId = null;
@@ -254,7 +254,7 @@
         ui.openModal();
 
         try {
-          const payload = await helpers.requestJson(`/api/admin/distress-signals/${signalId}`, {
+          const payload = await helpers.requestJson(`/api/admin/distress-signals/${encodeURIComponent(signalId)}`, {
             method: 'GET'
           });
           const details = payload.data;
@@ -294,7 +294,7 @@
         ui.setModalSubmitting(true);
 
         try {
-          const payload = await helpers.requestJson(`/api/admin/distress-signals/${details.id}/deploy`, {
+          const payload = await helpers.requestJson(`/api/admin/distress-signals/${encodeURIComponent(details.sourceKey || details.id)}/deploy`, {
             method: 'POST',
             body: JSON.stringify({
               teamId: state.selectedTeamId,
@@ -338,7 +338,7 @@
           ui.setActionMessage(payload.message || 'Deployment canceled.', 'success');
           ui.toast.show(payload.message || 'Deployment canceled.', 'success');
           await context.list.loadSignals();
-          await openDetails(details.id);
+          await openDetails(details.sourceKey || details.id);
           window.ResQMeshAdminNotifications?.refresh?.();
         } catch (error) {
           ui.setActionMessage(error.message || 'Unable to cancel deployment.', 'error');

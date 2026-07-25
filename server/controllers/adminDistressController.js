@@ -11,6 +11,10 @@ function parseId(value) {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+function isValidDistressKey(value) {
+  return Boolean(parseId(value) || /^(mesh|online):\d+$/i.test(String(value || '').trim()));
+}
+
 function errorResponse(res, error, fallbackMessage) {
   const statusCode = error.statusCode || 500;
 
@@ -40,16 +44,14 @@ exports.listDistressSignals = async (req, res) => {
 
 exports.getDistressSignalDetails = async (req, res) => {
   try {
-    const id = parseId(req.params.id);
-
-    if (!id) {
+    if (!isValidDistressKey(req.params.id)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid distress signal id.'
       });
     }
 
-    const signal = await getDistressSignalDetails(id);
+    const signal = await getDistressSignalDetails(req.params.id);
 
     if (!signal) {
       return res.status(404).json({
@@ -69,16 +71,14 @@ exports.getDistressSignalDetails = async (req, res) => {
 
 exports.deployDistressSignal = async (req, res) => {
   try {
-    const id = parseId(req.params.id);
-
-    if (!id) {
+    if (!isValidDistressKey(req.params.id)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid distress signal id.'
       });
     }
 
-    const signal = await deployDistressSignal(id, req.body || {}, req.adminUser);
+    const signal = await deployDistressSignal(req.params.id, req.body || {}, req.adminUser);
 
     return res.status(201).json({
       success: true,

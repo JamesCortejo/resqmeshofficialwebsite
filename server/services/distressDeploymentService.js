@@ -10,11 +10,15 @@ const {
   listDistressSignals,
   getDistressSignalById,
   getActiveDistressSignalById,
+  getOnlineDistressSignalById,
+  getActiveOnlineDistressSignalById,
   findActiveDeploymentByDistressSignalId,
+  findActiveDeploymentByOnlineDistressSignalId,
   getDeploymentById,
   listDeploymentMembers,
   createDeployment,
-  updateDeploymentStatus
+  updateDeploymentStatus,
+  updateOnlineDistressStatus
 } = require('../repositories/deploymentRepository');
 const { createMeshCommand } = require('../repositories/deviceSyncRepository');
 const {
@@ -71,6 +75,23 @@ function teamSummary(row) {
   };
 }
 
+function parseDistressSourceKey(value) {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^(mesh|online):(\d+)$/i);
+
+  if (match) {
+    return {
+      source: match[1].toLowerCase(),
+      id: Number.parseInt(match[2], 10)
+    };
+  }
+
+  const id = Number.parseInt(raw, 10);
+  return Number.isInteger(id) && id > 0
+    ? { source: 'mesh', id }
+    : { source: null, id: null };
+}
+
 async function enqueueDistressCancelCommand(deployment) {
   if (!deployment?.originNodeId || !deployment?.originDistressId) {
     return;
@@ -98,6 +119,9 @@ function distressSummary(row) {
 
   return {
     id: row.id,
+    sourceKey: row.sourceKey || `${row.distressSource || 'mesh'}:${row.id}`,
+    sourceType: row.distressSource || 'mesh',
+    sourceLabel: row.sourceLabel || (row.distressSource === 'online' ? 'ONLINE' : 'MESH'),
     distressCode: row.distressCode,
     civilianName: fullName(row.firstName, null, row.lastName),
     civilianPhone: row.phone || '',
@@ -106,7 +130,7 @@ function distressSummary(row) {
     reason: row.reason || '',
     priority: row.priority || 'high',
     nodeId: row.originNodeId || row.nodeId || '',
-    nodeName: row.nodeName || row.originNodeId || row.nodeId || 'Unknown mesh node',
+    nodeName: row.nodeName || row.originNodeId || row.nodeId || (row.distressSource === 'online' ? 'Civilian online location' : 'Unknown mesh node'),
     latitude: row.latitude,
     longitude: row.longitude,
     reportedAt: row.timestamp,
@@ -163,7 +187,10 @@ async function getDistressSignalSummaries() {
 }
 
 async function getDistressSignalDetails(id) {
-  const row = await getDistressSignalById(id);
+  const sourceKey = parseDistressSourceKey(id);
+  const row = sourceKey.source === 'online'
+    ? await getOnlineDistressSignalById(sourceKey.id)
+    : await getDistressSignalById(sourceKey.id);
 
   if (!row) {
     return null;
@@ -182,7 +209,8 @@ async function getDistressSignalDetails(id) {
       lastName: row.lastName,
       phone: row.phone,
       bloodType: row.bloodType,
-      age: row.age
+      age: row.age,
+      occupation: row.occupation || ''
     },
     deployment: row.deploymentId ? {
       id: row.deploymentId,
@@ -210,7 +238,11 @@ async function getDistressSignalDetails(id) {
 }
 
 async function deployDistressSignal(id, payload, adminUser) {
-  const distress = await getActiveDistressSignalById(id);
+  const sourceKey = parseDistressSourceKey(id);
+  const isOnline = sourceKey.source === 'online';
+  const distress = isOnline
+    ? await getActiveOnlineDistressSignalById(sourceKey.id)
+    : await getActiveDistressSignalById(sourceKey.id);
 
   if (!distress) {
     const error = new Error('Active distress signal not found.');
@@ -218,7 +250,9 @@ async function deployDistressSignal(id, payload, adminUser) {
     throw error;
   }
 
-  const existing = await findActiveDeploymentByDistressSignalId(distress.id);
+  const existing = isOnline
+    ? await findActiveDeploymentByOnlineDistressSignalId(distress.id)
+    : await findActiveDeploymentByDistressSignalId(distress.id);
 
   if (existing) {
     const error = new Error('This distress signal already has an active deployed team.');
@@ -269,9 +303,11 @@ async function deployDistressSignal(id, payload, adminUser) {
 
   const result = await createDeployment({
     deploymentCode,
-    meshDistressSignalId: distress.id,
-    originNodeId: distress.originNodeId,
-    originDistressId: distress.originDistressId,
+    distressSource: isOnline ? 'online' : 'mesh',
+    meshDistressSignalId: isOnline ? null : distress.id,
+    onlineDistressSignalId: isOnline ? distress.id : null,
+    originNodeId: isOnline ? `ONLINE-${distress.id}` : distress.originNodeId,
+    originDistressId: distress.originDistressId || distress.id,
     teamId,
     teamLeaderRescuerId,
     createdByAdminUserId: adminUser.id,
@@ -286,7 +322,7 @@ async function deployDistressSignal(id, payload, adminUser) {
 
   const created = await getDeploymentById(result.lastID);
   await notifyDeploymentCreated(created);
-  return getDistressSignalDetails(id);
+  return getDistressSignalDetails(isOnline ? `online:${distress.id}` : distress.id);
 }
 
 async function setDeploymentStatus(id, status) {
@@ -309,9 +345,16 @@ async function setDeploymentStatus(id, status) {
   const updated = await getDeploymentById(id);
 
   if (status === DEPLOYMENT_STATUSES.CANCELED) {
+    if (updated.distressSource === 'online' && updated.onlineDistressSignalId) {
+      await updateOnlineDistressStatus(updated.onlineDistressSignalId, DEPLOYMENT_STATUSES.CANCELED, timestamp);
+    }
     await notifyDeploymentCanceled(updated);
   } else if (status === DEPLOYMENT_STATUSES.ACCOMPLISHED) {
-    await enqueueDistressCancelCommand(updated);
+    if (updated.distressSource === 'online' && updated.onlineDistressSignalId) {
+      await updateOnlineDistressStatus(updated.onlineDistressSignalId, DEPLOYMENT_STATUSES.ACCOMPLISHED, timestamp);
+    } else {
+      await enqueueDistressCancelCommand(updated);
+    }
     await notifyDeploymentAccomplished(updated);
   }
 

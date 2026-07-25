@@ -1,8 +1,9 @@
 const express = require('express');
 const civilianMobileAuthController = require('../controllers/civilianMobileAuthController');
+const civilianDistressController = require('../controllers/civilianDistressController');
 const rescuerMobileAuthController = require('../controllers/rescuerMobileAuthController');
 const mobileOperationsController = require('../controllers/mobileOperationsController');
-const { requireMobileSession, requireRescuerSession } = require('../middleware/rescuerSessionMiddleware');
+const { requireCivilianSession, requireMobileSession, requireRescuerSession } = require('../middleware/rescuerSessionMiddleware');
 
 const router = express.Router();
 
@@ -21,6 +22,10 @@ router.get('/api/public/route/live', mobileOperationsController.getPublicLiveRou
 router.get('/api/routes/live/public', mobileOperationsController.getPublicLiveRoutes);
 router.get('/api/public/routes/live', mobileOperationsController.getPublicLiveRoutes);
 router.get('/api/node/:nodeId/route/live', mobileOperationsController.getPublicLiveRoute);
+
+router.post('/api/civilian/distress-signals', requireCivilianSession, civilianDistressController.create);
+router.get('/api/civilian/distress-signals/active', requireCivilianSession, civilianDistressController.getActive);
+router.post('/api/civilian/distress-signals/:id/cancel', requireCivilianSession, civilianDistressController.cancel);
 
 router.get('/api/rescuer/assignments', requireRescuerSession, mobileOperationsController.listRescuerAssignments);
 router.get('/api/rescuer/route/live', requireRescuerSession, mobileOperationsController.getRescuerLiveRoute);

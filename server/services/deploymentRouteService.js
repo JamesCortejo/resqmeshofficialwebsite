@@ -211,26 +211,34 @@ async function ensureDeploymentRouteSnapshot(assignment) {
     };
   }
 
-  const route = await fetchOpenRouteServiceRoute({
-    latitude: Number(location.latitude),
-    longitude: Number(location.longitude)
-  }, destination);
-  const timestamp = new Date().toISOString();
+  try {
+    const route = await fetchOpenRouteServiceRoute({
+      latitude: Number(location.latitude),
+      longitude: Number(location.longitude)
+    }, destination);
+    const timestamp = new Date().toISOString();
 
-  await upsertDeploymentRouteSnapshot({
-    deploymentId: assignment.id,
-    leaderRescuerId: assignment.teamLeaderRescuerId,
-    leaderRecordedAt: location.recordedAt,
-    destinationLatitude: destination.latitude,
-    destinationLongitude: destination.longitude,
-    distanceM: route.distanceM,
-    durationS: route.durationS,
-    etaMinutes: route.etaMinutes,
-    geometryJson: route.geometryJson,
-    provider: route.provider,
-    computedAt: timestamp,
-    updatedAt: timestamp
-  });
+    await upsertDeploymentRouteSnapshot({
+      deploymentId: assignment.id,
+      leaderRescuerId: assignment.teamLeaderRescuerId,
+      leaderRecordedAt: location.recordedAt,
+      destinationLatitude: destination.latitude,
+      destinationLongitude: destination.longitude,
+      distanceM: route.distanceM,
+      durationS: route.durationS,
+      etaMinutes: route.etaMinutes,
+      geometryJson: route.geometryJson,
+      provider: route.provider,
+      computedAt: timestamp,
+      updatedAt: timestamp
+    });
+  } catch (error) {
+    console.warn('Route snapshot refresh failed', {
+      deploymentId: assignment.id,
+      distressSource: assignment.distressSource || 'mesh',
+      message: error.message
+    });
+  }
 
   return {
     location,
@@ -243,6 +251,8 @@ function buildLiveRouteResponse(assignment, location, snapshot) {
     assignment: {
       id: assignment.id,
       distress_id: assignment.meshDistressSignalId,
+      online_distress_id: assignment.onlineDistressSignalId || null,
+      distressSource: assignment.distressSource || 'mesh',
       team_id: assignment.teamId,
       rescuer_id: assignment.teamLeaderRescuerId,
       assigned_at: assignment.deployedAt || assignment.createdAt,
@@ -263,12 +273,14 @@ function buildLiveRouteResponse(assignment, location, snapshot) {
         longitude: assignment.longitude,
         timestamp: assignment.timestamp,
         priority: assignment.priority,
+        distressSource: assignment.distressSource || 'mesh',
         user: {
           firstName: assignment.firstName,
           lastName: assignment.lastName,
           phone: assignment.phone,
           bloodType: assignment.bloodType,
-          age: assignment.age
+          age: assignment.age,
+          occupation: assignment.occupation || ''
         }
       }
     },
@@ -281,6 +293,7 @@ function buildLiveRouteResponse(assignment, location, snapshot) {
       distance_m: snapshot?.distanceM ?? null,
       duration_s: snapshot?.durationS ?? null,
       eta_minutes: snapshot?.etaMinutes ?? null,
+      provider: snapshot?.provider || null,
       coordinates: parseCoordinates(snapshot?.geometryJson)
     }
   };

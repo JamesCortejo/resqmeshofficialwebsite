@@ -4,6 +4,10 @@ function formatDeploymentCode(value) {
   return `DPL-${String(value).padStart(3, '0')}`;
 }
 
+function formatOnlineDistressCode(value) {
+  return `ODR-${String(value).padStart(3, '0')}`;
+}
+
 async function generateDeploymentCode() {
   return transaction(async (trx) => {
     const row = await trx.get('SELECT last_value FROM deployment_code_sequence WHERE id = 1 FOR UPDATE');
@@ -15,10 +19,26 @@ async function generateDeploymentCode() {
   });
 }
 
+async function generateOnlineDistressCode() {
+  return transaction(async (trx) => {
+    const row = await trx.get('SELECT last_value FROM online_distress_code_sequence WHERE id = 1 FOR UPDATE');
+    const nextValue = row.last_value + 1;
+
+    await trx.run('UPDATE online_distress_code_sequence SET last_value = ? WHERE id = 1', [nextValue]);
+
+    return formatOnlineDistressCode(nextValue);
+  });
+}
+
 function listDistressSignals() {
   return all(`
+    SELECT *
+    FROM (
     SELECT
       m.id,
+      CONCAT('mesh:', m.id) AS sourceKey,
+      'mesh' AS distressSource,
+      'MESH' AS sourceLabel,
       m.distress_code AS distressCode,
       m.user_code AS userCode,
       m.first_name AS firstName,
@@ -70,17 +90,75 @@ function listDistressSignals() {
     LEFT JOIN rescue_teams t ON t.id = d.team_id
     LEFT JOIN rescuers r ON r.id = d.team_leader_rescuer_id
     WHERE m.deleted = 0
+    UNION ALL
+    SELECT
+      o.id,
+      CONCAT('online:', o.id) AS sourceKey,
+      'online' AS distressSource,
+      'ONLINE' AS sourceLabel,
+      o.distress_code AS distressCode,
+      o.user_code AS userCode,
+      o.first_name AS firstName,
+      o.last_name AS lastName,
+      o.phone,
+      o.blood_type AS bloodType,
+      o.age,
+      NULL AS nodeId,
+      NULL AS originNodeId,
+      'Civilian online location' AS nodeName,
+      o.id AS originDistressId,
+      o.reason,
+      o.latitude,
+      o.longitude,
+      o.recorded_at AS timestamp,
+      o.status AS distressStatus,
+      'high' AS priority,
+      o.updated_at AS updatedAt,
+      d.id AS deploymentId,
+      d.deployment_code AS deploymentCode,
+      d.team_id AS teamId,
+      d.team_leader_rescuer_id AS teamLeaderRescuerId,
+      d.status AS deploymentStatus,
+      d.created_at AS deploymentCreatedAt,
+      d.deployed_at AS deployedAt,
+      d.canceled_at AS canceledAt,
+      d.accomplished_at AS accomplishedAt,
+      d.updated_at AS deploymentUpdatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      t.status AS teamStatus,
+      r.rescuer_code AS teamLeaderRescuerCode,
+      r.first_name_enc AS leaderFirstNameEnc,
+      r.middle_name_enc AS leaderMiddleNameEnc,
+      r.last_name_enc AS leaderLastNameEnc
+    FROM online_distress_signals o
+    LEFT JOIN distress_deployments d
+      ON d.id = (
+        SELECT dd.id
+        FROM distress_deployments dd
+        WHERE dd.online_distress_signal_id = o.id
+          AND dd.distress_source = 'online'
+        ORDER BY
+          CASE WHEN dd.status = 'deployed' THEN 0 ELSE 1 END,
+          COALESCE(dd.updated_at, dd.created_at) DESC,
+          dd.id DESC
+        LIMIT 1
+      )
+    LEFT JOIN rescue_teams t ON t.id = d.team_id
+    LEFT JOIN rescuers r ON r.id = d.team_leader_rescuer_id
+    WHERE o.deleted = 0
+    ) combined
     ORDER BY
       CASE
-        WHEN d.status = 'deployed' THEN 0
-        WHEN LOWER(COALESCE(m.status, '')) = 'active' THEN 1
-        WHEN d.status = 'accomplished' THEN 2
-        WHEN d.status = 'canceled' THEN 3
-        WHEN LOWER(COALESCE(m.status, '')) IN ('canceled', 'cancelled') THEN 4
+        WHEN "deploymentStatus" = 'deployed' THEN 0
+        WHEN LOWER(COALESCE("distressStatus", '')) = 'active' THEN 1
+        WHEN "deploymentStatus" = 'accomplished' THEN 2
+        WHEN "deploymentStatus" = 'canceled' THEN 3
+        WHEN LOWER(COALESCE("distressStatus", '')) IN ('canceled', 'cancelled') THEN 4
         ELSE 5
       END,
-      COALESCE(d.updated_at, m.updated_at, m.timestamp) DESC,
-      m.id DESC
+      COALESCE("deploymentUpdatedAt", "updatedAt", timestamp) DESC,
+      id DESC
   `);
 }
 
@@ -88,6 +166,9 @@ function getDistressSignalById(id) {
   return get(`
     SELECT
       m.id,
+      CONCAT('mesh:', m.id) AS sourceKey,
+      'mesh' AS distressSource,
+      'MESH' AS sourceLabel,
       m.distress_code AS distressCode,
       m.user_code AS userCode,
       m.first_name AS firstName,
@@ -173,12 +254,136 @@ function getActiveDistressSignalById(id) {
   `, [id]);
 }
 
+function getOnlineDistressSignalById(id) {
+  return get(`
+    SELECT
+      o.id,
+      CONCAT('online:', o.id) AS sourceKey,
+      'online' AS distressSource,
+      'ONLINE' AS sourceLabel,
+      o.distress_code AS distressCode,
+      o.user_code AS userCode,
+      o.first_name AS firstName,
+      o.last_name AS lastName,
+      o.phone,
+      o.blood_type AS bloodType,
+      o.age,
+      o.occupation,
+      NULL AS nodeId,
+      NULL AS originNodeId,
+      'Civilian online location' AS nodeName,
+      o.id AS originDistressId,
+      o.reason,
+      o.latitude,
+      o.longitude,
+      o.recorded_at AS timestamp,
+      o.status AS distressStatus,
+      'high' AS priority,
+      o.updated_at AS updatedAt,
+      d.id AS deploymentId,
+      d.deployment_code AS deploymentCode,
+      d.team_id AS teamId,
+      d.team_leader_rescuer_id AS teamLeaderRescuerId,
+      d.status AS deploymentStatus,
+      d.created_at AS deploymentCreatedAt,
+      d.deployed_at AS deployedAt,
+      d.canceled_at AS canceledAt,
+      d.accomplished_at AS accomplishedAt,
+      d.updated_at AS deploymentUpdatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      t.status AS teamStatus,
+      r.rescuer_code AS teamLeaderRescuerCode,
+      r.first_name_enc AS leaderFirstNameEnc,
+      r.middle_name_enc AS leaderMiddleNameEnc,
+      r.last_name_enc AS leaderLastNameEnc
+    FROM online_distress_signals o
+    LEFT JOIN distress_deployments d
+      ON d.id = (
+        SELECT dd.id
+        FROM distress_deployments dd
+        WHERE dd.online_distress_signal_id = o.id
+          AND dd.distress_source = 'online'
+        ORDER BY
+          CASE WHEN dd.status = 'deployed' THEN 0 ELSE 1 END,
+          COALESCE(dd.updated_at, dd.created_at) DESC,
+          dd.id DESC
+        LIMIT 1
+      )
+    LEFT JOIN rescue_teams t ON t.id = d.team_id
+    LEFT JOIN rescuers r ON r.id = d.team_leader_rescuer_id
+    WHERE o.id = ?
+      AND o.deleted = 0
+    LIMIT 1
+  `, [id]);
+}
+
+function getActiveOnlineDistressSignalById(id) {
+  return get(`
+    SELECT
+      id,
+      CONCAT('online:', id) AS sourceKey,
+      'online' AS distressSource,
+      distress_code AS distressCode,
+      user_code AS userCode,
+      first_name AS firstName,
+      last_name AS lastName,
+      phone,
+      blood_type AS bloodType,
+      age,
+      occupation,
+      NULL AS originNodeId,
+      id AS originDistressId,
+      reason,
+      latitude,
+      longitude,
+      recorded_at AS timestamp,
+      status AS distressStatus,
+      'high' AS priority,
+      updated_at AS updatedAt
+    FROM online_distress_signals
+    WHERE id = ?
+      AND deleted = 0
+      AND status = 'active'
+    LIMIT 1
+  `, [id]);
+}
+
+function findActiveDeploymentByOnlineDistressSignalId(onlineDistressSignalId) {
+  return get(`
+    SELECT
+      id,
+      deployment_code AS deploymentCode,
+      mesh_distress_signal_id AS meshDistressSignalId,
+      online_distress_signal_id AS onlineDistressSignalId,
+      distress_source AS distressSource,
+      origin_node_id AS originNodeId,
+      origin_distress_id AS originDistressId,
+      team_id AS teamId,
+      team_leader_rescuer_id AS teamLeaderRescuerId,
+      created_by_admin_user_id AS createdByAdminUserId,
+      status,
+      created_at AS createdAt,
+      deployed_at AS deployedAt,
+      canceled_at AS canceledAt,
+      accomplished_at AS accomplishedAt,
+      updated_at AS updatedAt
+    FROM distress_deployments
+    WHERE online_distress_signal_id = ?
+      AND distress_source = 'online'
+      AND status = 'deployed'
+    LIMIT 1
+  `, [onlineDistressSignalId]);
+}
+
 function findActiveDeploymentByDistressSignalId(meshDistressSignalId) {
   return get(`
     SELECT
       id,
       deployment_code AS deploymentCode,
       mesh_distress_signal_id AS meshDistressSignalId,
+      online_distress_signal_id AS onlineDistressSignalId,
+      distress_source AS distressSource,
       origin_node_id AS originNodeId,
       origin_distress_id AS originDistressId,
       team_id AS teamId,
@@ -192,6 +397,7 @@ function findActiveDeploymentByDistressSignalId(meshDistressSignalId) {
       updated_at AS updatedAt
     FROM distress_deployments
     WHERE mesh_distress_signal_id = ?
+      AND distress_source = 'mesh'
       AND status = 'deployed'
     LIMIT 1
   `, [meshDistressSignalId]);
@@ -203,6 +409,8 @@ function getDeploymentById(id) {
       d.id,
       d.deployment_code AS deploymentCode,
       d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.online_distress_signal_id AS onlineDistressSignalId,
+      d.distress_source AS distressSource,
       d.origin_node_id AS originNodeId,
       d.origin_distress_id AS originDistressId,
       d.team_id AS teamId,
@@ -267,6 +475,8 @@ async function createDeployment(deployment, members) {
       INSERT INTO distress_deployments (
         deployment_code,
         mesh_distress_signal_id,
+        online_distress_signal_id,
+        distress_source,
         origin_node_id,
         origin_distress_id,
         team_id,
@@ -276,11 +486,13 @@ async function createDeployment(deployment, members) {
         created_at,
         deployed_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING id
     `, [
       deployment.deploymentCode,
-      deployment.meshDistressSignalId,
+      deployment.meshDistressSignalId ?? null,
+      deployment.onlineDistressSignalId ?? null,
+      deployment.distressSource || 'mesh',
       deployment.originNodeId,
       deployment.originDistressId,
       deployment.teamId,
@@ -485,6 +697,134 @@ function getRescuerLocationCurrentByRescuerId(rescuerId) {
   `, [rescuerId]);
 }
 
+function findActiveOnlineDistressByUserId(userId) {
+  return get(`
+    SELECT
+      id,
+      distress_code AS distressCode,
+      user_id AS userId,
+      user_code AS userCode,
+      first_name AS firstName,
+      last_name AS lastName,
+      phone,
+      blood_type AS bloodType,
+      age,
+      occupation,
+      reason,
+      latitude,
+      longitude,
+      accuracy_m AS accuracyM,
+      recorded_at AS recordedAt,
+      status,
+      canceled_at AS canceledAt,
+      accomplished_at AS accomplishedAt,
+      updated_at AS updatedAt,
+      created_at AS createdAt
+    FROM online_distress_signals
+    WHERE user_id = ?
+      AND status = 'active'
+      AND deleted = 0
+    ORDER BY recorded_at DESC, id DESC
+    LIMIT 1
+  `, [userId]);
+}
+
+function createOnlineDistressSignal(distress) {
+  return run(`
+    INSERT INTO online_distress_signals (
+      distress_code,
+      user_id,
+      user_code,
+      first_name,
+      last_name,
+      phone,
+      blood_type,
+      age,
+      occupation,
+      reason,
+      latitude,
+      longitude,
+      accuracy_m,
+      recorded_at,
+      status,
+      updated_at,
+      created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+    RETURNING id
+  `, [
+    distress.distressCode,
+    distress.userId,
+    distress.userCode,
+    distress.firstName,
+    distress.lastName,
+    distress.phone,
+    distress.bloodType,
+    distress.age,
+    distress.occupation,
+    distress.reason,
+    distress.latitude,
+    distress.longitude,
+    distress.accuracyM,
+    distress.recordedAt,
+    distress.updatedAt,
+    distress.createdAt
+  ]);
+}
+
+function updateOnlineDistressStatus(id, status, timestamp) {
+  return run(`
+    UPDATE online_distress_signals
+    SET
+      status = ?,
+      canceled_at = CASE WHEN ? = 'canceled' THEN ? ELSE canceled_at END,
+      accomplished_at = CASE WHEN ? = 'accomplished' THEN ? ELSE accomplished_at END,
+      updated_at = ?
+    WHERE id = ?
+      AND deleted = 0
+  `, [status, status, timestamp, status, timestamp, timestamp, id]);
+}
+
+function cancelActiveOnlineDistressForUser(id, userId, timestamp) {
+  return run(`
+    UPDATE online_distress_signals
+    SET
+      status = 'canceled',
+      canceled_at = ?,
+      updated_at = ?
+    WHERE id = ?
+      AND user_id = ?
+      AND status = 'active'
+      AND deleted = 0
+  `, [timestamp, timestamp, id, userId]);
+}
+
+function listActiveOnlineDistressSignals() {
+  return all(`
+    SELECT
+      id,
+      distress_code AS distressCode,
+      user_id AS userId,
+      user_code AS userCode,
+      first_name AS firstName,
+      last_name AS lastName,
+      phone,
+      blood_type AS bloodType,
+      age,
+      occupation,
+      reason,
+      latitude,
+      longitude,
+      accuracy_m AS accuracyM,
+      recorded_at AS recordedAt,
+      status,
+      updated_at AS updatedAt
+    FROM online_distress_signals
+    WHERE status = 'active'
+      AND deleted = 0
+    ORDER BY recorded_at DESC, id DESC
+  `);
+}
+
 function upsertDeploymentRouteSnapshot(snapshot) {
   return run(`
     INSERT INTO deployment_route_snapshots (
@@ -553,10 +893,14 @@ function getDeploymentRouteSnapshotByDeploymentId(deploymentId) {
 
 function listActiveAssignmentsForRescuer(rescuerId) {
   return all(`
+    SELECT *
+    FROM (
     SELECT
       d.id,
       d.deployment_code AS deploymentCode,
       d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.online_distress_signal_id AS onlineDistressSignalId,
+      d.distress_source AS distressSource,
       d.origin_node_id AS originNodeId,
       d.origin_distress_id AS originDistressId,
       d.team_id AS teamId,
@@ -578,12 +922,14 @@ function listActiveAssignmentsForRescuer(rescuerId) {
       m.phone,
       m.blood_type AS bloodType,
       m.age,
+      NULL AS occupation,
       n.node_id AS nodeId,
       n.node_name AS nodeName,
       s.distance_m AS distanceM,
       s.duration_s AS durationS,
       s.eta_minutes AS etaMinutes,
       s.geometry_json AS geometryJson,
+      s.provider AS routeProvider,
       s.updated_at AS routeUpdatedAt
     FROM distress_deployment_members dm
     INNER JOIN distress_deployments d ON d.id = dm.deployment_id
@@ -593,17 +939,69 @@ function listActiveAssignmentsForRescuer(rescuerId) {
     LEFT JOIN deployment_route_snapshots s ON s.deployment_id = d.id
     WHERE dm.rescuer_id = ?
       AND d.status = 'deployed'
+      AND d.distress_source = 'mesh'
       AND m.deleted = 0
-    ORDER BY COALESCE(d.deployed_at, d.created_at) DESC, d.id DESC
-  `, [rescuerId]);
-}
-
-function listAssignmentsForRescuer(rescuerId) {
-  return all(`
+    UNION ALL
     SELECT
       d.id,
       d.deployment_code AS deploymentCode,
       d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.online_distress_signal_id AS onlineDistressSignalId,
+      d.distress_source AS distressSource,
+      d.origin_node_id AS originNodeId,
+      d.origin_distress_id AS originDistressId,
+      d.team_id AS teamId,
+      d.team_leader_rescuer_id AS teamLeaderRescuerId,
+      d.status,
+      d.created_at AS createdAt,
+      d.deployed_at AS deployedAt,
+      d.updated_at AS updatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      o.distress_code AS distressCode,
+      o.reason,
+      o.latitude,
+      o.longitude,
+      o.recorded_at AS timestamp,
+      'high' AS priority,
+      o.first_name AS firstName,
+      o.last_name AS lastName,
+      o.phone,
+      o.blood_type AS bloodType,
+      o.age,
+      o.occupation,
+      NULL AS nodeId,
+      'Civilian online location' AS nodeName,
+      s.distance_m AS distanceM,
+      s.duration_s AS durationS,
+      s.eta_minutes AS etaMinutes,
+      s.geometry_json AS geometryJson,
+      s.provider AS routeProvider,
+      s.updated_at AS routeUpdatedAt
+    FROM distress_deployment_members dm
+    INNER JOIN distress_deployments d ON d.id = dm.deployment_id
+    INNER JOIN online_distress_signals o ON o.id = d.online_distress_signal_id
+    LEFT JOIN rescue_teams t ON t.id = d.team_id
+    LEFT JOIN deployment_route_snapshots s ON s.deployment_id = d.id
+    WHERE dm.rescuer_id = ?
+      AND d.status = 'deployed'
+      AND d.distress_source = 'online'
+      AND o.deleted = 0
+    ) assignments
+    ORDER BY COALESCE("deployedAt", "createdAt") DESC, id DESC
+  `, [rescuerId, rescuerId]);
+}
+
+function listAssignmentsForRescuer(rescuerId) {
+  return all(`
+    SELECT *
+    FROM (
+    SELECT
+      d.id,
+      d.deployment_code AS deploymentCode,
+      d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.online_distress_signal_id AS onlineDistressSignalId,
+      d.distress_source AS distressSource,
       d.origin_node_id AS originNodeId,
       d.origin_distress_id AS originDistressId,
       d.team_id AS teamId,
@@ -627,12 +1025,14 @@ function listAssignmentsForRescuer(rescuerId) {
       m.phone,
       m.blood_type AS bloodType,
       m.age,
+      NULL AS occupation,
       n.node_id AS nodeId,
       n.node_name AS nodeName,
       s.distance_m AS distanceM,
       s.duration_s AS durationS,
       s.eta_minutes AS etaMinutes,
       s.geometry_json AS geometryJson,
+      s.provider AS routeProvider,
       s.updated_at AS routeUpdatedAt
     FROM distress_deployment_members dm
     INNER JOIN distress_deployments d ON d.id = dm.deployment_id
@@ -642,17 +1042,71 @@ function listAssignmentsForRescuer(rescuerId) {
     LEFT JOIN deployment_route_snapshots s ON s.deployment_id = d.id
     WHERE dm.rescuer_id = ?
       AND d.status IN ('deployed', 'accomplished', 'canceled')
+      AND d.distress_source = 'mesh'
       AND m.deleted = 0
-    ORDER BY COALESCE(d.updated_at, d.deployed_at, d.created_at) DESC, d.id DESC
-  `, [rescuerId]);
-}
-
-function findActiveAssignmentForRescuer(rescuerId) {
-  return get(`
+    UNION ALL
     SELECT
       d.id,
       d.deployment_code AS deploymentCode,
       d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.online_distress_signal_id AS onlineDistressSignalId,
+      d.distress_source AS distressSource,
+      d.origin_node_id AS originNodeId,
+      d.origin_distress_id AS originDistressId,
+      d.team_id AS teamId,
+      d.team_leader_rescuer_id AS teamLeaderRescuerId,
+      d.status,
+      d.created_at AS createdAt,
+      d.deployed_at AS deployedAt,
+      d.canceled_at AS canceledAt,
+      d.accomplished_at AS accomplishedAt,
+      d.updated_at AS updatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      o.distress_code AS distressCode,
+      o.reason,
+      o.latitude,
+      o.longitude,
+      o.recorded_at AS timestamp,
+      'high' AS priority,
+      o.first_name AS firstName,
+      o.last_name AS lastName,
+      o.phone,
+      o.blood_type AS bloodType,
+      o.age,
+      o.occupation,
+      NULL AS nodeId,
+      'Civilian online location' AS nodeName,
+      s.distance_m AS distanceM,
+      s.duration_s AS durationS,
+      s.eta_minutes AS etaMinutes,
+      s.geometry_json AS geometryJson,
+      s.provider AS routeProvider,
+      s.updated_at AS routeUpdatedAt
+    FROM distress_deployment_members dm
+    INNER JOIN distress_deployments d ON d.id = dm.deployment_id
+    INNER JOIN online_distress_signals o ON o.id = d.online_distress_signal_id
+    LEFT JOIN rescue_teams t ON t.id = d.team_id
+    LEFT JOIN deployment_route_snapshots s ON s.deployment_id = d.id
+    WHERE dm.rescuer_id = ?
+      AND d.status IN ('deployed', 'accomplished', 'canceled')
+      AND d.distress_source = 'online'
+      AND o.deleted = 0
+    ) assignments
+    ORDER BY COALESCE("updatedAt", "deployedAt", "createdAt") DESC, id DESC
+  `, [rescuerId, rescuerId]);
+}
+
+function findActiveAssignmentForRescuer(rescuerId) {
+  return get(`
+    SELECT *
+    FROM (
+    SELECT
+      d.id,
+      d.deployment_code AS deploymentCode,
+      d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.online_distress_signal_id AS onlineDistressSignalId,
+      d.distress_source AS distressSource,
       d.origin_node_id AS originNodeId,
       d.origin_distress_id AS originDistressId,
       d.team_id AS teamId,
@@ -674,6 +1128,7 @@ function findActiveAssignmentForRescuer(rescuerId) {
       m.phone,
       m.blood_type AS bloodType,
       m.age,
+      NULL AS occupation,
       n.node_id AS nodeId,
       n.node_name AS nodeName
     FROM distress_deployment_members dm
@@ -683,10 +1138,52 @@ function findActiveAssignmentForRescuer(rescuerId) {
     LEFT JOIN mesh_nodes n ON n.node_id = d.origin_node_id
     WHERE dm.rescuer_id = ?
       AND d.status = 'deployed'
+      AND d.distress_source = 'mesh'
       AND m.deleted = 0
-    ORDER BY COALESCE(d.deployed_at, d.created_at) DESC, d.id DESC
+    UNION ALL
+    SELECT
+      d.id,
+      d.deployment_code AS deploymentCode,
+      d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.online_distress_signal_id AS onlineDistressSignalId,
+      d.distress_source AS distressSource,
+      d.origin_node_id AS originNodeId,
+      d.origin_distress_id AS originDistressId,
+      d.team_id AS teamId,
+      d.team_leader_rescuer_id AS teamLeaderRescuerId,
+      d.status,
+      d.created_at AS createdAt,
+      d.deployed_at AS deployedAt,
+      d.updated_at AS updatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      o.distress_code AS distressCode,
+      o.reason,
+      o.latitude,
+      o.longitude,
+      o.recorded_at AS timestamp,
+      'high' AS priority,
+      o.first_name AS firstName,
+      o.last_name AS lastName,
+      o.phone,
+      o.blood_type AS bloodType,
+      o.age,
+      o.occupation,
+      NULL AS nodeId,
+      'Civilian online location' AS nodeName
+    FROM distress_deployment_members dm
+    INNER JOIN distress_deployments d ON d.id = dm.deployment_id
+    INNER JOIN online_distress_signals o ON o.id = d.online_distress_signal_id
+    LEFT JOIN rescue_teams t ON t.id = d.team_id
+    WHERE dm.rescuer_id = ?
+      AND d.status = 'deployed'
+      AND d.distress_source = 'online'
+      AND o.deleted = 0
+      AND o.status = 'active'
+    ) assignments
+    ORDER BY COALESCE("deployedAt", "createdAt") DESC, id DESC
     LIMIT 1
-  `, [rescuerId]);
+  `, [rescuerId, rescuerId]);
 }
 
 function findActiveDeploymentByOrigin(originNodeId, originDistressId) {
@@ -786,10 +1283,14 @@ function getLatestDeployedAssignment() {
 
 function listActiveDeployedAssignments() {
   return all(`
+    SELECT *
+    FROM (
     SELECT
       d.id,
       d.deployment_code AS deploymentCode,
       d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.online_distress_signal_id AS onlineDistressSignalId,
+      d.distress_source AS distressSource,
       d.origin_node_id AS originNodeId,
       d.origin_distress_id AS originDistressId,
       d.team_id AS teamId,
@@ -812,6 +1313,7 @@ function listActiveDeployedAssignments() {
       m.phone,
       m.blood_type AS bloodType,
       m.age,
+      NULL AS occupation,
       n.node_id AS nodeId,
       n.node_name AS nodeName
     FROM distress_deployments d
@@ -819,8 +1321,49 @@ function listActiveDeployedAssignments() {
     LEFT JOIN rescue_teams t ON t.id = d.team_id
     LEFT JOIN mesh_nodes n ON n.node_id = d.origin_node_id
     WHERE d.status = 'deployed'
+      AND d.distress_source = 'mesh'
       AND m.deleted = 0
-    ORDER BY COALESCE(d.deployed_at, d.created_at) DESC, d.id DESC
+    UNION ALL
+    SELECT
+      d.id,
+      d.deployment_code AS deploymentCode,
+      d.mesh_distress_signal_id AS meshDistressSignalId,
+      d.online_distress_signal_id AS onlineDistressSignalId,
+      d.distress_source AS distressSource,
+      d.origin_node_id AS originNodeId,
+      d.origin_distress_id AS originDistressId,
+      d.team_id AS teamId,
+      d.team_leader_rescuer_id AS teamLeaderRescuerId,
+      d.status,
+      d.created_at AS createdAt,
+      d.deployed_at AS deployedAt,
+      d.updated_at AS updatedAt,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      t.status AS teamStatus,
+      o.distress_code AS distressCode,
+      o.reason,
+      o.latitude,
+      o.longitude,
+      o.recorded_at AS timestamp,
+      'high' AS priority,
+      o.first_name AS firstName,
+      o.last_name AS lastName,
+      o.phone,
+      o.blood_type AS bloodType,
+      o.age,
+      o.occupation,
+      NULL AS nodeId,
+      'Civilian online location' AS nodeName
+    FROM distress_deployments d
+    INNER JOIN online_distress_signals o ON o.id = d.online_distress_signal_id
+    LEFT JOIN rescue_teams t ON t.id = d.team_id
+    WHERE d.status = 'deployed'
+      AND d.distress_source = 'online'
+      AND o.deleted = 0
+      AND o.status = 'active'
+    ) assignments
+    ORDER BY COALESCE("deployedAt", "createdAt") DESC, id DESC
   `);
 }
 
@@ -846,8 +1389,11 @@ function listDeploymentsForSync(cursor, limit) {
     FROM distress_deployments d
     LEFT JOIN rescue_teams t ON t.id = d.team_id
     LEFT JOIN rescuers r ON r.id = d.team_leader_rescuer_id
-    WHERE d.updated_at > ?
-       OR (d.updated_at = ? AND d.id > ?)
+    WHERE d.distress_source = 'mesh'
+      AND (
+        d.updated_at > ?
+        OR (d.updated_at = ? AND d.id > ?)
+      )
     ORDER BY d.updated_at ASC, d.id ASC
     LIMIT ?
   `, [
@@ -883,6 +1429,7 @@ function listDeploymentRouteSnapshotsForSync(cursor, limit) {
     INNER JOIN distress_deployments d ON d.id = s.deployment_id
     LEFT JOIN rescuers r ON r.id = s.leader_rescuer_id
     WHERE d.status = 'deployed'
+      AND d.distress_source = 'mesh'
       AND (
         s.updated_at > ?
         OR (s.updated_at = ? AND s.id > ?)
@@ -981,10 +1528,14 @@ function getNodeActiveDistress(nodeId) {
 
 module.exports = {
   generateDeploymentCode,
+  generateOnlineDistressCode,
   listDistressSignals,
   getDistressSignalById,
   getActiveDistressSignalById,
+  getOnlineDistressSignalById,
+  getActiveOnlineDistressSignalById,
   findActiveDeploymentByDistressSignalId,
+  findActiveDeploymentByOnlineDistressSignalId,
   getDeploymentById,
   listDeploymentMembers,
   createDeployment,
@@ -992,6 +1543,11 @@ module.exports = {
   upsertRescuerLocationCurrent,
   insertRescuerLocationHistory,
   getRescuerLocationCurrentByRescuerId,
+  findActiveOnlineDistressByUserId,
+  createOnlineDistressSignal,
+  updateOnlineDistressStatus,
+  cancelActiveOnlineDistressForUser,
+  listActiveOnlineDistressSignals,
   upsertDeploymentRouteSnapshot,
   getDeploymentRouteSnapshotByDeploymentId,
   listActiveAssignmentsForRescuer,

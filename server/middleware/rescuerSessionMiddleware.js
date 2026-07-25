@@ -51,7 +51,31 @@ async function requireMobileSession(req, res, next) {
   }
 }
 
+async function requireCivilianSession(req, res, next) {
+  try {
+    const authenticatedSession = await validateCivilianMobileAppSession(req);
+
+    if (!authenticatedSession) {
+      return res.status(401).json({
+        success: false,
+        message: 'Valid civilian authentication is required.'
+      });
+    }
+
+    req.civilianSession = authenticatedSession.session;
+    req.civilian = authenticatedSession.principal;
+    return next();
+  } catch (error) {
+    console.error('Civilian session validation error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to validate civilian session.'
+    });
+  }
+}
+
 module.exports = {
   requireMobileSession,
-  requireRescuerSession
+  requireRescuerSession,
+  requireCivilianSession
 };
