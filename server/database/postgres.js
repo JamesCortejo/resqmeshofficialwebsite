@@ -400,7 +400,6 @@ async function ensureBootstrapSyncDevice() {
     ) VALUES (?, ?, 'active', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     ON CONFLICT(node_id) DO UPDATE SET
       node_name = excluded.node_name,
-      api_key_hash = excluded.api_key_hash,
       allowed_ip = excluded.allowed_ip,
       status = 'active',
       updated_at = CURRENT_TIMESTAMP
