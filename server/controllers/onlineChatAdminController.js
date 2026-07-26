@@ -4,8 +4,11 @@ const {
   getAdminConversations,
   getAdminDepartments,
   getConversationMessages,
+  getGlobalMessages,
   markRead,
+  markGlobalAnnouncementsRead,
   sendAdminMessage,
+  sendGlobalAnnouncement,
   updateDepartmentChat
 } = require('../services/onlineChatService');
 
@@ -128,6 +131,26 @@ exports.listConversations = async (req, res) => {
   }
 };
 
+exports.listGlobalMessages = async (req, res) => {
+  try {
+    const result = await getGlobalMessages({
+      type: 'admin',
+      id: req.adminUser.id
+    }, {
+      beforeId: parseId(req.query.before),
+      limit: Math.min(parseId(req.query.limit) || 80, 100)
+    });
+
+    return res.json({
+      success: true,
+      count: result.messages.length,
+      data: result
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load global announcements.');
+  }
+};
+
 exports.listMessages = async (req, res) => {
   try {
     const conversationId = parseId(req.params.id);
@@ -180,6 +203,20 @@ exports.sendMessage = async (req, res) => {
   }
 };
 
+exports.sendGlobalMessage = async (req, res) => {
+  try {
+    const message = await sendGlobalAnnouncement(req.adminUser.id, req.body?.body);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Announcement sent.',
+      data: message
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to send announcement.');
+  }
+};
+
 exports.markRead = async (req, res) => {
   try {
     const conversationId = parseId(req.params.id);
@@ -202,5 +239,21 @@ exports.markRead = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to mark conversation read.');
+  }
+};
+
+exports.markGlobalRead = async (req, res) => {
+  try {
+    await markGlobalAnnouncementsRead({
+      type: 'admin',
+      id: req.adminUser.id
+    });
+
+    return res.json({
+      success: true,
+      message: 'Global announcements marked as read.'
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to mark global announcements read.');
   }
 };

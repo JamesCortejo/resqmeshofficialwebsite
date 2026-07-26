@@ -334,6 +334,38 @@ function listMessages(conversationId, { beforeId = null, limit = 50 } = {}) {
   `, params);
 }
 
+function listGlobalMessages(departmentId, { beforeId = null, limit = 50 } = {}) {
+  const params = [departmentId];
+  let beforeClause = '';
+
+  if (beforeId) {
+    beforeClause = 'AND id < ?';
+    params.push(beforeId);
+  }
+
+  params.push(limit);
+
+  return all(`
+    SELECT *
+    FROM (
+      SELECT
+        id,
+        department_id AS departmentId,
+        sender_type AS senderType,
+        sender_id AS senderId,
+        body,
+        deleted,
+        created_at AS createdAt,
+        updated_at AS updatedAt
+      FROM online_chat_global_messages
+      WHERE department_id = ? AND deleted = 0 ${beforeClause}
+      ORDER BY id DESC
+      LIMIT ?
+    ) recent
+    ORDER BY id ASC
+  `, params);
+}
+
 function markConversationRead(conversationId, readerType, readerId) {
   return run(`
     INSERT INTO online_chat_read_states (
@@ -361,6 +393,35 @@ function markConversationRead(conversationId, readerType, readerId) {
       last_read_at = CURRENT_TIMESTAMP,
       updated_at = CURRENT_TIMESTAMP
   `, [conversationId, readerType, readerId, conversationId]);
+}
+
+function markGlobalRead(departmentId, readerType, readerId) {
+  return run(`
+    INSERT INTO online_chat_global_read_states (
+      department_id,
+      reader_type,
+      reader_id,
+      last_read_message_id,
+      last_read_at,
+      created_at,
+      updated_at
+    )
+    SELECT
+      ?,
+      ?,
+      ?,
+      MAX(id),
+      CURRENT_TIMESTAMP,
+      CURRENT_TIMESTAMP,
+      CURRENT_TIMESTAMP
+    FROM online_chat_global_messages
+    WHERE department_id = ? AND deleted = 0
+    ON CONFLICT (department_id, reader_type, reader_id)
+    DO UPDATE SET
+      last_read_message_id = EXCLUDED.last_read_message_id,
+      last_read_at = CURRENT_TIMESTAMP,
+      updated_at = CURRENT_TIMESTAMP
+  `, [departmentId, readerType, readerId, departmentId]);
 }
 
 function listAdminConversations(departmentId, adminUserId, { search = '' } = {}) {
@@ -463,6 +524,56 @@ function getCivilianDepartmentUnreadSummary(civilianUserId) {
   `, [civilianUserId, civilianUserId]);
 }
 
+function getCivilianGlobalUnreadSummary(civilianUserId, departmentId) {
+  return get(`
+    SELECT COUNT(unread.id) AS unreadCount
+    FROM online_chat_global_messages unread
+    LEFT JOIN online_chat_global_read_states rs
+      ON rs.department_id = unread.department_id
+      AND rs.reader_type = 'civilian'
+      AND rs.reader_id = ?
+    WHERE unread.department_id = ?
+      AND unread.deleted = 0
+      AND unread.id > COALESCE(rs.last_read_message_id, 0)
+  `, [civilianUserId, departmentId]);
+}
+
+function insertGlobalMessage(message) {
+  return run(`
+    INSERT INTO online_chat_global_messages (
+      department_id,
+      sender_type,
+      sender_id,
+      body,
+      created_at,
+      updated_at
+    ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    RETURNING id
+  `, [
+    message.departmentId,
+    message.senderType,
+    message.senderId,
+    message.body
+  ]);
+}
+
+function getGlobalMessageById(id) {
+  return get(`
+    SELECT
+      id,
+      department_id AS departmentId,
+      sender_type AS senderType,
+      sender_id AS senderId,
+      body,
+      deleted,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM online_chat_global_messages
+    WHERE id = ?
+    LIMIT 1
+  `, [id]);
+}
+
 module.exports = {
   archiveDepartment,
   createDepartment,
@@ -470,14 +581,19 @@ module.exports = {
   getAdminDepartmentUnreadSummary,
   getCivilianById,
   getCivilianDepartmentUnreadSummary,
+  getCivilianGlobalUnreadSummary,
   getConversationById,
   getDepartmentById,
   getDepartmentBySlug,
+  getGlobalMessageById,
   getOrCreateConversation,
+  insertGlobalMessage,
   insertMessage,
   listAdminConversations,
   listDepartments,
+  listGlobalMessages,
   listMessages,
+  markGlobalRead,
   markConversationRead,
   updateDepartment
 };

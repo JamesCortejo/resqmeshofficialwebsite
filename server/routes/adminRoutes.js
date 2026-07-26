@@ -53,8 +53,11 @@ router.post('/online-chat/departments', departmentChatIconUpload, handleUploadEr
 router.patch('/online-chat/departments/:id', departmentChatIconUpload, handleUploadErrors, onlineChatAdminController.updateDepartment);
 router.post('/online-chat/departments/:id/archive', onlineChatAdminController.archiveDepartment);
 router.get('/online-chat/conversations', onlineChatAdminController.listConversations);
+router.get('/online-chat/global/messages', onlineChatAdminController.listGlobalMessages);
 router.get('/online-chat/conversations/:id/messages', onlineChatAdminController.listMessages);
+router.post('/online-chat/global/messages', onlineChatAdminController.sendGlobalMessage);
 router.post('/online-chat/conversations/:id/messages', onlineChatAdminController.sendMessage);
+router.post('/online-chat/global/read', onlineChatAdminController.markGlobalRead);
 router.post('/online-chat/conversations/:id/read', onlineChatAdminController.markRead);
 router.post('/rescuers', rescuerController.createRescuer);
 router.get('/rescuers', rescuerController.listRescuers);

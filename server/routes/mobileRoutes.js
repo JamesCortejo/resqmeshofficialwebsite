@@ -29,8 +29,10 @@ router.get('/api/civilian/distress-signals/active', requireCivilianSession, civi
 router.post('/api/civilian/distress-signals/:id/cancel', requireCivilianSession, civilianDistressController.cancel);
 router.get('/api/civilian/online-chat/departments', requireCivilianSession, onlineChatCivilianController.listDepartments);
 router.post('/api/civilian/online-chat/departments/:departmentId/conversation', requireCivilianSession, onlineChatCivilianController.openConversation);
+router.get('/api/civilian/online-chat/global/messages', requireCivilianSession, onlineChatCivilianController.listGlobalMessages);
 router.get('/api/civilian/online-chat/conversations/:id/messages', requireCivilianSession, onlineChatCivilianController.listMessages);
 router.post('/api/civilian/online-chat/conversations/:id/messages', requireCivilianSession, onlineChatCivilianController.sendMessage);
+router.post('/api/civilian/online-chat/global/read', requireCivilianSession, onlineChatCivilianController.markGlobalRead);
 router.post('/api/civilian/online-chat/conversations/:id/read', requireCivilianSession, onlineChatCivilianController.markRead);
 
 router.get('/api/rescuer/assignments', requireRescuerSession, mobileOperationsController.listRescuerAssignments);

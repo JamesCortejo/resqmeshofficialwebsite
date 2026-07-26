@@ -1,7 +1,9 @@
 const {
   getCivilianDepartments,
   getConversationMessages,
+  getGlobalMessages,
   markRead,
+  markGlobalAnnouncementsRead,
   openCivilianConversation,
   sendCivilianMessage
 } = require('../services/onlineChatService');
@@ -57,6 +59,26 @@ exports.openConversation = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to open department chat.');
+  }
+};
+
+exports.listGlobalMessages = async (req, res) => {
+  try {
+    const result = await getGlobalMessages({
+      type: 'civilian',
+      id: req.civilian.id
+    }, {
+      beforeId: parseId(req.query.before),
+      limit: Math.min(parseId(req.query.limit) || 80, 100)
+    });
+
+    return res.json({
+      success: true,
+      count: result.messages.length,
+      data: result
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load global announcements.');
   }
 };
 
@@ -134,5 +156,21 @@ exports.markRead = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to mark conversation read.');
+  }
+};
+
+exports.markGlobalRead = async (req, res) => {
+  try {
+    await markGlobalAnnouncementsRead({
+      type: 'civilian',
+      id: req.civilian.id
+    });
+
+    return res.json({
+      success: true,
+      message: 'Global announcements marked as read.'
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to mark global announcements read.');
   }
 };

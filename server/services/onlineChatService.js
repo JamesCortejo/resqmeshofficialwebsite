@@ -9,14 +9,19 @@ const {
   createDepartment,
   getAdminDepartmentUnreadSummary,
   getCivilianDepartmentUnreadSummary,
+  getCivilianGlobalUnreadSummary,
   getConversationById,
   getDepartmentById,
   getDepartmentBySlug,
+  getGlobalMessageById,
   getOrCreateConversation,
+  insertGlobalMessage,
   insertMessage,
   listAdminConversations,
   listDepartments,
+  listGlobalMessages,
   listMessages,
+  markGlobalRead,
   markConversationRead,
   updateDepartment
 } = require('../repositories/onlineChatRepository');
@@ -147,9 +152,9 @@ function formatDepartment(row, unreadCount = 0) {
 function formatMessage(row) {
   return {
     id: row.id,
-    conversationId: row.conversationId,
+    conversationId: row.conversationId || 0,
     departmentId: row.departmentId,
-    civilianUserId: row.civilianUserId,
+    civilianUserId: row.civilianUserId || 0,
     senderType: row.senderType,
     senderId: row.senderId,
     body: row.body,
@@ -193,6 +198,21 @@ function formatConversation(row) {
     civilian: formatCivilian(row),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
+  };
+}
+
+function isSystemGlobalDepartment(department) {
+  return department?.slug === SYSTEM_GLOBAL_DEPARTMENT.slug;
+}
+
+function buildGlobalConversation(departmentId, civilianUserId = 0) {
+  return {
+    id: 0,
+    departmentId,
+    civilianUserId,
+    status: 'open',
+    lastMessageId: null,
+    lastMessageAt: null
   };
 }
 
@@ -278,11 +298,13 @@ async function getAdminDepartments(adminUserId, options = {}) {
 
 async function getCivilianDepartments(civilianUserId) {
   const systemDepartment = await ensureSystemGlobalDepartment();
-  const [departments, unreadRows] = await Promise.all([
+  const [departments, unreadRows, globalUnreadRow] = await Promise.all([
     listDepartments({ includeArchived: false }),
-    getCivilianDepartmentUnreadSummary(civilianUserId)
+    getCivilianDepartmentUnreadSummary(civilianUserId),
+    getCivilianGlobalUnreadSummary(civilianUserId, systemDepartment.id)
   ]);
   const unreadByDepartment = new Map(unreadRows.map((row) => [row.departmentId, row.unreadCount]));
+  unreadByDepartment.set(systemDepartment.id, Number(globalUnreadRow?.unreadCount || 0));
   const visibleDepartments = [
     systemDepartment,
     ...departments.filter((department) => department.slug !== SYSTEM_GLOBAL_DEPARTMENT.slug)
@@ -371,10 +393,31 @@ async function openCivilianConversation(departmentId, civilianUserId) {
     throw appError('Department chat is not available.', 404);
   }
 
+  if (isSystemGlobalDepartment(department)) {
+    return {
+      department: formatDepartment(department),
+      conversation: buildGlobalConversation(department.id, civilianUserId)
+    };
+  }
+
   const conversation = await getOrCreateConversation(departmentId, civilianUserId);
   return {
     department: formatDepartment(department),
     conversation
+  };
+}
+
+async function getGlobalMessages(actor, options = {}) {
+  const department = await ensureSystemGlobalDepartment();
+  const messages = await listGlobalMessages(department.id, options);
+
+  return {
+    conversation: buildGlobalConversation(
+      department.id,
+      actor.type === 'civilian' ? actor.id : 0
+    ),
+    department: formatDepartment(department),
+    messages: messages.map(formatMessage)
   };
 }
 
@@ -467,6 +510,25 @@ async function sendCivilianMessage(conversationId, civilianUserId, bodyValue) {
   return formatMessage(message);
 }
 
+async function sendGlobalAnnouncement(adminUserId, bodyValue) {
+  const department = await ensureSystemGlobalDepartment();
+  const body = normalizeString(bodyValue, MAX_MESSAGE_LENGTH);
+
+  if (!body) {
+    throw appError('Message cannot be empty.');
+  }
+
+  const result = await insertGlobalMessage({
+    departmentId: department.id,
+    senderType: 'admin',
+    senderId: adminUserId,
+    body
+  });
+
+  await markGlobalRead(department.id, 'admin', adminUserId);
+  return formatMessage(await getGlobalMessageById(result.lastID));
+}
+
 async function markRead(conversationId, actor) {
   const conversation = await getConversationById(conversationId);
 
@@ -482,6 +544,12 @@ async function markRead(conversationId, actor) {
   return { conversationId };
 }
 
+async function markGlobalAnnouncementsRead(actor) {
+  const department = await ensureSystemGlobalDepartment();
+  await markGlobalRead(department.id, actor.type, actor.id);
+  return { departmentId: department.id };
+}
+
 module.exports = {
   archiveDepartmentChat,
   createDepartmentChat,
@@ -489,9 +557,12 @@ module.exports = {
   getAdminDepartments,
   getCivilianDepartments,
   getConversationMessages,
+  getGlobalMessages,
   markRead,
+  markGlobalAnnouncementsRead,
   openCivilianConversation,
   sendAdminMessage,
+  sendGlobalAnnouncement,
   sendCivilianMessage,
   updateDepartmentChat
 };

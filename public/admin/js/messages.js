@@ -63,6 +63,10 @@
     return state.conversations.find((conversation) => conversation.id === state.selectedConversationId) || null;
   }
 
+  function isGlobalDepartment(department = getSelectedDepartment()) {
+    return department?.slug === 'global-announcements';
+  }
+
   function formatTime(value) {
     if (!value) {
       return '';
@@ -122,7 +126,9 @@
     if (!state.conversations.length) {
       dom.conversationList.innerHTML = `
         <div class="messages-empty-state">
-          No civilian messages in this department yet.
+          ${isGlobalDepartment(department)
+            ? 'Announcements are broadcast from the chat pane.'
+            : 'No civilian messages in this department yet.'}
         </div>
       `;
       return;
@@ -149,6 +155,16 @@
   function renderChatHeader() {
     const conversation = getSelectedConversation();
     const department = getSelectedDepartment();
+
+    if (isGlobalDepartment(department)) {
+      dom.chatHeader.innerHTML = `
+        <div>
+          <h3>Global Announcements</h3>
+          <p>Broadcast to all civilians</p>
+        </div>
+      `;
+      return;
+    }
 
     if (!conversation) {
       dom.chatHeader.innerHTML = `
@@ -180,10 +196,24 @@
   }
 
   function renderTimeline() {
-    if (!state.selectedConversationId) {
+    const department = getSelectedDepartment();
+    const viewingGlobal = isGlobalDepartment(department);
+
+    if (viewingGlobal && !state.messages.length) {
       dom.timeline.innerHTML = `
         <div class="messages-empty-state">
-          ${state.departments.length ? 'Select a civilian conversation to view messages.' : 'Department chats will appear here after you create one.'}
+          No announcements yet.
+        </div>
+      `;
+      return;
+    }
+
+    if (!state.selectedConversationId && !viewingGlobal) {
+      dom.timeline.innerHTML = `
+        <div class="messages-empty-state">
+          ${state.departments.length
+            ? 'Select a civilian conversation to view messages.'
+            : 'Department chats will appear here after you create one.'}
         </div>
       `;
       return;
@@ -213,10 +243,15 @@
       }
 
       const outgoing = message.senderType === 'admin';
+      const authorLabel = message.senderType === 'system'
+        ? 'System'
+        : outgoing
+          ? 'Admin'
+          : 'Civilian';
       return `
         ${separator}
         <article class="messages-bubble ${outgoing ? 'is-outgoing' : 'is-incoming'}">
-          <span class="messages-bubble-author">${outgoing ? 'Admin' : 'Civilian'}</span>
+          <span class="messages-bubble-author">${authorLabel}</span>
           <p>${escapeHtml(message.body)}</p>
           <time>${escapeHtml(formatTime(message.createdAt))}</time>
         </article>
@@ -227,8 +262,11 @@
   }
 
   function syncComposer() {
-    const disabled = !state.selectedConversationId || state.sending || !state.departments.length;
+    const disabled = (!state.selectedConversationId && !isGlobalDepartment()) || state.sending || !state.departments.length;
     dom.composerInput.disabled = disabled;
+    dom.composerInput.placeholder = isGlobalDepartment()
+      ? 'Write an announcement for all civilians'
+      : 'Type a message to the selected civilian';
     dom.composerForm.querySelector('button[type="submit"]').disabled = disabled;
   }
 
@@ -280,6 +318,16 @@
   }
 
   async function loadMessages() {
+    if (isGlobalDepartment()) {
+      const payload = await adminFetch('/api/admin/online-chat/global/messages?limit=80');
+      state.messages = payload.data?.messages || [];
+      await adminFetch('/api/admin/online-chat/global/read', {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+      return;
+    }
+
     if (!state.selectedConversationId) {
       state.messages = [];
       return;
@@ -313,7 +361,7 @@
   }
 
   async function sendMessage(body) {
-    if (!state.selectedConversationId || state.sending) {
+    if ((!state.selectedConversationId && !isGlobalDepartment()) || state.sending) {
       return;
     }
 
@@ -325,10 +373,17 @@
     state.sending = true;
     syncComposer();
     try {
-      await adminFetch(`/api/admin/online-chat/conversations/${state.selectedConversationId}/messages`, {
-        method: 'POST',
-        body: JSON.stringify({ body: trimmed })
-      });
+      if (isGlobalDepartment()) {
+        await adminFetch('/api/admin/online-chat/global/messages', {
+          method: 'POST',
+          body: JSON.stringify({ body: trimmed })
+        });
+      } else {
+        await adminFetch(`/api/admin/online-chat/conversations/${state.selectedConversationId}/messages`, {
+          method: 'POST',
+          body: JSON.stringify({ body: trimmed })
+        });
+      }
       dom.composerInput.value = '';
       await refresh({ preserveSelection: true });
     } catch (error) {
