@@ -26,7 +26,9 @@ function errorResponse(res, error, fallbackMessage) {
 
   return res.status(statusCode).json({
     success: false,
-    message: statusCode === 500 ? fallbackMessage : error.message
+    message: statusCode === 500 ? fallbackMessage : error.message,
+    code: error.code || null,
+    retryAfterSeconds: Number.isInteger(error.retryAfterSeconds) ? error.retryAfterSeconds : null
   });
 }
 

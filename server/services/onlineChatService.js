@@ -4,6 +4,7 @@ const path = require('path');
 const sharp = require('sharp');
 const config = require('../config/env');
 const { decryptText } = require('./encryptionService');
+const { enforceCivilianMessageSecurity } = require('./onlineChatModerationService');
 const {
   archiveDepartment,
   createDepartment,
@@ -496,6 +497,13 @@ async function sendCivilianMessage(conversationId, civilianUserId, bodyValue) {
   if (!body) {
     throw appError('Message cannot be empty.');
   }
+
+  await enforceCivilianMessageSecurity({
+    civilianUserId,
+    departmentId: conversation.departmentId,
+    conversationId,
+    body,
+  });
 
   const message = await insertMessage({
     conversationId,
