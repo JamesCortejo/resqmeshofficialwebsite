@@ -15,6 +15,7 @@
     if (!messagesNavBadge) {
       messagesNavBadge = document.createElement('span');
       messagesNavBadge.className = 'admin-nav-link-badge';
+      messagesNavBadge.setAttribute('aria-hidden', 'true');
       messagesNavBadge.hidden = true;
       messagesNavLink.appendChild(messagesNavBadge);
     }
@@ -174,12 +175,12 @@
     const isMessagesPage = messagesNavLink?.classList.contains('is-active');
     if (!onlineChatUnreadCount || isMessagesPage) {
       messagesNavBadge.hidden = true;
-      messagesNavBadge.textContent = '0';
+      messagesNavBadge.textContent = '';
       return;
     }
 
     messagesNavBadge.hidden = false;
-    messagesNavBadge.textContent = onlineChatUnreadCount > 99 ? '99+' : String(onlineChatUnreadCount);
+    messagesNavBadge.textContent = '';
   }
 
   function dispatchNotificationsRefreshed(count) {

@@ -63,21 +63,19 @@
 }
 
 .admin-nav-link span:last-child {
+  flex: 1 1 auto;
   min-width: 0;
+  white-space: nowrap;
 }
 
 .admin-nav-link-badge {
   margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.45rem;
-  height: 1.45rem;
+  flex: 0 0 auto;
+  display: inline-block;
+  width: 0.72rem;
+  height: 0.72rem;
   border-radius: 999px;
   background: var(--admin-primary);
-  color: #ffffff;
-  font: 900 0.74rem/1 'Inter', system-ui, -apple-system, sans-serif;
-  padding: 0 0.38rem;
   box-shadow: 0 10px 18px rgba(231, 75, 50, 0.22);
 }
 
