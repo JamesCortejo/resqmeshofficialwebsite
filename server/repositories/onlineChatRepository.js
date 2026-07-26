@@ -203,6 +203,7 @@ function getConversationById(id) {
     FROM online_chat_conversations c
     JOIN online_chat_departments d ON d.id = c.department_id
     JOIN users u ON u.id = c.civilian_user_id
+      AND u.status = 'approved'
     WHERE c.id = ?
     LIMIT 1
   `, [id]);
@@ -530,12 +531,16 @@ function getAdminDepartmentUnreadSummary(adminUserId) {
       COUNT(unread.id) AS unreadCount
     FROM online_chat_departments d
     LEFT JOIN online_chat_conversations c ON c.department_id = d.id AND c.status = 'open'
+    LEFT JOIN users u
+      ON u.id = c.civilian_user_id
+      AND u.status = 'approved'
     LEFT JOIN online_chat_read_states rs
       ON rs.conversation_id = c.id
       AND rs.reader_type = 'admin'
       AND rs.reader_id = ?
     LEFT JOIN online_chat_messages unread
       ON unread.conversation_id = c.id
+      AND u.id IS NOT NULL
       AND unread.deleted = 0
       AND unread.sender_type IN ('civilian', 'rescuer')
       AND unread.id > COALESCE(rs.last_read_message_id, 0)
