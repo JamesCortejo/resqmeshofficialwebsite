@@ -20,6 +20,8 @@ const registrationUpload = upload.fields([
   { name: 'backIdImageFile', maxCount: 1 }
 ]);
 
+const departmentChatIconUpload = upload.single('icon');
+
 function handleUploadErrors(error, req, res, next) {
   if (!error) {
     next();
@@ -37,6 +39,7 @@ function handleUploadErrors(error, req, res, next) {
 }
 
 module.exports = {
+  departmentChatIconUpload,
   registrationUpload,
   handleUploadErrors
 };

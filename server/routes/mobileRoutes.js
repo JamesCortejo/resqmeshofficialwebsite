@@ -1,6 +1,7 @@
 const express = require('express');
 const civilianMobileAuthController = require('../controllers/civilianMobileAuthController');
 const civilianDistressController = require('../controllers/civilianDistressController');
+const onlineChatCivilianController = require('../controllers/onlineChatCivilianController');
 const rescuerMobileAuthController = require('../controllers/rescuerMobileAuthController');
 const mobileOperationsController = require('../controllers/mobileOperationsController');
 const { requireCivilianSession, requireMobileSession, requireRescuerSession } = require('../middleware/rescuerSessionMiddleware');
@@ -26,6 +27,11 @@ router.get('/api/node/:nodeId/route/live', mobileOperationsController.getPublicL
 router.post('/api/civilian/distress-signals', requireCivilianSession, civilianDistressController.create);
 router.get('/api/civilian/distress-signals/active', requireCivilianSession, civilianDistressController.getActive);
 router.post('/api/civilian/distress-signals/:id/cancel', requireCivilianSession, civilianDistressController.cancel);
+router.get('/api/civilian/online-chat/departments', requireCivilianSession, onlineChatCivilianController.listDepartments);
+router.post('/api/civilian/online-chat/departments/:departmentId/conversation', requireCivilianSession, onlineChatCivilianController.openConversation);
+router.get('/api/civilian/online-chat/conversations/:id/messages', requireCivilianSession, onlineChatCivilianController.listMessages);
+router.post('/api/civilian/online-chat/conversations/:id/messages', requireCivilianSession, onlineChatCivilianController.sendMessage);
+router.post('/api/civilian/online-chat/conversations/:id/read', requireCivilianSession, onlineChatCivilianController.markRead);
 
 router.get('/api/rescuer/assignments', requireRescuerSession, mobileOperationsController.listRescuerAssignments);
 router.get('/api/rescuer/route/live', requireRescuerSession, mobileOperationsController.getRescuerLiveRoute);

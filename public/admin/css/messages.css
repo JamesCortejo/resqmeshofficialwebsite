@@ -1,0 +1,636 @@
+.messages-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.messages-manager-panel {
+  height: calc(100vh - 10.5rem);
+  min-height: 780px;
+  padding: 1.1rem;
+}
+
+.messages-manager-shell {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.messages-conversation-pane,
+.messages-scope-pane,
+.messages-chat-pane {
+  border: 1px solid rgba(220, 227, 234, 0.92);
+  border-radius: calc(var(--admin-radius-md) + 0.1rem);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(255, 249, 247, 0.95));
+  box-shadow: 0 20px 42px rgba(23, 33, 43, 0.08);
+}
+
+.messages-conversation-pane {
+  grid-row: 1 / span 2;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 1rem;
+  min-height: 0;
+}
+
+.messages-scope-pane {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem 0.85rem;
+}
+
+.messages-chat-pane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.messages-pane-header,
+.messages-chat-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.messages-pane-header h3,
+.messages-chat-title {
+  margin: 0.18rem 0 0;
+  color: var(--admin-ink);
+  font: 900 1rem/1.2 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-pane-kicker {
+  color: var(--admin-primary-hover);
+  font: 900 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.messages-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  color: var(--admin-primary);
+  padding: 0 0.85rem;
+}
+
+.messages-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--admin-ink);
+  font: 700 0.9rem 'Inter', system-ui, -apple-system, sans-serif;
+  outline: none;
+  padding: 0.75rem 0;
+}
+
+.messages-search input::placeholder,
+.messages-composer-input::placeholder {
+  color: var(--admin-muted);
+  font-weight: 600;
+}
+
+.messages-search:focus-within,
+.messages-composer-input-wrap:focus-within {
+  border-color: rgba(231, 75, 50, 0.46);
+  box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
+}
+
+.messages-conversation-list {
+  display: grid;
+  align-content: start;
+  grid-auto-rows: max-content;
+  gap: 0.65rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.messages-conversation-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(220, 227, 234, 0.88);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  cursor: pointer;
+  padding: 0.92rem 0.95rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.messages-conversation-card:hover,
+.messages-conversation-card.is-active {
+  border-color: rgba(231, 75, 50, 0.34);
+  background: rgba(255, 245, 242, 0.98);
+  box-shadow: 0 16px 28px rgba(231, 75, 50, 0.08);
+  transform: translateY(-1px);
+}
+
+.messages-conversation-top,
+.messages-bubble-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.messages-conversation-main {
+  display: grid;
+  gap: 0.34rem;
+  min-width: 0;
+}
+
+.messages-conversation-title {
+  color: var(--admin-ink);
+  font: 900 0.92rem/1.3 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-conversation-time,
+.messages-chat-department,
+.messages-bubble-time {
+  color: var(--admin-muted);
+  font: 700 0.78rem/1.45 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-conversation-code {
+  display: inline-flex;
+  align-items: center;
+  color: var(--admin-primary-hover);
+  font: 900 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.messages-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.1rem;
+  min-height: 1.45rem;
+  border-radius: 0.5rem;
+  background: var(--admin-primary);
+  color: #ffffff;
+  font: 900 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 0.26rem 0.48rem;
+  flex: 0 0 auto;
+}
+
+.messages-scope-rail {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(231, 75, 50, 0.35) rgba(236, 241, 246, 0.95);
+}
+
+.messages-scope-rail::-webkit-scrollbar {
+  height: 8px;
+}
+
+.messages-scope-rail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(231, 75, 50, 0.32);
+}
+
+.messages-scope-rail::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(236, 241, 246, 0.95);
+}
+
+.messages-scope-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  border-radius: 1rem;
+  background: #ffffff;
+  color: var(--admin-primary-hover);
+  cursor: pointer;
+  padding: 0.7rem 0.95rem;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.messages-scope-chip:hover,
+.messages-scope-chip.is-active {
+  border-color: rgba(231, 75, 50, 0.34);
+  background: rgba(255, 245, 242, 0.98);
+  box-shadow: 0 12px 24px rgba(231, 75, 50, 0.1);
+}
+
+.messages-scope-chip-label {
+  display: block;
+  color: var(--admin-ink);
+  font: 900 0.85rem/1.15 'Inter', system-ui, -apple-system, sans-serif;
+  text-align: left;
+}
+
+.messages-scope-chip-meta {
+  display: block;
+  margin-top: 0.16rem;
+  color: var(--admin-muted);
+  font: 700 0.73rem/1.35 'Inter', system-ui, -apple-system, sans-serif;
+  text-align: left;
+}
+
+.messages-chat-header {
+  position: relative;
+  align-items: center;
+  border-bottom: 1px solid rgba(220, 227, 234, 0.92);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1rem 1.15rem;
+}
+
+.messages-chat-heading {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.messages-chat-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.messages-chat-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--admin-muted);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.messages-chat-menu-button:hover,
+.messages-chat-menu-button.is-active {
+  border-color: rgba(231, 75, 50, 0.34);
+  background: rgba(255, 245, 242, 0.98);
+  color: var(--admin-primary-hover);
+  box-shadow: 0 12px 24px rgba(231, 75, 50, 0.1);
+}
+
+.messages-chat-info-card {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  z-index: 3;
+  width: 18rem;
+  display: none;
+  gap: 0.9rem;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(255, 249, 247, 0.96));
+  box-shadow: 0 22px 44px rgba(23, 33, 43, 0.12);
+  padding: 0.95rem 1rem;
+}
+
+.messages-chat-info-card.is-open {
+  display: grid;
+}
+
+.messages-chat-info-header {
+  display: grid;
+  gap: 0.16rem;
+}
+
+.messages-chat-info-header strong {
+  color: var(--admin-ink);
+  font: 900 0.96rem/1.25 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-chat-info-header span {
+  color: var(--admin-primary-hover);
+  font: 900 0.74rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.messages-chat-info-grid {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.messages-chat-info-grid div {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.messages-chat-info-grid dt {
+  color: var(--admin-muted);
+  font: 800 0.7rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.messages-chat-info-grid dd {
+  margin: 0;
+  color: var(--admin-ink);
+  font: 700 0.82rem/1.45 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-timeline {
+  display: grid;
+  align-content: start;
+  gap: 0.9rem;
+  min-height: 0;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at top right, rgba(231, 75, 50, 0.08), transparent 24rem),
+    linear-gradient(180deg, rgba(250, 252, 255, 0.94), rgba(255, 247, 244, 0.96));
+  padding: 1.1rem;
+}
+
+.messages-date-separator {
+  display: flex;
+  justify-content: center;
+}
+
+.messages-date-separator span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(220, 227, 234, 0.92);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--admin-muted);
+  font: 800 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.7rem;
+  text-transform: uppercase;
+}
+
+.messages-bubble-wrap {
+  display: flex;
+}
+
+.messages-bubble-wrap.is-outgoing {
+  justify-content: flex-end;
+}
+
+.messages-bubble {
+  max-width: min(74%, 38rem);
+  display: grid;
+  gap: 0.45rem;
+  border-radius: 1.08rem;
+  border: 1px solid rgba(220, 227, 234, 0.88);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 24px rgba(23, 33, 43, 0.05);
+  padding: 0.85rem 0.95rem;
+}
+
+.messages-bubble-wrap.is-outgoing .messages-bubble {
+  border-color: rgba(231, 75, 50, 0.22);
+  background: linear-gradient(180deg, rgba(255, 242, 238, 0.98), rgba(255, 249, 247, 0.97));
+}
+
+.messages-bubble-author {
+  color: var(--admin-primary-hover);
+  font: 900 0.76rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.messages-bubble-body {
+  color: var(--admin-ink);
+  font: 700 0.9rem/1.58 'Inter', system-ui, -apple-system, sans-serif;
+  white-space: pre-wrap;
+}
+
+.messages-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  border-top: 1px solid rgba(220, 227, 234, 0.92);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 1rem 1.1rem;
+}
+
+.messages-composer-input-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 0 1rem;
+}
+
+.messages-composer-input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--admin-ink);
+  font: 700 0.92rem 'Inter', system-ui, -apple-system, sans-serif;
+  outline: none;
+  padding: 0.85rem 0;
+}
+
+.messages-send-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 48px;
+  border: 1px solid rgba(231, 75, 50, 0.2);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--admin-primary), #f15d3a);
+  color: #ffffff;
+  cursor: pointer;
+  font: 900 0.82rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.04em;
+  padding: 0.82rem 1.05rem;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.messages-send-button:hover {
+  box-shadow: 0 14px 24px rgba(231, 75, 50, 0.22);
+  transform: translateY(-1px);
+}
+
+.messages-send-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+}
+
+.messages-empty-state {
+  border: 1px dashed rgba(220, 227, 234, 0.9);
+  border-radius: var(--admin-radius-md);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--admin-muted);
+  font: 800 0.88rem/1.5 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 1.1rem;
+  text-align: center;
+}
+
+.messages-scope-card {
+  position: relative;
+}
+
+.messages-scope-badge,
+.messages-conversation-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--admin-primary);
+  color: #ffffff;
+  font: 900 0.75rem/1 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-scope-badge {
+  position: absolute;
+  top: 0.48rem;
+  right: 0.55rem;
+}
+
+.messages-info-button {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(220, 227, 234, 0.92);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--admin-muted);
+  cursor: pointer;
+}
+
+.messages-chat-header {
+  position: relative;
+}
+
+.messages-civilian-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 1rem;
+  z-index: 5;
+  width: min(18rem, 88vw);
+  display: none;
+  gap: 0.32rem;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow: 0 22px 44px rgba(23, 33, 43, 0.12);
+  padding: 0.9rem;
+}
+
+.messages-civilian-popover.is-open {
+  display: grid;
+}
+
+.messages-civilian-popover strong {
+  color: var(--admin-ink);
+  font: 900 0.95rem/1.3 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-civilian-popover span {
+  color: var(--admin-muted);
+  font: 700 0.8rem/1.45 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-date-separator {
+  color: var(--admin-muted);
+  font: 800 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.messages-bubble.is-incoming {
+  justify-self: start;
+}
+
+.messages-bubble.is-outgoing {
+  justify-self: end;
+  border-color: rgba(231, 75, 50, 0.22);
+  background: linear-gradient(180deg, rgba(255, 242, 238, 0.98), rgba(255, 249, 247, 0.97));
+}
+
+.messages-bubble p {
+  margin: 0;
+  color: var(--admin-ink);
+  font: 700 0.9rem/1.58 'Inter', system-ui, -apple-system, sans-serif;
+  white-space: pre-wrap;
+}
+
+.messages-bubble time {
+  color: var(--admin-muted);
+  font: 800 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@media (max-width: 980px) {
+  .messages-manager-shell {
+    grid-template-columns: 290px minmax(0, 1fr);
+  }
+
+  .messages-bubble {
+    max-width: 84%;
+  }
+}
+
+@media (max-width: 860px) {
+  .messages-manager-panel {
+    height: auto;
+    min-height: 0;
+  }
+
+  .messages-manager-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    min-height: auto;
+    height: auto;
+  }
+
+  .messages-conversation-pane {
+    grid-row: auto;
+    max-height: 28rem;
+  }
+}

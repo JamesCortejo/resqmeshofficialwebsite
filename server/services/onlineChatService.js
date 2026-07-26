@@ -1,0 +1,450 @@
+const crypto = require('crypto');
+const fs = require('fs/promises');
+const path = require('path');
+const sharp = require('sharp');
+const config = require('../config/env');
+const { decryptText } = require('./encryptionService');
+const {
+  archiveDepartment,
+  createDepartment,
+  getAdminDepartmentUnreadSummary,
+  getCivilianDepartmentUnreadSummary,
+  getConversationById,
+  getDepartmentById,
+  getDepartmentBySlug,
+  getOrCreateConversation,
+  insertMessage,
+  listAdminConversations,
+  listDepartments,
+  listMessages,
+  markConversationRead,
+  updateDepartment
+} = require('../repositories/onlineChatRepository');
+
+const ICON_UPLOAD_DIR = path.join(config.appRoot, 'public', 'uploads', 'department-chat-icons');
+const ICON_PUBLIC_BASE = '/uploads/department-chat-icons';
+const MAX_MESSAGE_LENGTH = 1000;
+const MAX_ICON_SIZE_BYTES = 1024 * 1024;
+const STATUS_VALUES = new Set(['active', 'inactive', 'archived']);
+const COLOR_VALUES = new Set(['red', 'blue', 'amber', 'teal', 'slate']);
+
+function appError(message, statusCode = 400) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function normalizeString(value, maxLength) {
+  const normalized = String(value ?? '').trim();
+  return maxLength ? normalized.slice(0, maxLength) : normalized;
+}
+
+function slugify(value) {
+  const slug = normalizeString(value, 80)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return slug || `department-${Date.now()}`;
+}
+
+function normalizeInteger(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) ? parsed : fallback;
+}
+
+function normalizeFlag(value) {
+  if (value === true || value === 1 || value === '1') {
+    return 1;
+  }
+
+  if (String(value).toLowerCase() === 'true') {
+    return 1;
+  }
+
+  return 0;
+}
+
+function calculateAge(birthDateValue) {
+  if (!birthDateValue) {
+    return null;
+  }
+
+  const parsed = new Date(`${birthDateValue}T00:00:00Z`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getUTCFullYear() - parsed.getUTCFullYear();
+  const monthDiff = today.getUTCMonth() - parsed.getUTCMonth();
+  const dayDiff = today.getUTCDate() - parsed.getUTCDate();
+
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age -= 1;
+  }
+
+  return Math.max(age, 0);
+}
+
+function safeDecrypt(value) {
+  try {
+    return decryptText(value);
+  } catch (error) {
+    return '';
+  }
+}
+
+function formatCivilian(row) {
+  const firstName = safeDecrypt(row.firstNameEnc);
+  const middleName = safeDecrypt(row.middleNameEnc);
+  const lastName = safeDecrypt(row.lastNameEnc);
+  const birthDate = safeDecrypt(row.birthDateEnc);
+
+  return {
+    id: row.civilianUserId || row.id,
+    code: row.userCode,
+    firstName,
+    middleName: middleName || null,
+    lastName,
+    fullName: [firstName, middleName, lastName].filter(Boolean).join(' ') || row.userCode || 'Civilian',
+    phone: safeDecrypt(row.phoneEnc),
+    occupation: safeDecrypt(row.occupationEnc),
+    bloodType: safeDecrypt(row.bloodTypeEnc),
+    birthDate: birthDate || null,
+    age: calculateAge(birthDate)
+  };
+}
+
+function formatDepartment(row, unreadCount = 0) {
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    subtitle: row.subtitle || '',
+    status: row.status,
+    colorTag: row.colorTag,
+    iconUrl: row.iconUrl || null,
+    sortOrder: row.sortOrder,
+    readOnly: Number(row.readOnly) === 1,
+    unreadCount: Number(unreadCount || 0),
+    archivedAt: row.archivedAt || null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  };
+}
+
+function formatMessage(row) {
+  return {
+    id: row.id,
+    conversationId: row.conversationId,
+    departmentId: row.departmentId,
+    civilianUserId: row.civilianUserId,
+    senderType: row.senderType,
+    senderId: row.senderId,
+    body: row.body,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  };
+}
+
+function formatConversation(row) {
+  return {
+    id: row.id,
+    departmentId: row.departmentId,
+    civilianUserId: row.civilianUserId,
+    status: row.status,
+    lastMessageId: row.lastMessageId || null,
+    lastMessageAt: row.lastMessageAt || null,
+    lastMessage: row.lastMessageBody
+      ? {
+          body: row.lastMessageBody,
+          senderType: row.lastMessageSenderType,
+          createdAt: row.lastMessageAt || row.updatedAt
+        }
+      : null,
+    unreadCount: Number(row.unreadCount || 0),
+    civilian: formatCivilian(row),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  };
+}
+
+function normalizeDepartmentPayload(payload, existing = null, icon = {}) {
+  const name = normalizeString(payload.name, 60);
+  const subtitle = normalizeString(payload.subtitle, 120);
+  const status = normalizeString(payload.status || existing?.status || 'active', 20);
+  const colorTag = normalizeString(payload.colorTag || payload.color || existing?.colorTag || 'red', 20);
+
+  if (!name) {
+    throw appError('Department chat name is required.');
+  }
+
+  if (!subtitle) {
+    throw appError('Department chat subtitle is required.');
+  }
+
+  if (!STATUS_VALUES.has(status)) {
+    throw appError('Invalid department chat status.');
+  }
+
+  if (!COLOR_VALUES.has(colorTag)) {
+    throw appError('Invalid department chat color tag.');
+  }
+
+  return {
+    slug: slugify(payload.slug || name),
+    name,
+    subtitle,
+    status,
+    colorTag,
+    iconPath: icon.iconPath || null,
+    iconUrl: icon.iconUrl || null,
+    sortOrder: normalizeInteger(payload.sortOrder ?? existing?.sortOrder, existing?.sortOrder || 100),
+    readOnly: normalizeFlag(payload.readOnly ?? existing?.readOnly ?? 0)
+  };
+}
+
+async function saveDepartmentIcon(file) {
+  if (!file) {
+    return {};
+  }
+
+  if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    throw appError('Department logo must be an image file.');
+  }
+
+  if (file.size > MAX_ICON_SIZE_BYTES) {
+    throw appError('Department logo must be 1MB or smaller.');
+  }
+
+  await fs.mkdir(ICON_UPLOAD_DIR, { recursive: true });
+  const filename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}.webp`;
+  const iconPath = path.join(ICON_UPLOAD_DIR, filename);
+
+  await sharp(file.buffer)
+    .resize(160, 160, { fit: 'cover' })
+    .webp({ quality: 82 })
+    .toFile(iconPath);
+
+  return {
+    iconPath,
+    iconUrl: `${ICON_PUBLIC_BASE}/${filename}`
+  };
+}
+
+async function getAdminDepartments(adminUserId) {
+  const [departments, unreadRows] = await Promise.all([
+    listDepartments({ includeArchived: true }),
+    getAdminDepartmentUnreadSummary(adminUserId)
+  ]);
+  const unreadByDepartment = new Map(unreadRows.map((row) => [row.departmentId, row.unreadCount]));
+
+  return departments.map((department) => formatDepartment(
+    department,
+    unreadByDepartment.get(department.id) || 0
+  ));
+}
+
+async function getCivilianDepartments(civilianUserId) {
+  const [departments, unreadRows] = await Promise.all([
+    listDepartments({ includeArchived: false }),
+    getCivilianDepartmentUnreadSummary(civilianUserId)
+  ]);
+  const unreadByDepartment = new Map(unreadRows.map((row) => [row.departmentId, row.unreadCount]));
+
+  return departments.map((department) => formatDepartment(
+    department,
+    unreadByDepartment.get(department.id) || 0
+  ));
+}
+
+async function createDepartmentChat(payload, file) {
+  const icon = await saveDepartmentIcon(file);
+  const room = normalizeDepartmentPayload(payload, null, icon);
+  const existing = await getDepartmentBySlug(room.slug);
+
+  if (existing) {
+    throw appError('A department chat with this name already exists.', 409);
+  }
+
+  const result = await createDepartment(room);
+  return formatDepartment(await getDepartmentById(result.lastID));
+}
+
+async function updateDepartmentChat(id, payload, file) {
+  const existing = await getDepartmentById(id);
+
+  if (!existing) {
+    throw appError('Department chat not found.', 404);
+  }
+
+  const icon = await saveDepartmentIcon(file);
+  const room = normalizeDepartmentPayload(payload, existing, icon);
+  const duplicate = await getDepartmentBySlug(room.slug);
+
+  if (duplicate && duplicate.id !== existing.id) {
+    throw appError('A department chat with this name already exists.', 409);
+  }
+
+  await updateDepartment(id, room);
+  return formatDepartment(await getDepartmentById(id));
+}
+
+async function archiveDepartmentChat(id) {
+  const existing = await getDepartmentById(id);
+
+  if (!existing) {
+    throw appError('Department chat not found.', 404);
+  }
+
+  await archiveDepartment(id);
+  return formatDepartment(await getDepartmentById(id));
+}
+
+async function getAdminConversations(departmentId, adminUserId, options = {}) {
+  const department = await getDepartmentById(departmentId);
+
+  if (!department) {
+    throw appError('Department chat not found.', 404);
+  }
+
+  const rows = await listAdminConversations(departmentId, adminUserId, options);
+  return {
+    department: formatDepartment(department),
+    conversations: rows.map(formatConversation)
+  };
+}
+
+async function openCivilianConversation(departmentId, civilianUserId) {
+  const department = await getDepartmentById(departmentId);
+
+  if (!department || department.status !== 'active') {
+    throw appError('Department chat is not available.', 404);
+  }
+
+  const conversation = await getOrCreateConversation(departmentId, civilianUserId);
+  return {
+    department: formatDepartment(department),
+    conversation
+  };
+}
+
+async function getConversationMessages(conversationId, actor, options = {}) {
+  const conversation = await getConversationById(conversationId);
+
+  if (!conversation) {
+    throw appError('Conversation not found.', 404);
+  }
+
+  if (actor.type === 'civilian' && conversation.civilianUserId !== actor.id) {
+    throw appError('Conversation not found.', 404);
+  }
+
+  const messages = await listMessages(conversationId, options);
+
+  return {
+    conversation: formatConversation(conversation),
+    department: formatDepartment({
+      id: conversation.departmentId,
+      slug: conversation.departmentSlug,
+      name: conversation.departmentName,
+      subtitle: conversation.departmentSubtitle,
+      status: conversation.departmentStatus,
+      colorTag: conversation.departmentColorTag,
+      iconUrl: conversation.departmentIconUrl,
+      sortOrder: conversation.departmentSortOrder,
+      readOnly: conversation.departmentReadOnly,
+      archivedAt: conversation.departmentArchivedAt,
+      createdAt: conversation.departmentCreatedAt,
+      updatedAt: conversation.departmentUpdatedAt
+    }),
+    messages: messages.map(formatMessage)
+  };
+}
+
+async function sendAdminMessage(conversationId, adminUserId, bodyValue) {
+  const conversation = await getConversationById(conversationId);
+
+  if (!conversation) {
+    throw appError('Conversation not found.', 404);
+  }
+
+  const body = normalizeString(bodyValue, MAX_MESSAGE_LENGTH);
+
+  if (!body) {
+    throw appError('Message cannot be empty.');
+  }
+
+  const message = await insertMessage({
+    conversationId,
+    departmentId: conversation.departmentId,
+    civilianUserId: conversation.civilianUserId,
+    senderType: 'admin',
+    senderId: adminUserId,
+    body
+  });
+
+  await markConversationRead(conversationId, 'admin', adminUserId);
+  return formatMessage(message);
+}
+
+async function sendCivilianMessage(conversationId, civilianUserId, bodyValue) {
+  const conversation = await getConversationById(conversationId);
+
+  if (!conversation || conversation.civilianUserId !== civilianUserId) {
+    throw appError('Conversation not found.', 404);
+  }
+
+  if (Number(conversation.departmentReadOnly) === 1) {
+    throw appError('This department chat is read-only.', 403);
+  }
+
+  const body = normalizeString(bodyValue, MAX_MESSAGE_LENGTH);
+
+  if (!body) {
+    throw appError('Message cannot be empty.');
+  }
+
+  const message = await insertMessage({
+    conversationId,
+    departmentId: conversation.departmentId,
+    civilianUserId,
+    senderType: 'civilian',
+    senderId: civilianUserId,
+    body
+  });
+
+  await markConversationRead(conversationId, 'civilian', civilianUserId);
+  return formatMessage(message);
+}
+
+async function markRead(conversationId, actor) {
+  const conversation = await getConversationById(conversationId);
+
+  if (!conversation) {
+    throw appError('Conversation not found.', 404);
+  }
+
+  if (actor.type === 'civilian' && conversation.civilianUserId !== actor.id) {
+    throw appError('Conversation not found.', 404);
+  }
+
+  await markConversationRead(conversationId, actor.type, actor.id);
+  return { conversationId };
+}
+
+module.exports = {
+  archiveDepartmentChat,
+  createDepartmentChat,
+  getAdminConversations,
+  getAdminDepartments,
+  getCivilianDepartments,
+  getConversationMessages,
+  markRead,
+  openCivilianConversation,
+  sendAdminMessage,
+  sendCivilianMessage,
+  updateDepartmentChat
+};

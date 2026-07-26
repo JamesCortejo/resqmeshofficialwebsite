@@ -90,6 +90,12 @@ app.get('/resqmeshadmin/device-map', requireAdminPageSession, (req, res) => {
 app.get('/resqmeshadmin/distress-signals', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'distress-signals.html'));
 });
+app.get('/resqmeshadmin/messages', requireAdminPageSession, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'messages.html'));
+});
+app.get('/resqmeshadmin/department-chats', requireAdminPageSession, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'department-chats.html'));
+});
 app.get('/resqmeshadmin/rescuers', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'rescuers.html'));
 });

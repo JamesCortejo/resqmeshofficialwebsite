@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ResQMesh department chat room manager.">
+  <title>Department Chats - ResQMesh</title>
+  <link rel="icon" type="image/png" href="/assets/logo-icon.png">
+
+  <link rel="stylesheet" href="/admin/css/login.css">
+  <link rel="stylesheet" href="/admin/css/admin-loader.css">
+  <link rel="stylesheet" href="/admin/css/app-shell.css">
+  <link rel="stylesheet" href="/admin/css/admin-notifications.css">
+  <link rel="stylesheet" href="/admin/css/department-chats.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="admin-login-page admin-loading">
+  <div class="admin-loader" aria-live="polite" aria-label="Loading ResQMesh admin">
+    <div class="admin-loader-content">
+      <span class="admin-loader-mark" aria-hidden="true"></span>
+      <span>
+        <span class="admin-loader-title">ResQMesh Admin</span>
+        <span class="admin-loader-subtitle">Preparing department chat manager</span>
+      </span>
+    </div>
+  </div>
+
+  <main class="admin-app-shell">
+    <aside class="admin-sidebar" aria-label="Admin navigation">
+      <div>
+        <a href="/resqmeshadmin/overview" class="admin-logo-link" aria-label="ResQMesh admin overview">
+          <img src="/assets/logo-icon.png" alt="ResQMesh Logo" class="admin-logo-icon">
+          <div>
+            <span class="admin-logo-title">RESQ-MESH</span>
+            <span class="admin-logo-subtitle">Admin Console</span>
+          </div>
+        </a>
+
+        <div class="admin-sidebar-group">
+          <span class="admin-sidebar-label">Navigation</span>
+          <nav class="admin-nav">
+            <a href="/resqmeshadmin/overview" class="admin-nav-link">
+              <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+              <span>Overview</span>
+            </a>
+            <a href="/resqmeshadmin/accounts" class="admin-nav-link">
+              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+              <span>Accounts Manager</span>
+            </a>
+            <a href="/resqmeshadmin/devices" class="admin-nav-link">
+              <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+              <span>Device Manager</span>
+            </a>
+            <a href="/resqmeshadmin/device-map" class="admin-nav-link">
+              <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+              <span>Mesh Node Map</span>
+            </a>
+            <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
+              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+              <span>Distress Signals</span>
+            </a>
+            <a href="/resqmeshadmin/messages" class="admin-nav-link">
+              <i class="fa-regular fa-comments" aria-hidden="true"></i>
+              <span>Messages Manager</span>
+            </a>
+            <a href="/resqmeshadmin/department-chats" class="admin-nav-link is-active" aria-current="page">
+              <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
+              <span>Department Chats</span>
+            </a>
+            <a href="/resqmeshadmin/rescuers" class="admin-nav-link">
+              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+              <span>Rescuer Manager</span>
+            </a>
+            <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link">
+              <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+              <span>Rescue Teams</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+
+      <p class="admin-sidebar-footnote">Administrative tools for the ResQMesh emergency network.</p>
+    </aside>
+
+    <section class="admin-app-main">
+      <header class="admin-topbar">
+        <div class="admin-topbar-copy">
+          <span class="admin-kicker">
+            <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
+            Valencia City Emergency Network
+          </span>
+          <h1 class="admin-topbar-title">Department Chats</h1>
+          <p class="admin-topbar-desc">Manage the department chat rooms that will structure future online messaging across the ResQMesh admin workspace.</p>
+        </div>
+
+        <div class="admin-topbar-actions">
+          <button type="button" class="admin-notification-button" id="adminNotificationButton" aria-label="Notifications" aria-expanded="false">
+            <i class="fa-regular fa-bell" aria-hidden="true"></i>
+            <span class="admin-notification-badge" id="adminNotificationBadge" hidden>0</span>
+          </button>
+          <button type="button" class="admin-topbar-button" data-admin-logout>
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span data-admin-logout-label>Logout</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="admin-content-panel department-chats-panel" aria-labelledby="departmentChatsPanelTitle">
+        <div class="department-chats-panel-header">
+          <div>
+            <h2 id="departmentChatsPanelTitle">Chat Room Directory</h2>
+          <p>Create, edit, and archive online department chat rooms shown in the civilian mobile app.</p>
+          </div>
+          <button type="button" class="department-chats-primary-button" id="openDepartmentChatCreateButton">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            <span>Add Department Chat</span>
+          </button>
+        </div>
+
+        <div class="department-chats-toolbar" aria-label="Department chat controls">
+          <label class="department-chats-search" for="departmentChatsSearchInput">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="departmentChatsSearchInput" placeholder="Search room name, subtitle, status, or color tag">
+          </label>
+          <div class="department-chats-filters" id="departmentChatsFilterGroup">
+            <button type="button" class="department-chats-filter-button is-active" data-chat-filter="all">All</button>
+            <button type="button" class="department-chats-filter-button" data-chat-filter="active">Active</button>
+            <button type="button" class="department-chats-filter-button" data-chat-filter="inactive">Inactive</button>
+            <button type="button" class="department-chats-filter-button" data-chat-filter="archived">Archived</button>
+          </div>
+        </div>
+
+        <div class="department-chats-feedback" id="departmentChatsFeedback" role="status" hidden></div>
+
+        <div class="department-chats-table-wrap">
+          <table class="department-chats-table">
+            <thead>
+              <tr>
+                <th scope="col">Room Name</th>
+                <th scope="col">Subtitle</th>
+                <th scope="col">Logo</th>
+                <th scope="col">Status</th>
+                <th scope="col">Color Tag</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="departmentChatsTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="department-chats-empty" id="departmentChatsEmpty" role="status" hidden></div>
+      </section>
+    </section>
+  </main>
+
+  <div class="department-chat-modal" id="departmentChatFormModal" aria-hidden="true">
+    <div class="department-chat-modal-backdrop" data-close-department-chat-form></div>
+    <section class="department-chat-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="departmentChatFormTitle">
+      <header class="department-chat-modal-header">
+        <div>
+          <span class="department-chat-modal-kicker" id="departmentChatFormKicker">Department chat</span>
+          <h2 id="departmentChatFormTitle">Add Department Chat</h2>
+        </div>
+        <button type="button" class="department-chat-icon-button" aria-label="Close department chat form" data-close-department-chat-form>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <form class="department-chat-form" id="departmentChatForm">
+        <label class="department-chat-field">
+          <span>Name</span>
+          <input type="text" id="departmentChatNameInput" maxlength="60" required>
+        </label>
+        <label class="department-chat-field">
+          <span>Subtitle</span>
+          <input type="text" id="departmentChatSubtitleInput" maxlength="100" required>
+        </label>
+        <label class="department-chat-field department-chat-upload-field">
+          <span>Department Logo</span>
+          <div class="department-chat-upload-row">
+            <div class="department-chat-logo-preview" id="departmentChatLogoPreview" aria-hidden="true">
+              <span id="departmentChatLogoPreviewFallback">DP</span>
+              <img id="departmentChatLogoPreviewImage" alt="Department logo preview" hidden>
+            </div>
+            <div class="department-chat-upload-copy">
+              <input type="file" id="departmentChatLogoInput" accept="image/*">
+              <small>Upload a small image for the room logo shown in the admin and civilian app.</small>
+            </div>
+          </div>
+        </label>
+        <label class="department-chat-field">
+          <span>Status</span>
+          <select id="departmentChatStatusInput" required>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="archived">Archived</option>
+          </select>
+        </label>
+        <label class="department-chat-field department-chat-checkbox-field">
+          <span>Access</span>
+          <label class="department-chat-checkbox-row">
+            <input type="checkbox" id="departmentChatReadOnlyInput">
+            <span>Read-only for civilians</span>
+          </label>
+        </label>
+        <label class="department-chat-field">
+          <span>Color Tag</span>
+          <select id="departmentChatColorInput" required>
+            <option value="red">Red</option>
+            <option value="blue">Blue</option>
+            <option value="amber">Amber</option>
+            <option value="teal">Teal</option>
+            <option value="slate">Slate</option>
+          </select>
+        </label>
+
+        <footer class="department-chat-modal-actions">
+          <button type="button" class="department-chat-secondary-button" data-close-department-chat-form>Cancel</button>
+          <button type="submit" class="department-chat-primary-button" id="departmentChatFormSubmitButton">Save Room</button>
+        </footer>
+      </form>
+    </section>
+  </div>
+
+  <div class="department-chat-modal" id="departmentChatArchiveModal" aria-hidden="true">
+    <div class="department-chat-modal-backdrop" data-close-department-chat-archive></div>
+    <section class="department-chat-modal-dialog department-chat-modal-dialog-small" role="dialog" aria-modal="true" aria-labelledby="departmentChatArchiveTitle">
+      <header class="department-chat-modal-header">
+        <div>
+          <span class="department-chat-modal-kicker">Archive room</span>
+          <h2 id="departmentChatArchiveTitle">Archive Department Chat</h2>
+        </div>
+        <button type="button" class="department-chat-icon-button" aria-label="Close archive dialog" data-close-department-chat-archive>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <div class="department-chat-archive-copy" id="departmentChatArchiveCopy">
+        This room will be marked as archived and hidden from active civilian chat selection.
+      </div>
+
+      <footer class="department-chat-modal-actions">
+        <button type="button" class="department-chat-secondary-button" data-close-department-chat-archive>Keep Room</button>
+        <button type="button" class="department-chat-primary-button" id="confirmDepartmentChatArchiveButton">Archive Room</button>
+      </footer>
+    </section>
+  </div>
+
+  <script src="/admin/js/admin-loader.js"></script>
+  <script src="/admin/js/admin-auth.js"></script>
+  <script src="/admin/js/admin-notifications.js"></script>
+  <script src="/admin/js/department-chats.js"></script>
+</body>
+
+</html>

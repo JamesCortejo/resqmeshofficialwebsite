@@ -79,7 +79,9 @@
       headers.set('Accept', 'application/json');
     }
 
-    if (options.body !== undefined && !headers.has('Content-Type')) {
+    const isFormDataBody = typeof FormData !== 'undefined' && options.body instanceof FormData;
+
+    if (options.body !== undefined && !isFormDataBody && !headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
 

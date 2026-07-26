@@ -3,6 +3,7 @@ const adminAuthController = require('../controllers/adminAuthController');
 const adminAccountsController = require('../controllers/adminAccountsController');
 const adminNotificationsController = require('../controllers/adminNotificationsController');
 const adminDistressController = require('../controllers/adminDistressController');
+const onlineChatAdminController = require('../controllers/onlineChatAdminController');
 const overviewController = require('../controllers/overviewController');
 const deviceManagerController = require('../controllers/deviceManagerController');
 const rescuerController = require('../controllers/rescuerController');
@@ -11,6 +12,10 @@ const {
   requireAdminCsrf,
   requireAdminSession
 } = require('../middleware/adminSessionMiddleware');
+const {
+  departmentChatIconUpload,
+  handleUploadErrors
+} = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
 
@@ -43,6 +48,14 @@ router.get('/distress-signals/:id', adminDistressController.getDistressSignalDet
 router.post('/distress-signals/:id/deploy', adminDistressController.deployDistressSignal);
 router.post('/deployments/:id/cancel', adminDistressController.cancelDeployment);
 router.post('/deployments/:id/accomplish', adminDistressController.accomplishDeployment);
+router.get('/online-chat/departments', onlineChatAdminController.listDepartments);
+router.post('/online-chat/departments', departmentChatIconUpload, handleUploadErrors, onlineChatAdminController.createDepartment);
+router.patch('/online-chat/departments/:id', departmentChatIconUpload, handleUploadErrors, onlineChatAdminController.updateDepartment);
+router.post('/online-chat/departments/:id/archive', onlineChatAdminController.archiveDepartment);
+router.get('/online-chat/conversations', onlineChatAdminController.listConversations);
+router.get('/online-chat/conversations/:id/messages', onlineChatAdminController.listMessages);
+router.post('/online-chat/conversations/:id/messages', onlineChatAdminController.sendMessage);
+router.post('/online-chat/conversations/:id/read', onlineChatAdminController.markRead);
 router.post('/rescuers', rescuerController.createRescuer);
 router.get('/rescuers', rescuerController.listRescuers);
 router.get('/rescuers/assignable', rescueTeamController.listAssignableRescuers);
