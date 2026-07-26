@@ -4,7 +4,10 @@ const path = require('path');
 const sharp = require('sharp');
 const config = require('../config/env');
 const { decryptText } = require('./encryptionService');
-const { enforceCivilianMessageSecurity } = require('./onlineChatModerationService');
+const {
+  enforceCivilianMessageSecurity,
+  enforceRescuerMessageSecurity,
+} = require('./onlineChatModerationService');
 const {
   markOnlineChatConversationNotificationsRead,
   notifyOnlineChatMessageReceived
@@ -501,10 +504,20 @@ async function getRescuerConversations(departmentId, rescuer, options = {}) {
     throw appError('Department chat not found.', 404);
   }
 
-  const rows = await listRescuerConversations(departmentId, rescuer.id, options);
+  const limit = Math.max(1, Math.min(Number(options.limit) || 12, 30));
+  const rows = await listRescuerConversations(departmentId, rescuer.id, {
+    search: options.search,
+    beforeId: options.beforeId || null,
+    limit,
+  });
+  const hasMore = rows.length > limit;
+  const visibleRows = hasMore ? rows.slice(0, limit) : rows;
+
   return {
     department: formatDepartment(department),
-    conversations: rows.map(formatConversation)
+    conversations: visibleRows.map(formatConversation),
+    hasMore,
+    nextBeforeId: hasMore ? visibleRows[visibleRows.length - 1]?.id || null : null,
   };
 }
 
@@ -682,6 +695,13 @@ async function sendRescuerMessage(conversationId, rescuer, bodyValue) {
   if (!body) {
     throw appError('Message cannot be empty.');
   }
+
+  await enforceRescuerMessageSecurity({
+    rescuerId: rescuer.id,
+    departmentId: conversation.departmentId,
+    conversationId,
+    body,
+  });
 
   const message = await insertMessage({
     conversationId,

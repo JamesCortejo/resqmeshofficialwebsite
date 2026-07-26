@@ -26,7 +26,9 @@ function errorResponse(res, error, fallbackMessage) {
 
   return res.status(statusCode).json({
     success: false,
-    message: statusCode === 500 ? fallbackMessage : error.message
+    message: statusCode === 500 ? fallbackMessage : error.message,
+    code: error.code || null,
+    retryAfterSeconds: Number.isInteger(error.retryAfterSeconds) ? error.retryAfterSeconds : null
   });
 }
 
@@ -56,7 +58,9 @@ exports.listConversations = async (req, res) => {
     }
 
     const result = await getRescuerConversations(departmentId, req.rescuer, {
-      search: req.query.search
+      search: req.query.search,
+      beforeId: parseCursor(req.query, 'before'),
+      limit: Math.min(parseId(req.query.limit) || 12, 30),
     });
 
     return res.json({

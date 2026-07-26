@@ -567,9 +567,14 @@ function getCivilianDepartmentUnreadSummary(civilianUserId) {
   `, [civilianUserId, civilianUserId]);
 }
 
-function listRescuerConversations(departmentId, rescuerId, { search = '' } = {}) {
+function listRescuerConversations(
+  departmentId,
+  rescuerId,
+  { search = '', beforeId = null, limit = 20 } = {}
+) {
   const query = String(search || '').trim().toLowerCase();
-  const params = [rescuerId, departmentId];
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
+  const params = [beforeId, departmentId, rescuerId, departmentId, beforeId];
   let searchClause = '';
 
   if (query) {
@@ -582,7 +587,23 @@ function listRescuerConversations(departmentId, rescuerId, { search = '' } = {})
     params.push(`%${query}%`, `%${query}%`);
   }
 
+  params.push(safeLimit + 1);
+
   return all(`
+    WITH anchor AS (
+      SELECT
+        CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END AS distressSort,
+        COALESCE(c.last_message_at, TIMESTAMPTZ '-infinity') AS lastMessageSort,
+        c.updated_at AS updatedAtSort,
+        c.id AS idSort
+      FROM online_chat_conversations c
+      LEFT JOIN online_distress_signals ods
+        ON ods.user_id = c.civilian_user_id
+        AND ods.status = 'active'
+        AND ods.deleted = 0
+      WHERE c.id = ? AND c.department_id = ?
+      LIMIT 1
+    )
     SELECT
       c.id,
       c.department_id AS departmentId,
@@ -634,12 +655,35 @@ function listRescuerConversations(departmentId, rescuerId, { search = '' } = {})
           AND seeded.deleted = 0
           AND seeded.sender_type = 'civilian'
       )
+      AND (
+        ? IS NULL
+        OR NOT EXISTS (SELECT 1 FROM anchor)
+        OR (
+          CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END > (SELECT distressSort FROM anchor)
+          OR (
+            CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END = (SELECT distressSort FROM anchor)
+            AND COALESCE(c.last_message_at, TIMESTAMPTZ '-infinity') < (SELECT lastMessageSort FROM anchor)
+          )
+          OR (
+            CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END = (SELECT distressSort FROM anchor)
+            AND COALESCE(c.last_message_at, TIMESTAMPTZ '-infinity') = (SELECT lastMessageSort FROM anchor)
+            AND c.updated_at < (SELECT updatedAtSort FROM anchor)
+          )
+          OR (
+            CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END = (SELECT distressSort FROM anchor)
+            AND COALESCE(c.last_message_at, TIMESTAMPTZ '-infinity') = (SELECT lastMessageSort FROM anchor)
+            AND c.updated_at = (SELECT updatedAtSort FROM anchor)
+            AND c.id < (SELECT idSort FROM anchor)
+          )
+        )
+      )
     ${searchClause}
     ORDER BY
       CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END ASC,
       c.last_message_at DESC NULLS LAST,
       c.updated_at DESC,
       c.id DESC
+    LIMIT ?
   `, params);
 }
 
@@ -746,6 +790,25 @@ function getSenderGuard(civilianUserId) {
   `, [civilianUserId]);
 }
 
+function getRescuerSenderGuard(rescuerId) {
+  return get(`
+    SELECT
+      rescuer_id AS rescuerId,
+      window_started_at AS windowStartedAt,
+      message_count AS messageCount,
+      strike_count AS strikeCount,
+      timeout_until AS timeoutUntil,
+      last_message_at AS lastMessageAt,
+      last_message_body_hash AS lastMessageBodyHash,
+      last_violation_at AS lastViolationAt,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM online_chat_rescuer_sender_guards
+    WHERE rescuer_id = ?
+    LIMIT 1
+  `, [rescuerId]);
+}
+
 function upsertSenderGuard(guard) {
   return run(`
     INSERT INTO online_chat_sender_guards (
@@ -781,10 +844,46 @@ function upsertSenderGuard(guard) {
   ]);
 }
 
+function upsertRescuerSenderGuard(guard) {
+  return run(`
+    INSERT INTO online_chat_rescuer_sender_guards (
+      rescuer_id,
+      window_started_at,
+      message_count,
+      strike_count,
+      timeout_until,
+      last_message_at,
+      last_message_body_hash,
+      last_violation_at,
+      created_at,
+      updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT(rescuer_id) DO UPDATE SET
+      window_started_at = excluded.window_started_at,
+      message_count = excluded.message_count,
+      strike_count = excluded.strike_count,
+      timeout_until = excluded.timeout_until,
+      last_message_at = excluded.last_message_at,
+      last_message_body_hash = excluded.last_message_body_hash,
+      last_violation_at = excluded.last_violation_at,
+      updated_at = CURRENT_TIMESTAMP
+  `, [
+    guard.rescuerId,
+    guard.windowStartedAt || null,
+    guard.messageCount || 0,
+    guard.strikeCount || 0,
+    guard.timeoutUntil || null,
+    guard.lastMessageAt || null,
+    guard.lastMessageBodyHash || null,
+    guard.lastViolationAt || null,
+  ]);
+}
+
 function insertModerationEvent(event) {
   return run(`
     INSERT INTO online_chat_moderation_events (
       civilian_user_id,
+      rescuer_id,
       department_id,
       conversation_id,
       event_type,
@@ -795,6 +894,7 @@ function insertModerationEvent(event) {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
   `, [
     event.civilianUserId,
+    event.rescuerId || null,
     event.departmentId || null,
     event.conversationId || null,
     event.eventType,
@@ -819,6 +919,7 @@ module.exports = {
   getGlobalMessageById,
   getRescuerDepartmentUnreadSummary,
   getRescuerGlobalUnreadSummary,
+  getRescuerSenderGuard,
   getSenderGuard,
   getOrCreateConversation,
   insertGlobalMessage,
@@ -831,6 +932,7 @@ module.exports = {
   listRescuerConversations,
   markGlobalRead,
   markConversationRead,
+  upsertRescuerSenderGuard,
   upsertSenderGuard,
   updateDepartment
 };

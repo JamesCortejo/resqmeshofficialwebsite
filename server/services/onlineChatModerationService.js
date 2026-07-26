@@ -1,8 +1,10 @@
 const crypto = require('crypto');
 const profanityWords = require('../data/onlineChatProfanity');
 const {
+  getRescuerSenderGuard,
   getSenderGuard,
   insertModerationEvent,
+  upsertRescuerSenderGuard,
   upsertSenderGuard,
 } = require('../repositories/onlineChatRepository');
 
@@ -127,7 +129,10 @@ function buildTimeoutSeconds(strikeCount) {
 }
 
 async function logModerationEvent({
+  actorType = 'civilian',
+  actorId = null,
   civilianUserId,
+  rescuerId,
   departmentId,
   conversationId,
   eventType,
@@ -136,27 +141,51 @@ async function logModerationEvent({
   metadata,
 }) {
   await insertModerationEvent({
-    civilianUserId,
+    civilianUserId: actorType === 'civilian' ? (civilianUserId || actorId) : null,
+    rescuerId: actorType === 'rescuer' ? (rescuerId || actorId) : null,
     departmentId,
     conversationId,
     eventType,
     reason,
     bodyPreview: createBodyPreview(body),
-    metadataJson: metadata ? JSON.stringify(metadata) : null,
+    metadataJson: metadata || actorType !== 'civilian'
+      ? JSON.stringify({
+          ...(metadata || {}),
+          actorType,
+        })
+      : null,
   });
 }
 
-async function enforceCivilianMessageSecurity({
-  civilianUserId,
+function getGuardAccessors(actorType) {
+  if (actorType === 'rescuer') {
+    return {
+      getGuard: getRescuerSenderGuard,
+      upsertGuard: upsertRescuerSenderGuard,
+      idKey: 'rescuerId',
+    };
+  }
+
+  return {
+    getGuard: getSenderGuard,
+    upsertGuard: upsertSenderGuard,
+    idKey: 'civilianUserId',
+  };
+}
+
+async function enforceActorMessageSecurity({
+  actorType = 'civilian',
+  actorId,
   departmentId,
   conversationId,
   body,
 }) {
+  const { getGuard, upsertGuard, idKey } = getGuardAccessors(actorType);
   const now = new Date();
-  const senderGuard = await getSenderGuard(civilianUserId);
+  const senderGuard = await getGuard(actorId);
   const bodyHash = createBodyHash(body);
   const current = senderGuard || {
-    civilianUserId,
+    [idKey]: actorId,
     windowStartedAt: null,
     messageCount: 0,
     strikeCount: 0,
@@ -193,8 +222,8 @@ async function enforceCivilianMessageSecurity({
     const timeoutSeconds = buildTimeoutSeconds(strikeCount);
     const nextTimeoutUntil = new Date(now.getTime() + timeoutSeconds * 1000);
 
-    await upsertSenderGuard({
-      civilianUserId,
+    await upsertGuard({
+      [idKey]: actorId,
       windowStartedAt: now.toISOString(),
       messageCount: 0,
       strikeCount,
@@ -205,7 +234,8 @@ async function enforceCivilianMessageSecurity({
     });
 
     await logModerationEvent({
-      civilianUserId,
+      actorType,
+      actorId,
       departmentId,
       conversationId,
       eventType: 'duplicate_message_blocked',
@@ -223,7 +253,8 @@ async function enforceCivilianMessageSecurity({
 
   if (containsBlockedLink(body)) {
     await logModerationEvent({
-      civilianUserId,
+      actorType,
+      actorId,
       departmentId,
       conversationId,
       eventType: 'link_blocked',
@@ -238,7 +269,8 @@ async function enforceCivilianMessageSecurity({
 
   if (containsProfanity(body)) {
     await logModerationEvent({
-      civilianUserId,
+      actorType,
+      actorId,
       departmentId,
       conversationId,
       eventType: 'profanity_blocked',
@@ -261,8 +293,8 @@ async function enforceCivilianMessageSecurity({
     const timeoutSeconds = buildTimeoutSeconds(strikeCount);
     const nextTimeoutUntil = new Date(now.getTime() + timeoutSeconds * 1000);
 
-    await upsertSenderGuard({
-      civilianUserId,
+    await upsertGuard({
+      [idKey]: actorId,
       windowStartedAt: now.toISOString(),
       messageCount: 0,
       strikeCount,
@@ -273,7 +305,8 @@ async function enforceCivilianMessageSecurity({
     });
 
     await logModerationEvent({
-      civilianUserId,
+      actorType,
+      actorId,
       departmentId,
       conversationId,
       eventType: 'spam_timeout_triggered',
@@ -289,8 +322,8 @@ async function enforceCivilianMessageSecurity({
     );
   }
 
-  await upsertSenderGuard({
-    civilianUserId,
+  await upsertGuard({
+    [idKey]: actorId,
     windowStartedAt: nextWindowStartedAt,
     messageCount: nextMessageCount,
     strikeCount,
@@ -301,6 +334,38 @@ async function enforceCivilianMessageSecurity({
   });
 }
 
+async function enforceCivilianMessageSecurity({
+  civilianUserId,
+  departmentId,
+  conversationId,
+  body,
+}) {
+  return enforceActorMessageSecurity({
+    actorType: 'civilian',
+    actorId: civilianUserId,
+    departmentId,
+    conversationId,
+    body,
+  });
+}
+
+async function enforceRescuerMessageSecurity({
+  rescuerId,
+  departmentId,
+  conversationId,
+  body,
+}) {
+  return enforceActorMessageSecurity({
+    actorType: 'rescuer',
+    actorId: rescuerId,
+    departmentId,
+    conversationId,
+    body,
+  });
+}
+
 module.exports = {
+  enforceActorMessageSecurity,
   enforceCivilianMessageSecurity,
+  enforceRescuerMessageSecurity,
 };
