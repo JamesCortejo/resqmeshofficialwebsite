@@ -29,7 +29,9 @@ function errorResponse(res, error, fallbackMessage) {
 
 exports.listDepartments = async (req, res) => {
   try {
-    const departments = await getAdminDepartments(req.adminUser.id);
+    const departments = await getAdminDepartments(req.adminUser.id, {
+      includeSystem: req.query.includeSystem === '1'
+    });
 
     return res.json({
       success: true,

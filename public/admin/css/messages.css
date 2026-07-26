@@ -225,15 +225,21 @@
 
 .messages-scope-chip {
   flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  min-height: 48px;
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 0.16rem;
+  min-width: 12.5rem;
+  min-height: 4.35rem;
   border: 1px solid rgba(231, 75, 50, 0.18);
   border-radius: 1rem;
   background: #ffffff;
   color: var(--admin-primary-hover);
   cursor: pointer;
-  padding: 0.7rem 0.95rem;
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  padding: 0.82rem 3rem 0.82rem 1.05rem;
   transition:
     border-color 0.2s ease,
     background-color 0.2s ease,
@@ -250,16 +256,27 @@
 .messages-scope-chip-label {
   display: block;
   color: var(--admin-ink);
-  font: 900 0.85rem/1.15 'Inter', system-ui, -apple-system, sans-serif;
+  font: 900 0.86rem/1.15 'Inter', system-ui, -apple-system, sans-serif;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .messages-scope-chip-meta {
   display: block;
-  margin-top: 0.16rem;
   color: var(--admin-muted);
   font: 700 0.73rem/1.35 'Inter', system-ui, -apple-system, sans-serif;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.messages-scope-badge {
+  position: absolute;
+  top: 0.78rem;
+  right: 0.82rem;
 }
 
 .messages-chat-header {
@@ -508,10 +525,6 @@
   text-align: center;
 }
 
-.messages-scope-card {
-  position: relative;
-}
-
 .messages-scope-badge,
 .messages-conversation-badge {
   display: inline-flex;
@@ -523,12 +536,6 @@
   background: var(--admin-primary);
   color: #ffffff;
   font: 900 0.75rem/1 'Inter', system-ui, -apple-system, sans-serif;
-}
-
-.messages-scope-badge {
-  position: absolute;
-  top: 0.48rem;
-  right: 0.55rem;
 }
 
 .messages-info-button {

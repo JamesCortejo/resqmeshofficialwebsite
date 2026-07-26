@@ -27,6 +27,15 @@ const MAX_MESSAGE_LENGTH = 1000;
 const MAX_ICON_SIZE_BYTES = 1024 * 1024;
 const STATUS_VALUES = new Set(['active', 'inactive', 'archived']);
 const COLOR_VALUES = new Set(['red', 'blue', 'amber', 'teal', 'slate']);
+const SYSTEM_GLOBAL_DEPARTMENT = Object.freeze({
+  slug: 'global-announcements',
+  name: 'Global Announcements',
+  subtitle: 'Admin-only broadcast lane',
+  status: 'active',
+  colorTag: 'slate',
+  sortOrder: 0,
+  readOnly: 1
+});
 
 function appError(message, statusCode = 400) {
   const error = new Error(message);
@@ -149,6 +158,22 @@ function formatMessage(row) {
   };
 }
 
+async function ensureSystemGlobalDepartment() {
+  const existing = await getDepartmentBySlug(SYSTEM_GLOBAL_DEPARTMENT.slug);
+
+  if (existing) {
+    return existing;
+  }
+
+  const created = await createDepartment({
+    ...SYSTEM_GLOBAL_DEPARTMENT,
+    iconPath: null,
+    iconUrl: null
+  });
+
+  return getDepartmentById(created.lastID);
+}
+
 function formatConversation(row) {
   return {
     id: row.id,
@@ -234,27 +259,36 @@ async function saveDepartmentIcon(file) {
   };
 }
 
-async function getAdminDepartments(adminUserId) {
+async function getAdminDepartments(adminUserId, options = {}) {
+  const includeSystem = options.includeSystem === true;
   const [departments, unreadRows] = await Promise.all([
     listDepartments({ includeArchived: true }),
     getAdminDepartmentUnreadSummary(adminUserId)
   ]);
   const unreadByDepartment = new Map(unreadRows.map((row) => [row.departmentId, row.unreadCount]));
+  const visibleDepartments = includeSystem
+    ? [await ensureSystemGlobalDepartment(), ...departments.filter((department) => department.slug !== SYSTEM_GLOBAL_DEPARTMENT.slug)]
+    : departments.filter((department) => department.slug !== SYSTEM_GLOBAL_DEPARTMENT.slug);
 
-  return departments.map((department) => formatDepartment(
+  return visibleDepartments.map((department) => formatDepartment(
     department,
     unreadByDepartment.get(department.id) || 0
   ));
 }
 
 async function getCivilianDepartments(civilianUserId) {
+  const systemDepartment = await ensureSystemGlobalDepartment();
   const [departments, unreadRows] = await Promise.all([
     listDepartments({ includeArchived: false }),
     getCivilianDepartmentUnreadSummary(civilianUserId)
   ]);
   const unreadByDepartment = new Map(unreadRows.map((row) => [row.departmentId, row.unreadCount]));
+  const visibleDepartments = [
+    systemDepartment,
+    ...departments.filter((department) => department.slug !== SYSTEM_GLOBAL_DEPARTMENT.slug)
+  ];
 
-  return departments.map((department) => formatDepartment(
+  return visibleDepartments.map((department) => formatDepartment(
     department,
     unreadByDepartment.get(department.id) || 0
   ));
@@ -263,6 +297,11 @@ async function getCivilianDepartments(civilianUserId) {
 async function createDepartmentChat(payload, file) {
   const icon = await saveDepartmentIcon(file);
   const room = normalizeDepartmentPayload(payload, null, icon);
+
+  if (room.slug === SYSTEM_GLOBAL_DEPARTMENT.slug) {
+    throw appError('Global Announcements is a built-in system room.', 409);
+  }
+
   const existing = await getDepartmentBySlug(room.slug);
 
   if (existing) {
@@ -278,6 +317,10 @@ async function updateDepartmentChat(id, payload, file) {
 
   if (!existing) {
     throw appError('Department chat not found.', 404);
+  }
+
+  if (existing.slug === SYSTEM_GLOBAL_DEPARTMENT.slug) {
+    throw appError('Global Announcements is managed by the system.', 403);
   }
 
   const icon = await saveDepartmentIcon(file);
@@ -297,6 +340,10 @@ async function archiveDepartmentChat(id) {
 
   if (!existing) {
     throw appError('Department chat not found.', 404);
+  }
+
+  if (existing.slug === SYSTEM_GLOBAL_DEPARTMENT.slug) {
+    throw appError('Global Announcements cannot be archived.', 403);
   }
 
   await archiveDepartment(id);

@@ -381,79 +381,47 @@ async function ensureSequenceTables() {
   `);
 }
 
-async function ensureDefaultOnlineChatDepartments() {
+async function cleanupLegacySeededOnlineChatDepartments() {
   const defaults = [
-    {
-      slug: 'global-announcements',
-      name: 'Global Announcements',
-      subtitle: 'Admin-only broadcast lane',
-      status: 'active',
-      colorTag: 'red',
-      sortOrder: 10,
-      readOnly: 1
-    },
-    {
-      slug: 'cdrrmo',
-      name: 'CDRRMO',
-      subtitle: 'Disaster office desk',
-      status: 'active',
-      colorTag: 'teal',
-      sortOrder: 20,
-      readOnly: 0
-    },
-    {
-      slug: 'police-station',
-      name: 'Police Station',
-      subtitle: 'Law enforcement desk',
-      status: 'active',
-      colorTag: 'blue',
-      sortOrder: 30,
-      readOnly: 0
-    },
-    {
-      slug: 'fire-department',
-      name: 'Fire Department',
-      subtitle: 'Fire response desk',
-      status: 'active',
-      colorTag: 'amber',
-      sortOrder: 40,
-      readOnly: 0
-    },
-    {
-      slug: 'admin-support',
-      name: 'Admin Support',
-      subtitle: 'Account assistance desk',
-      status: 'active',
-      colorTag: 'slate',
-      sortOrder: 50,
-      readOnly: 0
-    }
+    'global-announcements',
+    'cdrrmo',
+    'police-station',
+    'fire-department',
+    'admin-support'
   ];
 
-  for (const room of defaults) {
-    await run(`
-      INSERT INTO online_chat_departments (
-        slug,
-        name,
-        subtitle,
-        status,
-        color_tag,
-        sort_order,
-        read_only,
-        created_at,
-        updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      ON CONFLICT (slug) DO NOTHING
-    `, [
-      room.slug,
-      room.name,
-      room.subtitle,
-      room.status,
-      room.colorTag,
-      room.sortOrder,
-      room.readOnly
-    ]);
+  const [departmentRows, conversationCountRow, messageCountRow] = await Promise.all([
+    all(`
+      SELECT id, slug
+      FROM online_chat_departments
+      ORDER BY id ASC
+    `),
+    get('SELECT COUNT(*) AS count FROM online_chat_conversations'),
+    get('SELECT COUNT(*) AS count FROM online_chat_messages')
+  ]);
+
+  const conversationCount = Number(conversationCountRow?.count || 0);
+  const messageCount = Number(messageCountRow?.count || 0);
+
+  if (conversationCount > 0 || messageCount > 0) {
+    return;
   }
+
+  if (!departmentRows.length || departmentRows.length > defaults.length) {
+    return;
+  }
+
+  const slugs = departmentRows.map((row) => row.slug);
+  const onlyLegacyDefaults = slugs.every((slug) => defaults.includes(slug));
+
+  if (!onlyLegacyDefaults) {
+    return;
+  }
+
+  await run(`
+    DELETE FROM online_chat_departments
+    WHERE slug IN (?, ?, ?, ?, ?)
+  `, defaults);
 }
 
 async function ensureBootstrapSyncDevice() {
@@ -1066,7 +1034,7 @@ async function initializeDatabase() {
   `);
   await ensureUserPhoneLookupHashes();
   await ensureSequenceTables();
-  await ensureDefaultOnlineChatDepartments();
+  await cleanupLegacySeededOnlineChatDepartments();
   await run(`
     UPDATE mesh_distress_signals
     SET status = 'canceled'

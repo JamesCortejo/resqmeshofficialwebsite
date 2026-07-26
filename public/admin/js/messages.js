@@ -82,16 +82,25 @@
       return;
     }
 
+    if (!state.departments.length) {
+      dom.scopeRail.innerHTML = `
+        <div class="messages-empty-state">
+          No department chats yet. Add one from Department Chats.
+        </div>
+      `;
+      return;
+    }
+
     dom.scopeRail.innerHTML = state.departments
       .filter((department) => department.status !== 'archived')
       .map((department) => `
         <button
           type="button"
-          class="messages-scope-card${department.id === state.selectedDepartmentId ? ' is-active' : ''}"
+          class="messages-scope-chip${department.id === state.selectedDepartmentId ? ' is-active' : ''}"
           data-department-id="${department.id}"
         >
-          <span>${escapeHtml(department.name)}</span>
-          <small>${escapeHtml(department.subtitle || '')}</small>
+          <span class="messages-scope-chip-label">${escapeHtml(department.name)}</span>
+          <small class="messages-scope-chip-meta">${escapeHtml(department.subtitle || '')}</small>
           ${department.unreadCount > 0 ? `<strong class="messages-scope-badge">${department.unreadCount}</strong>` : ''}
         </button>
       `).join('');
@@ -100,6 +109,15 @@
   function renderConversations() {
     const department = getSelectedDepartment();
     dom.conversationPaneTitle.textContent = department?.name || 'Department';
+
+    if (!state.departments.length) {
+      dom.conversationList.innerHTML = `
+        <div class="messages-empty-state">
+          Create a department chat first.
+        </div>
+      `;
+      return;
+    }
 
     if (!state.conversations.length) {
       dom.conversationList.innerHTML = `
@@ -135,8 +153,8 @@
     if (!conversation) {
       dom.chatHeader.innerHTML = `
         <div>
-          <h3>Select a civilian</h3>
-          <p>${escapeHtml(department?.name || 'Department')}</p>
+          <h3>${state.departments.length ? 'Select a civilian' : 'No department chats yet'}</h3>
+          <p>${escapeHtml(department?.name || (state.departments.length ? 'Department' : 'Add a department chat to begin'))}</p>
         </div>
       `;
       return;
@@ -165,7 +183,7 @@
     if (!state.selectedConversationId) {
       dom.timeline.innerHTML = `
         <div class="messages-empty-state">
-          Select a civilian conversation to view messages.
+          ${state.departments.length ? 'Select a civilian conversation to view messages.' : 'Department chats will appear here after you create one.'}
         </div>
       `;
       return;
@@ -209,7 +227,7 @@
   }
 
   function syncComposer() {
-    const disabled = !state.selectedConversationId || state.sending;
+    const disabled = !state.selectedConversationId || state.sending || !state.departments.length;
     dom.composerInput.disabled = disabled;
     dom.composerForm.querySelector('button[type="submit"]').disabled = disabled;
   }
@@ -223,7 +241,7 @@
   }
 
   async function loadDepartments({ preserveSelection = true } = {}) {
-    const payload = await adminFetch('/api/admin/online-chat/departments');
+    const payload = await adminFetch('/api/admin/online-chat/departments?includeSystem=1');
     state.departments = payload.data || [];
 
     if (
