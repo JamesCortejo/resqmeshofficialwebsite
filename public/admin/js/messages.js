@@ -443,9 +443,11 @@
       const outgoing = message.senderType === 'admin';
       const authorLabel = message.senderType === 'system'
         ? 'System'
-        : outgoing
+        : message.senderType === 'admin'
           ? 'Admin'
-          : 'Civilian';
+          : message.senderType === 'rescuer'
+            ? 'Rescuer'
+            : (message.senderDisplayName || 'Civilian');
 
       return `
         ${separator}
