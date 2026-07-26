@@ -23,6 +23,7 @@
     nameInput: document.getElementById('departmentChatNameInput'),
     subtitleInput: document.getElementById('departmentChatSubtitleInput'),
     statusInput: document.getElementById('departmentChatStatusInput'),
+    rescuerAgencyInput: document.getElementById('departmentChatRescuerAgencyInput'),
     logoInput: document.getElementById('departmentChatLogoInput'),
     logoPreview: document.getElementById('departmentChatLogoPreview'),
     logoPreviewImage: document.getElementById('departmentChatLogoPreviewImage'),
@@ -88,6 +89,19 @@
       .join('') || 'DP';
   }
 
+  function getAgencyLabel(value) {
+    switch (String(value || '').toLowerCase()) {
+      case 'cdrrmo':
+        return 'CDRRMO';
+      case 'fire-department':
+        return 'Fire Department';
+      case 'police-department':
+        return 'Police Department';
+      default:
+        return 'Unmapped';
+    }
+  }
+
   function syncLogoPreview(name, logoSrc) {
     const initials = getRoomInitials(name || dom.nameInput.value);
     dom.logoPreviewFallback.textContent = initials;
@@ -119,6 +133,7 @@
       return [
         room.name,
         room.subtitle,
+        getAgencyLabel(room.rescuerAgency),
         room.status,
         room.colorTag
       ].join(' ').toLowerCase().includes(state.searchQuery);
@@ -153,6 +168,9 @@
         <td>
           <span class="department-chats-muted-text">${escapeHtml(room.subtitle || '')}</span>
           ${room.readOnly ? '<span class="department-chats-muted-text">Read-only</span>' : ''}
+        </td>
+        <td>
+          <span class="department-chats-muted-text">${escapeHtml(getAgencyLabel(room.rescuerAgency))}</span>
         </td>
         <td>
           <span class="department-chats-logo-preview${room.iconUrl ? ' has-image' : ''}" aria-label="Department logo">
@@ -212,6 +230,7 @@
       dom.nameInput.value = room.name;
       dom.subtitleInput.value = room.subtitle || '';
       dom.statusInput.value = room.status;
+      dom.rescuerAgencyInput.value = room.rescuerAgency || '';
       dom.colorInput.value = room.colorTag;
       dom.readOnlyInput.checked = Boolean(room.readOnly);
     } else {
@@ -219,6 +238,7 @@
       dom.formKicker.textContent = 'New room';
       dom.submitButton.textContent = 'Save Room';
       dom.statusInput.value = 'active';
+      dom.rescuerAgencyInput.value = '';
       dom.colorInput.value = 'red';
       dom.readOnlyInput.checked = false;
     }
@@ -256,6 +276,7 @@
     data.set('name', dom.nameInput.value.trim());
     data.set('subtitle', dom.subtitleInput.value.trim());
     data.set('status', dom.statusInput.value);
+    data.set('rescuerAgency', dom.rescuerAgencyInput.value);
     data.set('colorTag', dom.colorInput.value);
     data.set('readOnly', dom.readOnlyInput.checked ? '1' : '0');
 
@@ -270,8 +291,8 @@
   async function handleFormSubmit(event) {
     event.preventDefault();
 
-    if (!dom.nameInput.value.trim() || !dom.subtitleInput.value.trim()) {
-      showFeedback('Name and subtitle are required.', 'error');
+    if (!dom.nameInput.value.trim() || !dom.subtitleInput.value.trim() || !dom.rescuerAgencyInput.value) {
+      showFeedback('Name, subtitle, and rescuer agency are required.', 'error');
       return;
     }
 

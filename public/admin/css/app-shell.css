@@ -62,6 +62,25 @@
     transform 0.2s ease;
 }
 
+.admin-nav-link span:last-child {
+  min-width: 0;
+}
+
+.admin-nav-link-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  background: var(--admin-primary);
+  color: #ffffff;
+  font: 900 0.74rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 0 0.38rem;
+  box-shadow: 0 10px 18px rgba(231, 75, 50, 0.22);
+}
+
 .admin-nav-link:hover {
   background: rgba(231, 75, 50, 0.08);
   border-color: rgba(231, 75, 50, 0.14);

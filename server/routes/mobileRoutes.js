@@ -2,6 +2,7 @@ const express = require('express');
 const civilianMobileAuthController = require('../controllers/civilianMobileAuthController');
 const civilianDistressController = require('../controllers/civilianDistressController');
 const onlineChatCivilianController = require('../controllers/onlineChatCivilianController');
+const onlineChatRescuerController = require('../controllers/onlineChatRescuerController');
 const rescuerMobileAuthController = require('../controllers/rescuerMobileAuthController');
 const mobileOperationsController = require('../controllers/mobileOperationsController');
 const { requireCivilianSession, requireMobileSession, requireRescuerSession } = require('../middleware/rescuerSessionMiddleware');
@@ -34,6 +35,13 @@ router.get('/api/civilian/online-chat/conversations/:id/messages', requireCivili
 router.post('/api/civilian/online-chat/conversations/:id/messages', requireCivilianSession, onlineChatCivilianController.sendMessage);
 router.post('/api/civilian/online-chat/global/read', requireCivilianSession, onlineChatCivilianController.markGlobalRead);
 router.post('/api/civilian/online-chat/conversations/:id/read', requireCivilianSession, onlineChatCivilianController.markRead);
+router.get('/api/rescuer/online-chat/departments', requireRescuerSession, onlineChatRescuerController.listDepartments);
+router.get('/api/rescuer/online-chat/conversations', requireRescuerSession, onlineChatRescuerController.listConversations);
+router.get('/api/rescuer/online-chat/global/messages', requireRescuerSession, onlineChatRescuerController.listGlobalMessages);
+router.get('/api/rescuer/online-chat/conversations/:id/messages', requireRescuerSession, onlineChatRescuerController.listMessages);
+router.post('/api/rescuer/online-chat/conversations/:id/messages', requireRescuerSession, onlineChatRescuerController.sendMessage);
+router.post('/api/rescuer/online-chat/global/read', requireRescuerSession, onlineChatRescuerController.markGlobalRead);
+router.post('/api/rescuer/online-chat/conversations/:id/read', requireRescuerSession, onlineChatRescuerController.markRead);
 
 router.get('/api/rescuer/assignments', requireRescuerSession, mobileOperationsController.listRescuerAssignments);
 router.get('/api/rescuer/route/live', requireRescuerSession, mobileOperationsController.getRescuerLiveRoute);

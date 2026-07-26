@@ -8,6 +8,7 @@ function selectDepartmentColumns(prefix = 'd') {
     ${prefix}.subtitle,
     ${prefix}.status,
     ${prefix}.color_tag AS colorTag,
+    ${prefix}.rescuer_agency AS rescuerAgency,
     ${prefix}.icon_url AS iconUrl,
     ${prefix}.sort_order AS sortOrder,
     ${prefix}.read_only AS readOnly,
@@ -46,6 +47,17 @@ function getDepartmentBySlug(slug) {
   `, [slug]);
 }
 
+function getActiveDepartmentByRescuerAgency(rescuerAgency) {
+  return get(`
+    SELECT ${selectDepartmentColumns('d')}
+    FROM online_chat_departments d
+    WHERE d.rescuer_agency = ?
+      AND d.status = 'active'
+    ORDER BY d.sort_order ASC, d.created_at ASC, d.id ASC
+    LIMIT 1
+  `, [rescuerAgency]);
+}
+
 function createDepartment(room) {
   return run(`
     INSERT INTO online_chat_departments (
@@ -54,13 +66,14 @@ function createDepartment(room) {
       subtitle,
       status,
       color_tag,
+      rescuer_agency,
       icon_path,
       icon_url,
       sort_order,
       read_only,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     RETURNING id
   `, [
     room.slug,
@@ -68,6 +81,7 @@ function createDepartment(room) {
     room.subtitle,
     room.status,
     room.colorTag,
+    room.rescuerAgency,
     room.iconPath,
     room.iconUrl,
     room.sortOrder,
@@ -84,6 +98,7 @@ function updateDepartment(id, room) {
       subtitle = ?,
       status = ?,
       color_tag = ?,
+      rescuer_agency = ?,
       icon_path = COALESCE(?, icon_path),
       icon_url = COALESCE(?, icon_url),
       sort_order = ?,
@@ -97,6 +112,7 @@ function updateDepartment(id, room) {
     room.subtitle,
     room.status,
     room.colorTag,
+    room.rescuerAgency,
     room.iconPath,
     room.iconUrl,
     room.sortOrder,
@@ -169,6 +185,7 @@ function getConversationById(id) {
       d.subtitle AS departmentSubtitle,
       d.status AS departmentStatus,
       d.color_tag AS departmentColorTag,
+      d.rescuer_agency AS departmentRescuerAgency,
       d.icon_url AS departmentIconUrl,
       d.sort_order AS departmentSortOrder,
       d.read_only AS departmentReadOnly,
@@ -465,6 +482,11 @@ function listAdminConversations(departmentId, adminUserId, { search = '' } = {})
       u.blood_type_enc AS bloodTypeEnc,
       m.body AS lastMessageBody,
       m.sender_type AS lastMessageSenderType,
+      ods.id AS activeOnlineDistressId,
+      ods.distress_code AS distressCode,
+      ods.reason AS distressReason,
+      ods.recorded_at AS distressRecordedAt,
+      CASE WHEN ods.id IS NULL THEN 0 ELSE 1 END AS hasActiveOnlineDistress,
       (
         SELECT COUNT(*)
         FROM online_chat_messages unread
@@ -474,12 +496,16 @@ function listAdminConversations(departmentId, adminUserId, { search = '' } = {})
           AND rs.reader_id = ?
         WHERE unread.conversation_id = c.id
           AND unread.deleted = 0
-          AND unread.sender_type = 'civilian'
+          AND unread.sender_type IN ('civilian', 'rescuer')
           AND unread.id > COALESCE(rs.last_read_message_id, 0)
       ) AS unreadCount
     FROM online_chat_conversations c
     JOIN users u ON u.id = c.civilian_user_id
     LEFT JOIN online_chat_messages m ON m.id = c.last_message_id
+    LEFT JOIN online_distress_signals ods
+      ON ods.user_id = c.civilian_user_id
+      AND ods.status = 'active'
+      AND ods.deleted = 0
     WHERE c.department_id = ? AND c.status = 'open'
       AND EXISTS (
         SELECT 1
@@ -489,7 +515,11 @@ function listAdminConversations(departmentId, adminUserId, { search = '' } = {})
           AND seeded.sender_type = 'civilian'
       )
     ${searchClause}
-    ORDER BY c.last_message_at DESC NULLS LAST, c.updated_at DESC, c.id DESC
+    ORDER BY
+      CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END ASC,
+      c.last_message_at DESC NULLS LAST,
+      c.updated_at DESC,
+      c.id DESC
   `, params);
 }
 
@@ -507,7 +537,7 @@ function getAdminDepartmentUnreadSummary(adminUserId) {
     LEFT JOIN online_chat_messages unread
       ON unread.conversation_id = c.id
       AND unread.deleted = 0
-      AND unread.sender_type = 'civilian'
+      AND unread.sender_type IN ('civilian', 'rescuer')
       AND unread.id > COALESCE(rs.last_read_message_id, 0)
     GROUP BY d.id
   `, [adminUserId]);
@@ -530,11 +560,121 @@ function getCivilianDepartmentUnreadSummary(civilianUserId) {
     LEFT JOIN online_chat_messages unread
       ON unread.conversation_id = c.id
       AND unread.deleted = 0
-      AND unread.sender_type IN ('admin', 'system')
+      AND unread.sender_type IN ('admin', 'rescuer', 'system')
       AND unread.id > COALESCE(rs.last_read_message_id, 0)
     WHERE d.status = 'active'
     GROUP BY d.id
   `, [civilianUserId, civilianUserId]);
+}
+
+function listRescuerConversations(departmentId, rescuerId, { search = '' } = {}) {
+  const query = String(search || '').trim().toLowerCase();
+  const params = [rescuerId, departmentId];
+  let searchClause = '';
+
+  if (query) {
+    searchClause = `
+      AND (
+        LOWER(u.user_code) LIKE ?
+        OR LOWER(COALESCE(m.body, '')) LIKE ?
+      )
+    `;
+    params.push(`%${query}%`, `%${query}%`);
+  }
+
+  return all(`
+    SELECT
+      c.id,
+      c.department_id AS departmentId,
+      c.civilian_user_id AS civilianUserId,
+      c.status,
+      c.last_message_id AS lastMessageId,
+      c.last_message_at AS lastMessageAt,
+      c.created_at AS createdAt,
+      c.updated_at AS updatedAt,
+      u.user_code AS userCode,
+      u.first_name_enc AS firstNameEnc,
+      u.middle_name_enc AS middleNameEnc,
+      u.last_name_enc AS lastNameEnc,
+      u.birth_date_enc AS birthDateEnc,
+      u.phone_enc AS phoneEnc,
+      u.occupation_enc AS occupationEnc,
+      u.blood_type_enc AS bloodTypeEnc,
+      m.body AS lastMessageBody,
+      m.sender_type AS lastMessageSenderType,
+      ods.id AS activeOnlineDistressId,
+      ods.distress_code AS distressCode,
+      ods.reason AS distressReason,
+      ods.recorded_at AS distressRecordedAt,
+      CASE WHEN ods.id IS NULL THEN 0 ELSE 1 END AS hasActiveOnlineDistress,
+      (
+        SELECT COUNT(*)
+        FROM online_chat_messages unread
+        LEFT JOIN online_chat_read_states rs
+          ON rs.conversation_id = c.id
+          AND rs.reader_type = 'rescuer'
+          AND rs.reader_id = ?
+        WHERE unread.conversation_id = c.id
+          AND unread.deleted = 0
+          AND unread.sender_type IN ('civilian', 'admin', 'system')
+          AND unread.id > COALESCE(rs.last_read_message_id, 0)
+      ) AS unreadCount
+    FROM online_chat_conversations c
+    JOIN users u ON u.id = c.civilian_user_id
+    LEFT JOIN online_chat_messages m ON m.id = c.last_message_id
+    LEFT JOIN online_distress_signals ods
+      ON ods.user_id = c.civilian_user_id
+      AND ods.status = 'active'
+      AND ods.deleted = 0
+    WHERE c.department_id = ? AND c.status = 'open'
+      AND EXISTS (
+        SELECT 1
+        FROM online_chat_messages seeded
+        WHERE seeded.conversation_id = c.id
+          AND seeded.deleted = 0
+          AND seeded.sender_type = 'civilian'
+      )
+    ${searchClause}
+    ORDER BY
+      CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END ASC,
+      c.last_message_at DESC NULLS LAST,
+      c.updated_at DESC,
+      c.id DESC
+  `, params);
+}
+
+function getRescuerDepartmentUnreadSummary(rescuerId) {
+  return all(`
+    SELECT
+      d.id AS departmentId,
+      COUNT(unread.id) AS unreadCount
+    FROM online_chat_departments d
+    LEFT JOIN online_chat_conversations c ON c.department_id = d.id AND c.status = 'open'
+    LEFT JOIN online_chat_read_states rs
+      ON rs.conversation_id = c.id
+      AND rs.reader_type = 'rescuer'
+      AND rs.reader_id = ?
+    LEFT JOIN online_chat_messages unread
+      ON unread.conversation_id = c.id
+      AND unread.deleted = 0
+      AND unread.sender_type IN ('civilian', 'admin', 'system')
+      AND unread.id > COALESCE(rs.last_read_message_id, 0)
+    GROUP BY d.id
+  `, [rescuerId]);
+}
+
+function getRescuerGlobalUnreadSummary(rescuerId, departmentId) {
+  return get(`
+    SELECT COUNT(unread.id) AS unreadCount
+    FROM online_chat_global_messages unread
+    LEFT JOIN online_chat_global_read_states rs
+      ON rs.department_id = unread.department_id
+      AND rs.reader_type = 'rescuer'
+      AND rs.reader_id = ?
+    WHERE unread.department_id = ?
+      AND unread.deleted = 0
+      AND unread.id > COALESCE(rs.last_read_message_id, 0)
+  `, [rescuerId, departmentId]);
 }
 
 function getCivilianGlobalUnreadSummary(civilianUserId, departmentId) {
@@ -675,7 +815,10 @@ module.exports = {
   getConversationById,
   getDepartmentById,
   getDepartmentBySlug,
+  getActiveDepartmentByRescuerAgency,
   getGlobalMessageById,
+  getRescuerDepartmentUnreadSummary,
+  getRescuerGlobalUnreadSummary,
   getSenderGuard,
   getOrCreateConversation,
   insertGlobalMessage,
@@ -685,6 +828,7 @@ module.exports = {
   listDepartments,
   listGlobalMessages,
   listMessages,
+  listRescuerConversations,
   markGlobalRead,
   markConversationRead,
   upsertSenderGuard,

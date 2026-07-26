@@ -6,8 +6,13 @@ const config = require('../config/env');
 const { decryptText } = require('./encryptionService');
 const { enforceCivilianMessageSecurity } = require('./onlineChatModerationService');
 const {
+  markOnlineChatConversationNotificationsRead,
+  notifyOnlineChatMessageReceived
+} = require('./notificationService');
+const {
   archiveDepartment,
   createDepartment,
+  getActiveDepartmentByRescuerAgency,
   getAdminDepartmentUnreadSummary,
   getCivilianDepartmentUnreadSummary,
   getCivilianGlobalUnreadSummary,
@@ -16,12 +21,15 @@ const {
   getDepartmentBySlug,
   getGlobalMessageById,
   getOrCreateConversation,
+  getRescuerDepartmentUnreadSummary,
+  getRescuerGlobalUnreadSummary,
   insertGlobalMessage,
   insertMessage,
   listAdminConversations,
   listDepartments,
   listGlobalMessages,
   listMessages,
+  listRescuerConversations,
   markGlobalRead,
   markConversationRead,
   updateDepartment
@@ -33,12 +41,14 @@ const MAX_MESSAGE_LENGTH = 1000;
 const MAX_ICON_SIZE_BYTES = 1024 * 1024;
 const STATUS_VALUES = new Set(['active', 'inactive', 'archived']);
 const COLOR_VALUES = new Set(['red', 'blue', 'amber', 'orange', 'slate']);
+const RESCUER_AGENCY_VALUES = new Set(['cdrrmo', 'fire-department', 'police-department']);
 const SYSTEM_GLOBAL_DEPARTMENT = Object.freeze({
   slug: 'global-announcements',
   name: 'Global Announcements',
   subtitle: 'Admin-only broadcast lane',
   status: 'active',
   colorTag: 'slate',
+  rescuerAgency: null,
   sortOrder: 0,
   readOnly: 1
 });
@@ -78,6 +88,11 @@ function normalizeFlag(value) {
   }
 
   return 0;
+}
+
+function normalizeAgency(value) {
+  const normalized = normalizeString(value, 40).toLowerCase();
+  return normalized || null;
 }
 
 function calculateAge(birthDateValue) {
@@ -140,6 +155,7 @@ function formatDepartment(row, unreadCount = 0) {
     subtitle: row.subtitle || '',
     status: row.status,
     colorTag: row.colorTag,
+    rescuerAgency: row.rescuerAgency || null,
     iconUrl: row.iconUrl || null,
     sortOrder: row.sortOrder,
     readOnly: Number(row.readOnly) === 1,
@@ -151,13 +167,24 @@ function formatDepartment(row, unreadCount = 0) {
 }
 
 function formatMessage(row) {
+  const senderType = row.senderType;
+  const senderDisplayName = senderType === 'civilian'
+    ? 'Civilian'
+    : senderType === 'admin'
+      ? 'Admin'
+      : senderType === 'rescuer'
+        ? 'Rescuer'
+        : 'System';
+
   return {
     id: row.id,
     conversationId: row.conversationId || 0,
     departmentId: row.departmentId,
     civilianUserId: row.civilianUserId || 0,
-    senderType: row.senderType,
+    senderType,
     senderId: row.senderId,
+    senderDisplayName,
+    senderRoleLabel: senderDisplayName,
     body: row.body,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
@@ -196,6 +223,15 @@ function formatConversation(row) {
         }
       : null,
     unreadCount: Number(row.unreadCount || 0),
+    hasActiveOnlineDistress: Number(row.hasActiveOnlineDistress || 0) === 1,
+    activeOnlineDistress: Number(row.hasActiveOnlineDistress || 0) === 1
+      ? {
+          id: row.activeOnlineDistressId || null,
+          code: row.distressCode || null,
+          reason: row.distressReason || null,
+          recordedAt: row.distressRecordedAt || null
+        }
+      : null,
     civilian: formatCivilian(row),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
@@ -222,6 +258,7 @@ function normalizeDepartmentPayload(payload, existing = null, icon = {}) {
   const subtitle = normalizeString(payload.subtitle, 120);
   const status = normalizeString(payload.status || existing?.status || 'active', 20);
   const colorTag = normalizeString(payload.colorTag || payload.color || existing?.colorTag || 'red', 20);
+  const rescuerAgency = normalizeAgency(payload.rescuerAgency || existing?.rescuerAgency || '');
 
   if (!name) {
     throw appError('Department chat name is required.');
@@ -239,12 +276,17 @@ function normalizeDepartmentPayload(payload, existing = null, icon = {}) {
     throw appError('Invalid department chat color tag.');
   }
 
+  if (!rescuerAgency || !RESCUER_AGENCY_VALUES.has(rescuerAgency)) {
+    throw appError('Rescuer agency is required for department chats.');
+  }
+
   return {
     slug: slugify(payload.slug || name),
     name,
     subtitle,
     status,
     colorTag,
+    rescuerAgency,
     iconPath: icon.iconPath || null,
     iconUrl: icon.iconUrl || null,
     sortOrder: normalizeInteger(payload.sortOrder ?? existing?.sortOrder, existing?.sortOrder || 100),
@@ -317,6 +359,30 @@ async function getCivilianDepartments(civilianUserId) {
   ));
 }
 
+async function getRescuerDepartments(rescuer) {
+  const systemDepartment = await ensureSystemGlobalDepartment();
+  const [departments, unreadRows, globalUnreadRow] = await Promise.all([
+    listDepartments({ includeArchived: false }),
+    getRescuerDepartmentUnreadSummary(rescuer.id),
+    getRescuerGlobalUnreadSummary(rescuer.id, systemDepartment.id)
+  ]);
+  const unreadByDepartment = new Map(unreadRows.map((row) => [row.departmentId, row.unreadCount]));
+  unreadByDepartment.set(systemDepartment.id, Number(globalUnreadRow?.unreadCount || 0));
+  const visibleDepartments = [
+    systemDepartment,
+    ...departments.filter((department) => (
+      department.slug !== SYSTEM_GLOBAL_DEPARTMENT.slug
+      && department.status === 'active'
+      && department.rescuerAgency === rescuer.agency
+    ))
+  ];
+
+  return visibleDepartments.map((department) => formatDepartment(
+    department,
+    unreadByDepartment.get(department.id) || 0
+  ));
+}
+
 async function createDepartmentChat(payload, file) {
   const icon = await saveDepartmentIcon(file);
   const room = normalizeDepartmentPayload(payload, null, icon);
@@ -329,6 +395,13 @@ async function createDepartmentChat(payload, file) {
 
   if (existing) {
     throw appError('A department chat with this name already exists.', 409);
+  }
+
+  if (room.status === 'active') {
+    const activeAgencyRoom = await getActiveDepartmentByRescuerAgency(room.rescuerAgency);
+    if (activeAgencyRoom) {
+      throw appError('This rescuer agency already has an active department chat.', 409);
+    }
   }
 
   const result = await createDepartment(room);
@@ -352,6 +425,13 @@ async function updateDepartmentChat(id, payload, file) {
 
   if (duplicate && duplicate.id !== existing.id) {
     throw appError('A department chat with this name already exists.', 409);
+  }
+
+  if (room.status === 'active') {
+    const activeAgencyRoom = await getActiveDepartmentByRescuerAgency(room.rescuerAgency);
+    if (activeAgencyRoom && activeAgencyRoom.id !== existing.id) {
+      throw appError('This rescuer agency already has an active department chat.', 409);
+    }
   }
 
   await updateDepartment(id, room);
@@ -381,6 +461,24 @@ async function getAdminConversations(departmentId, adminUserId, options = {}) {
   }
 
   const rows = await listAdminConversations(departmentId, adminUserId, options);
+  return {
+    department: formatDepartment(department),
+    conversations: rows.map(formatConversation)
+  };
+}
+
+async function getRescuerConversations(departmentId, rescuer, options = {}) {
+  const department = await getDepartmentById(departmentId);
+
+  if (!department || department.status !== 'active' || isSystemGlobalDepartment(department)) {
+    throw appError('Department chat not found.', 404);
+  }
+
+  if (department.rescuerAgency !== rescuer.agency) {
+    throw appError('Department chat not found.', 404);
+  }
+
+  const rows = await listRescuerConversations(departmentId, rescuer.id, options);
   return {
     department: formatDepartment(department),
     conversations: rows.map(formatConversation)
@@ -433,6 +531,12 @@ async function getConversationMessages(conversationId, actor, options = {}) {
     throw appError('Conversation not found.', 404);
   }
 
+  if (actor.type === 'rescuer') {
+    if (conversation.departmentStatus !== 'active' || conversation.departmentRescuerAgency !== actor.agency) {
+      throw appError('Conversation not found.', 404);
+    }
+  }
+
   const messages = await listMessages(conversationId, options);
 
   return {
@@ -444,6 +548,7 @@ async function getConversationMessages(conversationId, actor, options = {}) {
       subtitle: conversation.departmentSubtitle,
       status: conversation.departmentStatus,
       colorTag: conversation.departmentColorTag,
+      rescuerAgency: conversation.departmentRescuerAgency,
       iconUrl: conversation.departmentIconUrl,
       sortOrder: conversation.departmentSortOrder,
       readOnly: conversation.departmentReadOnly,
@@ -515,6 +620,44 @@ async function sendCivilianMessage(conversationId, civilianUserId, bodyValue) {
   });
 
   await markConversationRead(conversationId, 'civilian', civilianUserId);
+  await notifyOnlineChatMessageReceived({
+    conversationId,
+    department: {
+      id: conversation.departmentId,
+      name: conversation.departmentName
+    },
+    civilian: formatCivilian(conversation),
+    message
+  });
+  return formatMessage(message);
+}
+
+async function sendRescuerMessage(conversationId, rescuer, bodyValue) {
+  const conversation = await getConversationById(conversationId);
+
+  if (!conversation
+    || conversation.departmentStatus !== 'active'
+    || isSystemGlobalDepartment({ slug: conversation.departmentSlug })
+    || conversation.departmentRescuerAgency !== rescuer.agency) {
+    throw appError('Conversation not found.', 404);
+  }
+
+  const body = normalizeString(bodyValue, MAX_MESSAGE_LENGTH);
+
+  if (!body) {
+    throw appError('Message cannot be empty.');
+  }
+
+  const message = await insertMessage({
+    conversationId,
+    departmentId: conversation.departmentId,
+    civilianUserId: conversation.civilianUserId,
+    senderType: 'rescuer',
+    senderId: rescuer.id,
+    body
+  });
+
+  await markConversationRead(conversationId, 'rescuer', rescuer.id);
   return formatMessage(message);
 }
 
@@ -548,7 +691,16 @@ async function markRead(conversationId, actor) {
     throw appError('Conversation not found.', 404);
   }
 
+  if (actor.type === 'rescuer') {
+    if (conversation.departmentStatus !== 'active' || conversation.departmentRescuerAgency !== actor.agency) {
+      throw appError('Conversation not found.', 404);
+    }
+  }
+
   await markConversationRead(conversationId, actor.type, actor.id);
+  if (actor.type === 'admin') {
+    await markOnlineChatConversationNotificationsRead(conversationId);
+  }
   return { conversationId };
 }
 
@@ -564,6 +716,8 @@ module.exports = {
   getAdminConversations,
   getAdminDepartments,
   getCivilianDepartments,
+  getRescuerConversations,
+  getRescuerDepartments,
   getConversationMessages,
   getGlobalMessages,
   markRead,
@@ -572,5 +726,6 @@ module.exports = {
   sendAdminMessage,
   sendGlobalAnnouncement,
   sendCivilianMessage,
+  sendRescuerMessage,
   updateDepartmentChat
 };

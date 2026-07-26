@@ -2,11 +2,16 @@ const {
   createNotification,
   listNotifications,
   countUnreadNotifications,
+  countUnreadNotificationsByType,
   markNotificationRead,
   markAllNotificationsRead,
+  markNotificationsReadByEntity,
   deleteNotification,
   clearNotifications
 } = require('../repositories/notificationRepository');
+
+const ONLINE_CHAT_MESSAGE_NOTIFICATION_TYPE = 'online-chat.message.received';
+const ONLINE_CHAT_CONVERSATION_ENTITY = 'online-chat-conversation';
 
 function normalizeNotification(row) {
   return {
@@ -322,6 +327,39 @@ function notifyOnlineDistressSignalCanceled(distress) {
   });
 }
 
+function notifyOnlineChatMessageReceived({
+  conversationId,
+  department,
+  civilian,
+  message
+}) {
+  return safeCreateNotification({
+    type: ONLINE_CHAT_MESSAGE_NOTIFICATION_TYPE,
+    title: `New message in ${department?.name || 'Department Chat'}`,
+    message: `${civilian?.fullName || civilian?.code || 'Civilian'} sent a new message.`,
+    relatedEntityType: ONLINE_CHAT_CONVERSATION_ENTITY,
+    relatedEntityId: conversationId,
+    relatedEntityCode: civilian?.code || null,
+    metadata: {
+      departmentId: department?.id || null,
+      departmentName: department?.name || null,
+      conversationId,
+      civilianUserId: civilian?.id || null,
+      civilianCode: civilian?.code || null,
+      messageId: message?.id || null,
+      messageScope: 'department'
+    }
+  });
+}
+
+function markOnlineChatConversationNotificationsRead(conversationId) {
+  return markNotificationsReadByEntity(
+    ONLINE_CHAT_MESSAGE_NOTIFICATION_TYPE,
+    ONLINE_CHAT_CONVERSATION_ENTITY,
+    conversationId
+  );
+}
+
 async function getNotifications() {
   const notifications = await listNotifications();
   return notifications.map(normalizeNotification);
@@ -329,6 +367,11 @@ async function getNotifications() {
 
 async function getUnreadNotificationCount() {
   const row = await countUnreadNotifications();
+  return row ? row.count : 0;
+}
+
+async function getUnreadOnlineChatNotificationCount() {
+  const row = await countUnreadNotificationsByType(ONLINE_CHAT_MESSAGE_NOTIFICATION_TYPE);
   return row ? row.count : 0;
 }
 
@@ -351,10 +394,13 @@ module.exports = {
   notifyOnlineDistressSignalActive,
   notifyDistressSignalCanceled,
   notifyOnlineDistressSignalCanceled,
+  notifyOnlineChatMessageReceived,
   getNotifications,
   getUnreadNotificationCount,
+  getUnreadOnlineChatNotificationCount,
   markNotificationRead,
   markAllNotificationsRead,
+  markOnlineChatConversationNotificationsRead,
   deleteNotification,
   clearNotifications
 };

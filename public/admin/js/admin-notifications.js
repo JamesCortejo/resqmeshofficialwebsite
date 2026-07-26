@@ -1,10 +1,23 @@
 (function initAdminNotifications() {
+  const ONLINE_CHAT_NOTIFICATION_TYPE = 'online-chat.message.received';
   const button = document.getElementById('adminNotificationButton');
   const badge = document.getElementById('adminNotificationBadge');
   const distressNavLink = document.querySelector('.admin-nav-link[href="/resqmeshadmin/distress-signals"]');
+  const messagesNavLink = document.querySelector('.admin-nav-link[href="/resqmeshadmin/messages"]');
 
   if (!button || !badge) {
     return;
+  }
+
+  let messagesNavBadge = null;
+  if (messagesNavLink) {
+    messagesNavBadge = messagesNavLink.querySelector('.admin-nav-link-badge');
+    if (!messagesNavBadge) {
+      messagesNavBadge = document.createElement('span');
+      messagesNavBadge.className = 'admin-nav-link-badge';
+      messagesNavBadge.hidden = true;
+      messagesNavLink.appendChild(messagesNavBadge);
+    }
   }
 
   const panel = document.createElement('section');
@@ -147,10 +160,39 @@
     badge.textContent = count > 99 ? '99+' : String(count);
   }
 
+  function renderMessagesNavBadge() {
+    if (!messagesNavBadge) {
+      return;
+    }
+
+    const onlineChatUnreadCount = notifications.filter((notification) =>
+      notification &&
+      !notification.isRead &&
+      notification.type === ONLINE_CHAT_NOTIFICATION_TYPE
+    ).length;
+
+    const isMessagesPage = messagesNavLink?.classList.contains('is-active');
+    if (!onlineChatUnreadCount || isMessagesPage) {
+      messagesNavBadge.hidden = true;
+      messagesNavBadge.textContent = '0';
+      return;
+    }
+
+    messagesNavBadge.hidden = false;
+    messagesNavBadge.textContent = onlineChatUnreadCount > 99 ? '99+' : String(onlineChatUnreadCount);
+  }
+
   function dispatchNotificationsRefreshed(count) {
+    const onlineChatUnreadCount = notifications.filter((notification) =>
+      notification &&
+      !notification.isRead &&
+      notification.type === ONLINE_CHAT_NOTIFICATION_TYPE
+    ).length;
+
     window.dispatchEvent(new CustomEvent('resqmesh:admin-notifications-refreshed', {
       detail: {
         unreadCount: count || 0,
+        onlineChatUnreadCount,
         notifications
       }
     }));
@@ -160,6 +202,7 @@
     if (notifications.length === 0) {
       list.innerHTML = '<div class="admin-notifications-empty">No notifications yet.</div>';
       renderDistressAlertState();
+      renderMessagesNavBadge();
       return;
     }
 
@@ -177,6 +220,7 @@
       </article>
     `).join('');
     renderDistressAlertState();
+    renderMessagesNavBadge();
   }
 
   async function refreshNotifications() {
@@ -208,6 +252,7 @@
 
       notifications = itemsPayload.data || [];
       renderDistressAlertState();
+      renderMessagesNavBadge();
       renderBadge(countPayload.count || 0);
       dispatchNotificationsRefreshed(countPayload.count || 0);
     } catch (error) {

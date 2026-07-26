@@ -140,6 +140,7 @@
               <tr>
                 <th scope="col">Room Name</th>
                 <th scope="col">Subtitle</th>
+                <th scope="col">Rescuer Agency</th>
                 <th scope="col">Logo</th>
                 <th scope="col">Status</th>
                 <th scope="col">Color Tag</th>
@@ -196,6 +197,15 @@
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
             <option value="archived">Archived</option>
+          </select>
+        </label>
+        <label class="department-chat-field">
+          <span>Rescuer Agency</span>
+          <select id="departmentChatRescuerAgencyInput" required>
+            <option value="">Select agency</option>
+            <option value="cdrrmo">CDRRMO</option>
+            <option value="fire-department">Fire Department</option>
+            <option value="police-department">Police Department</option>
           </select>
         </label>
         <label class="department-chat-field department-chat-checkbox-field">

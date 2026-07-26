@@ -51,6 +51,16 @@ function countUnreadNotifications() {
   `);
 }
 
+function countUnreadNotificationsByType(type) {
+  return get(`
+    SELECT COUNT(*) AS count
+    FROM notifications
+    WHERE hidden_at IS NULL
+      AND read_at IS NULL
+      AND type = ?
+  `, [type]);
+}
+
 function markNotificationRead(id) {
   return run(`
     UPDATE notifications
@@ -65,6 +75,18 @@ function markAllNotificationsRead() {
     SET read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
     WHERE hidden_at IS NULL AND read_at IS NULL
   `);
+}
+
+function markNotificationsReadByEntity(type, relatedEntityType, relatedEntityId) {
+  return run(`
+    UPDATE notifications
+    SET read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
+    WHERE hidden_at IS NULL
+      AND read_at IS NULL
+      AND type = ?
+      AND related_entity_type = ?
+      AND related_entity_id = ?
+  `, [type, relatedEntityType, relatedEntityId]);
 }
 
 function deleteNotification(id) {
@@ -87,8 +109,10 @@ module.exports = {
   createNotification,
   listNotifications,
   countUnreadNotifications,
+  countUnreadNotificationsByType,
   markNotificationRead,
   markAllNotificationsRead,
+  markNotificationsReadByEntity,
   deleteNotification,
   clearNotifications
 };

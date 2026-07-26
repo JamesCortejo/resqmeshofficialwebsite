@@ -17,7 +17,8 @@
     loadingOlderMessages: false,
     hasOlderMessages: false,
     pollTimer: null,
-    refreshToken: 0
+    refreshToken: 0,
+    lastNotificationSignature: ''
   };
 
   const dom = {
@@ -72,6 +73,24 @@
     }
 
     return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatDateTime(value) {
+    if (!value) {
+      return '';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return '';
+    }
+
+    return parsed.toLocaleString([], {
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 
   function getSelectedDepartment() {
@@ -273,19 +292,26 @@
 
     dom.conversationList.innerHTML = state.conversations.map((conversation) => {
       const civilian = conversation.civilian || {};
+      const distressChip = conversation.hasActiveOnlineDistress
+        ? '<span class="messages-conversation-distress-chip">Distress</span>'
+        : '';
+
       return `
-        <button
-          type="button"
-          class="messages-conversation-card${conversation.id === state.selectedConversationId ? ' is-active' : ''}"
-          data-conversation-id="${conversation.id}"
-        >
-          <span class="messages-conversation-main">
-            <strong>${escapeHtml(civilian.fullName || 'Civilian')}</strong>
-            <small>${escapeHtml(civilian.code || '')}</small>
-          </span>
-          ${conversation.unreadCount > 0 ? `<span class="messages-conversation-badge">${conversation.unreadCount}</span>` : ''}
-        </button>
-      `;
+          <button
+            type="button"
+            class="messages-conversation-card${conversation.id === state.selectedConversationId ? ' is-active' : ''}${conversation.hasActiveOnlineDistress ? ' is-distress' : ''}"
+            data-conversation-id="${conversation.id}"
+          >
+            <span class="messages-conversation-main">
+              <span class="messages-conversation-name-row">
+                <strong>${escapeHtml(civilian.fullName || 'Civilian')}</strong>
+                ${distressChip}
+              </span>
+              <small>${escapeHtml(civilian.code || '')}</small>
+            </span>
+            ${conversation.unreadCount > 0 ? `<span class="messages-conversation-badge">${conversation.unreadCount}</span>` : ''}
+          </button>
+        `;
     }).join('');
   }
 
@@ -313,19 +339,31 @@
       return;
     }
 
-    const civilian = conversation.civilian || {};
-    const demographics = [civilian.age ? `${civilian.age} years old` : '', civilian.bloodType || '']
-      .filter(Boolean)
-      .join(' | ');
+      const civilian = conversation.civilian || {};
+      const demographics = [civilian.age ? `${civilian.age} years old` : '', civilian.bloodType || '']
+        .filter(Boolean)
+        .join(' | ');
+      const distress = conversation.activeOnlineDistress;
+      const distressMeta = distress
+        ? [
+            distress.code || 'Online distress',
+            distress.reason || '',
+            distress.recordedAt ? formatDateTime(distress.recordedAt) : ''
+          ].filter(Boolean).join(' | ')
+        : '';
 
-    dom.chatHeader.innerHTML = `
-      <div>
-        <h3>${escapeHtml(civilian.fullName || 'Civilian')}</h3>
-        <p>${escapeHtml(department?.name || '')}</p>
-      </div>
-      <button type="button" class="messages-info-button" data-civilian-info-toggle aria-label="Show civilian details">
-        <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
-      </button>
+      dom.chatHeader.innerHTML = `
+        <div>
+          <h3 class="messages-chat-title-row">
+            <span>${escapeHtml(civilian.fullName || 'Civilian')}</span>
+            ${conversation.hasActiveOnlineDistress ? '<span class="messages-chat-distress-chip">Distress Active</span>' : ''}
+          </h3>
+          <p>${escapeHtml(department?.name || '')}</p>
+          ${distressMeta ? `<small class="messages-chat-distress-meta">${escapeHtml(distressMeta)}</small>` : ''}
+        </div>
+        <button type="button" class="messages-info-button" data-civilian-info-toggle aria-label="Show civilian details">
+          <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+        </button>
       <div class="messages-civilian-popover${state.infoOpen ? ' is-open' : ''}">
         <strong>${escapeHtml(civilian.fullName || 'Civilian')}</strong>
         <span>${escapeHtml(civilian.code || '')}</span>
@@ -707,6 +745,27 @@
       if (dom.timeline.scrollTop <= 80) {
         void loadOlderMessages();
       }
+    });
+
+    window.addEventListener('resqmesh:admin-notifications-refreshed', (event) => {
+      const notifications = Array.isArray(event.detail?.notifications)
+        ? event.detail.notifications
+        : [];
+      const chatNotifications = notifications
+        .filter((notification) => notification?.type === 'online-chat.message.received' && !notification.isRead)
+        .map((notification) => `${notification.id}:${notification.relatedEntityId || ''}`)
+        .join('|');
+
+      if (chatNotifications === state.lastNotificationSignature) {
+        return;
+      }
+
+      state.lastNotificationSignature = chatNotifications;
+      void refresh({
+        keepDepartmentSelection: true,
+        keepConversationSelection: true,
+        autoSelectConversation: false
+      });
     });
   }
 
