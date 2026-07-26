@@ -426,7 +426,7 @@ function markGlobalRead(departmentId, readerType, readerId) {
 
 function listAdminConversations(departmentId, adminUserId, { search = '' } = {}) {
   const query = String(search || '').trim().toLowerCase();
-  const params = [departmentId, adminUserId];
+  const params = [adminUserId, departmentId];
   let searchClause = '';
 
   if (query) {
