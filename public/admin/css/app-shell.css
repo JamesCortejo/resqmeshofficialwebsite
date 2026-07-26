@@ -49,14 +49,14 @@
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);
   align-items: center;
-  column-gap: 0.85rem;
+  column-gap: 0.62rem;
   border: 1px solid transparent;
   border-radius: var(--admin-radius-md);
   color: var(--admin-muted);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  padding: 0.95rem 2rem 0.95rem 1rem;
+  padding: 0.9rem 1.65rem 0.9rem 0.88rem;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
@@ -69,12 +69,13 @@
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
 .admin-nav-link-badge {
   position: absolute;
-  right: 0.95rem;
+  right: 0.72rem;
   top: 50%;
   display: inline-block;
   width: 0.58rem;
