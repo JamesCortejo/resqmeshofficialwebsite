@@ -475,6 +475,13 @@ function listAdminConversations(departmentId, adminUserId, { search = '' } = {})
     JOIN users u ON u.id = c.civilian_user_id
     LEFT JOIN online_chat_messages m ON m.id = c.last_message_id
     WHERE c.department_id = ? AND c.status = 'open'
+      AND EXISTS (
+        SELECT 1
+        FROM online_chat_messages seeded
+        WHERE seeded.conversation_id = c.id
+          AND seeded.deleted = 0
+          AND seeded.sender_type = 'civilian'
+      )
     ${searchClause}
     ORDER BY c.last_message_at DESC NULLS LAST, c.updated_at DESC, c.id DESC
   `, params);
