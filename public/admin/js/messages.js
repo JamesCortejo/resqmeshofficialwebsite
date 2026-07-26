@@ -11,6 +11,8 @@
     searchQuery: '',
     sending: false,
     infoOpen: false,
+    loadingConversations: false,
+    loadingMessages: false,
     pollTimer: null,
     refreshToken: 0
   };
@@ -95,12 +97,12 @@
     return getFallbackDepartmentId(departments);
   }
 
-  function resolveConversationId(conversations, preferredId) {
+  function resolveConversationId(conversations, preferredId, allowFirstFallback = false) {
     if (preferredId && conversations.some((conversation) => conversation.id === preferredId)) {
       return preferredId;
     }
 
-    return conversations[0]?.id || null;
+    return allowFirstFallback ? (conversations[0]?.id || null) : null;
   }
 
   async function fetchDepartments() {
@@ -187,6 +189,17 @@
       return;
     }
 
+    if (state.loadingConversations) {
+      dom.conversationList.innerHTML = `
+        <div class="messages-loading-state">
+          <span class="messages-loading-spinner" aria-hidden="true"></span>
+          <strong>Loading civilians</strong>
+          <p>Fetching department conversations.</p>
+        </div>
+      `;
+      return;
+    }
+
     if (!state.conversations.length) {
       dom.conversationList.innerHTML = `
         <div class="messages-empty-state">
@@ -267,6 +280,17 @@
     const department = getSelectedDepartment();
     const viewingGlobal = isGlobalDepartment(department);
 
+    if (state.loadingMessages) {
+      dom.timeline.innerHTML = `
+        <div class="messages-loading-state messages-loading-state-chat">
+          <span class="messages-loading-spinner" aria-hidden="true"></span>
+          <strong>Loading chat</strong>
+          <p>${viewingGlobal ? 'Fetching announcements.' : 'Fetching conversation history.'}</p>
+        </div>
+      `;
+      return;
+    }
+
     if (viewingGlobal && !state.messages.length) {
       dom.timeline.innerHTML = `
         <div class="messages-empty-state">
@@ -331,7 +355,9 @@
   }
 
   function syncComposer() {
-    const canSend = Boolean(state.departments.length) && (isGlobalDepartment() || Boolean(state.selectedConversationId));
+    const canSend = Boolean(state.departments.length)
+      && (isGlobalDepartment() || Boolean(state.selectedConversationId))
+      && !state.loadingMessages;
     const submitButton = dom.composerForm.querySelector('button[type="submit"]');
 
     dom.composerInput.disabled = !canSend || state.sending;
@@ -352,7 +378,8 @@
   async function refresh(options = {}) {
     const {
       keepDepartmentSelection = true,
-      keepConversationSelection = true
+      keepConversationSelection = true,
+      autoSelectConversation = false
     } = options;
 
     const refreshToken = ++state.refreshToken;
@@ -371,7 +398,8 @@
         ? null
         : resolveConversationId(
             conversations,
-            keepConversationSelection ? state.selectedConversationId : null
+            keepConversationSelection ? state.selectedConversationId : null,
+            autoSelectConversation
           );
       const messages = isGlobalDepartment(nextDepartment)
         ? await fetchGlobalMessages()
@@ -387,8 +415,15 @@
       state.selectedConversationId = nextConversationId;
       state.messages = messages;
       state.infoOpen = false;
+      state.loadingConversations = false;
+      state.loadingMessages = false;
       render();
     } catch (error) {
+      if (refreshToken === state.refreshToken) {
+        state.loadingConversations = false;
+        state.loadingMessages = false;
+        render();
+      }
       console.error('Unable to refresh online messages:', error.message);
     }
   }
@@ -422,7 +457,8 @@
       dom.composerInput.value = '';
       await refresh({
         keepDepartmentSelection: true,
-        keepConversationSelection: true
+        keepConversationSelection: true,
+        autoSelectConversation: false
       });
     } catch (error) {
       console.error('Unable to send online message:', error.message);
@@ -438,6 +474,9 @@
     }
 
     state.selectedDepartmentId = departmentId;
+    state.loadingConversations = true;
+    state.loadingMessages = true;
+    state.conversations = [];
     state.selectedConversationId = null;
     state.messages = [];
     state.infoOpen = false;
@@ -445,7 +484,8 @@
 
     await refresh({
       keepDepartmentSelection: true,
-      keepConversationSelection: false
+      keepConversationSelection: false,
+      autoSelectConversation: false
     });
   }
 
@@ -455,13 +495,15 @@
     }
 
     state.selectedConversationId = conversationId;
+    state.loadingMessages = true;
     state.messages = [];
     state.infoOpen = false;
     render();
 
     await refresh({
       keepDepartmentSelection: true,
-      keepConversationSelection: true
+      keepConversationSelection: true,
+      autoSelectConversation: false
     });
   }
 
@@ -498,9 +540,16 @@
       state.searchQuery = dom.conversationSearchInput.value;
       window.clearTimeout(searchTimeout);
       searchTimeout = window.setTimeout(() => {
+        state.loadingConversations = true;
+        state.loadingMessages = true;
+        state.conversations = [];
+        state.selectedConversationId = null;
+        state.messages = [];
+        render();
         void refresh({
           keepDepartmentSelection: true,
-          keepConversationSelection: false
+          keepConversationSelection: false,
+          autoSelectConversation: false
         });
       }, 250);
     });
@@ -516,7 +565,8 @@
     state.pollTimer = window.setInterval(() => {
       void refresh({
         keepDepartmentSelection: true,
-        keepConversationSelection: true
+        keepConversationSelection: true,
+        autoSelectConversation: false
       });
     }, POLL_MS);
   }
@@ -524,6 +574,7 @@
   bindEvents();
   void refresh({
     keepDepartmentSelection: false,
-    keepConversationSelection: false
+    keepConversationSelection: false,
+    autoSelectConversation: false
   }).then(startPolling);
 }());

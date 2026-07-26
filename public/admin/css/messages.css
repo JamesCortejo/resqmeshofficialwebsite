@@ -525,6 +525,52 @@
   text-align: center;
 }
 
+.messages-loading-state {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.5rem;
+  min-height: 10rem;
+  border: 1px dashed rgba(220, 227, 234, 0.9);
+  border-radius: var(--admin-radius-md);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--admin-muted);
+  text-align: center;
+  padding: 1.25rem;
+}
+
+.messages-loading-state strong {
+  color: var(--admin-ink);
+  font: 900 0.98rem/1.2 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-loading-state p {
+  margin: 0;
+  font: 700 0.84rem/1.5 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-loading-state-chat {
+  min-height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.messages-loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(231, 75, 50, 0.14);
+  border-top-color: var(--admin-primary);
+  border-radius: 999px;
+  animation: messages-spin 0.8s linear infinite;
+}
+
+@keyframes messages-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .messages-scope-badge,
 .messages-conversation-badge {
   display: inline-flex;
