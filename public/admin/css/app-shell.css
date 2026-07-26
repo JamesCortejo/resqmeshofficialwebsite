@@ -45,16 +45,18 @@
 }
 
 .admin-nav-link {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
   align-items: center;
-  gap: 0.85rem;
+  column-gap: 0.85rem;
   border: 1px solid transparent;
   border-radius: var(--admin-radius-md);
   color: var(--admin-muted);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
-  padding: 0.95rem 1rem;
+  padding: 0.95rem 2rem 0.95rem 1rem;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
@@ -63,20 +65,28 @@
 }
 
 .admin-nav-link span:last-child {
-  flex: 1 1 auto;
   min-width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .admin-nav-link-badge {
-  margin-left: auto;
-  flex: 0 0 auto;
+  position: absolute;
+  right: 0.95rem;
+  top: 50%;
   display: inline-block;
-  width: 0.72rem;
-  height: 0.72rem;
+  width: 0.58rem;
+  height: 0.58rem;
   border-radius: 999px;
   background: var(--admin-primary);
-  box-shadow: 0 10px 18px rgba(231, 75, 50, 0.22);
+  box-shadow: 0 0 0 4px rgba(231, 75, 50, 0.12);
+  transform: translateY(-50%);
+}
+
+.admin-nav-link-badge[hidden] {
+  display: none !important;
 }
 
 .admin-nav-link:hover {

@@ -60,6 +60,7 @@
   let notifications = [];
   let previousUnreadCount = null;
   let headsUpTimer = null;
+  let markChatReadPromise = null;
   let lastRefreshAt = 0;
   const pollIntervalMs = 5000;
   const minManualRefreshGapMs = 1200;
@@ -183,6 +184,42 @@
     messagesNavBadge.textContent = '';
   }
 
+  function getUnreadOnlineChatNotifications() {
+    return notifications.filter((notification) =>
+      notification &&
+      !notification.isRead &&
+      notification.type === ONLINE_CHAT_NOTIFICATION_TYPE
+    );
+  }
+
+  async function markOnlineChatNotificationsRead() {
+    const isMessagesPage = messagesNavLink?.classList.contains('is-active');
+    const unreadChatNotifications = getUnreadOnlineChatNotifications();
+
+    if (!isMessagesPage || unreadChatNotifications.length === 0) {
+      return false;
+    }
+
+    if (markChatReadPromise) {
+      return markChatReadPromise;
+    }
+
+    markChatReadPromise = Promise.all(
+      unreadChatNotifications.map((notification) =>
+        fetchJson(`/api/admin/notifications/${notification.id}/read`, { method: 'PATCH' }).catch(() => null)
+      )
+    )
+      .then(async () => {
+        await refreshCountOnly();
+        return true;
+      })
+      .finally(() => {
+        markChatReadPromise = null;
+      });
+
+    return markChatReadPromise;
+  }
+
   function dispatchNotificationsRefreshed(count) {
     const onlineChatUnreadCount = notifications.filter((notification) =>
       notification &&
@@ -237,6 +274,7 @@
       renderNotifications();
       renderBadge(countPayload.count || 0);
       dispatchNotificationsRefreshed(countPayload.count || 0);
+      void markOnlineChatNotificationsRead();
     } catch (error) {
       list.innerHTML = `<div class="admin-notifications-empty">${escapeHtml(error.message)}</div>`;
     }
@@ -256,6 +294,7 @@
       renderMessagesNavBadge();
       renderBadge(countPayload.count || 0);
       dispatchNotificationsRefreshed(countPayload.count || 0);
+      void markOnlineChatNotificationsRead();
     } catch (error) {
       // Keep badge state stable if a background poll fails.
     }
