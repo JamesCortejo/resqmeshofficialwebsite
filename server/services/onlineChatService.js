@@ -31,7 +31,7 @@ const ICON_PUBLIC_BASE = '/uploads/department-chat-icons';
 const MAX_MESSAGE_LENGTH = 1000;
 const MAX_ICON_SIZE_BYTES = 1024 * 1024;
 const STATUS_VALUES = new Set(['active', 'inactive', 'archived']);
-const COLOR_VALUES = new Set(['red', 'blue', 'amber', 'teal', 'slate']);
+const COLOR_VALUES = new Set(['red', 'blue', 'amber', 'orange', 'slate']);
 const SYSTEM_GLOBAL_DEPARTMENT = Object.freeze({
   slug: 'global-announcements',
   name: 'Global Announcements',
