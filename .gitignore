@@ -19,6 +19,8 @@ pids
 *.seed
 *.pid.lock
 data/
+!server/data/
+!server/data/onlineChatProfanity.js
 storage/
 
 # Coverage and build output
