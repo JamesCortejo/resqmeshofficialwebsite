@@ -565,6 +565,22 @@
   animation: messages-spin 0.8s linear infinite;
 }
 
+.messages-loading-older {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  color: var(--admin-muted);
+  font: 800 0.74rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  padding-bottom: 0.4rem;
+}
+
+.messages-loading-older .messages-loading-spinner {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-width: 2px;
+}
+
 @keyframes messages-spin {
   to {
     transform: rotate(360deg);

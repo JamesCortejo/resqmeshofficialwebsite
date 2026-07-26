@@ -1,6 +1,7 @@
 (function createMessagesManagerPage() {
   const POLL_MS = 5000;
   const GLOBAL_SLUG = 'global-announcements';
+  const MESSAGE_PAGE_SIZE = 30;
 
   const state = {
     departments: [],
@@ -13,6 +14,8 @@
     infoOpen: false,
     loadingConversations: false,
     loadingMessages: false,
+    loadingOlderMessages: false,
+    hasOlderMessages: false,
     pollTimer: null,
     refreshToken: 0
   };
@@ -137,17 +140,74 @@
     return payload.data?.messages || [];
   }
 
-  async function fetchConversationMessages(conversationId) {
+  async function fetchGlobalMessagesPage({ beforeId = null, afterId = null, limit = MESSAGE_PAGE_SIZE } = {}) {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (beforeId) {
+      query.set('before', String(beforeId));
+    }
+    if (afterId) {
+      query.set('after', String(afterId));
+    }
+
+    const payload = await adminFetch(`/api/admin/online-chat/global/messages?${query.toString()}`);
+    await adminFetch('/api/admin/online-chat/global/read', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+    return payload.data?.messages || [];
+  }
+
+  async function fetchConversationMessages(conversationId, { beforeId = null, afterId = null, limit = MESSAGE_PAGE_SIZE } = {}) {
     if (!conversationId) {
       return [];
     }
 
-    const payload = await adminFetch(`/api/admin/online-chat/conversations/${conversationId}/messages?limit=80`);
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (beforeId) {
+      query.set('before', String(beforeId));
+    }
+    if (afterId) {
+      query.set('after', String(afterId));
+    }
+
+    const payload = await adminFetch(`/api/admin/online-chat/conversations/${conversationId}/messages?${query.toString()}`);
     await adminFetch(`/api/admin/online-chat/conversations/${conversationId}/read`, {
       method: 'POST',
       body: JSON.stringify({})
     });
     return payload.data?.messages || [];
+  }
+
+  function mergeMessages(currentMessages, incomingMessages) {
+    if (!incomingMessages.length) {
+      return currentMessages;
+    }
+
+    const seen = new Set(currentMessages.map((message) => message.id));
+    const merged = [...currentMessages];
+
+    incomingMessages.forEach((message) => {
+      if (!seen.has(message.id)) {
+        merged.push(message);
+      }
+    });
+
+    return merged.sort((left, right) => left.id - right.id);
+  }
+
+  function prependMessages(currentMessages, olderMessages) {
+    if (!olderMessages.length) {
+      return currentMessages;
+    }
+
+    const seen = new Set(currentMessages.map((message) => message.id));
+    const dedupedOlder = olderMessages.filter((message) => !seen.has(message.id));
+    return [...dedupedOlder, ...currentMessages];
+  }
+
+  function isTimelineNearBottom() {
+    const threshold = 96;
+    return dom.timeline.scrollTop + dom.timeline.clientHeight >= dom.timeline.scrollHeight - threshold;
   }
 
   function renderDepartmentTabs() {
@@ -276,7 +336,8 @@
     `;
   }
 
-  function renderTimeline() {
+  function renderTimeline(options = {}) {
+    const { scrollToBottom = false, preserveScroll = null } = options;
     const department = getSelectedDepartment();
     const viewingGlobal = isGlobalDepartment(department);
 
@@ -321,7 +382,14 @@
     }
 
     let lastDate = '';
-    dom.timeline.innerHTML = state.messages.map((message) => {
+    const loadingOlderMarkup = state.loadingOlderMessages ? `
+      <div class="messages-loading-older">
+        <span class="messages-loading-spinner" aria-hidden="true"></span>
+        <span>Loading older messages</span>
+      </div>
+    ` : '';
+
+    dom.timeline.innerHTML = loadingOlderMarkup + state.messages.map((message) => {
       const parsed = new Date(message.createdAt);
       const dateLabel = Number.isNaN(parsed.getTime())
         ? ''
@@ -351,7 +419,11 @@
       `;
     }).join('');
 
-    dom.timeline.scrollTop = dom.timeline.scrollHeight;
+    if (preserveScroll) {
+      dom.timeline.scrollTop = dom.timeline.scrollHeight - preserveScroll.height + preserveScroll.offset;
+    } else if (scrollToBottom) {
+      dom.timeline.scrollTop = dom.timeline.scrollHeight;
+    }
   }
 
   function syncComposer() {
@@ -367,11 +439,11 @@
     submitButton.disabled = !canSend || state.sending;
   }
 
-  function render() {
+  function render(options = {}) {
     renderDepartmentTabs();
     renderConversations();
     renderChatHeader();
-    renderTimeline();
+    renderTimeline(options);
     syncComposer();
   }
 
@@ -379,7 +451,9 @@
     const {
       keepDepartmentSelection = true,
       keepConversationSelection = true,
-      autoSelectConversation = false
+      autoSelectConversation = false,
+      forceMessageReload = false,
+      scrollToBottom = false
     } = options;
 
     const refreshToken = ++state.refreshToken;
@@ -394,6 +468,9 @@
       const conversations = nextDepartment
         ? await fetchConversations(nextDepartment, state.searchQuery)
         : [];
+      const previousDepartmentId = state.selectedDepartmentId;
+      const previousConversationId = state.selectedConversationId;
+      const sameDepartment = nextDepartmentId === previousDepartmentId;
       const nextConversationId = isGlobalDepartment(nextDepartment)
         ? null
         : resolveConversationId(
@@ -401,9 +478,28 @@
             keepConversationSelection ? state.selectedConversationId : null,
             autoSelectConversation
           );
-      const messages = isGlobalDepartment(nextDepartment)
-        ? await fetchGlobalMessages()
-        : await fetchConversationMessages(nextConversationId);
+      const sameConversation = nextConversationId === previousConversationId;
+      const canAppendNewMessages =
+        !forceMessageReload &&
+        sameDepartment &&
+        (isGlobalDepartment(nextDepartment) || sameConversation) &&
+        state.messages.length > 0;
+      const latestMessageId = canAppendNewMessages
+        ? state.messages[state.messages.length - 1]?.id || null
+        : null;
+      const nearBottom = canAppendNewMessages ? isTimelineNearBottom() : false;
+      const incomingMessages = isGlobalDepartment(nextDepartment)
+        ? await fetchGlobalMessagesPage({
+            afterId: latestMessageId,
+            limit: latestMessageId ? 100 : MESSAGE_PAGE_SIZE
+          })
+        : await fetchConversationMessages(nextConversationId, {
+            afterId: latestMessageId,
+            limit: latestMessageId ? 100 : MESSAGE_PAGE_SIZE
+          });
+      const messages = latestMessageId
+        ? mergeMessages(state.messages, incomingMessages)
+        : incomingMessages;
 
       if (refreshToken !== state.refreshToken) {
         return;
@@ -414,10 +510,15 @@
       state.conversations = conversations;
       state.selectedConversationId = nextConversationId;
       state.messages = messages;
+      if (!latestMessageId) {
+        state.hasOlderMessages = incomingMessages.length >= MESSAGE_PAGE_SIZE;
+      }
       state.infoOpen = false;
       state.loadingConversations = false;
       state.loadingMessages = false;
-      render();
+      render({
+        scrollToBottom: latestMessageId ? nearBottom && incomingMessages.length > 0 : scrollToBottom || true
+      });
     } catch (error) {
       if (refreshToken === state.refreshToken) {
         state.loadingConversations = false;
@@ -425,6 +526,44 @@
         render();
       }
       console.error('Unable to refresh online messages:', error.message);
+    }
+  }
+
+  async function loadOlderMessages() {
+    if (state.loadingMessages || state.loadingOlderMessages || !state.hasOlderMessages) {
+      return;
+    }
+
+    const oldestMessageId = state.messages[0]?.id;
+    const department = getSelectedDepartment();
+    if (!oldestMessageId || !department) {
+      return;
+    }
+
+    state.loadingOlderMessages = true;
+    render();
+
+    const preserveScroll = {
+      height: dom.timeline.scrollHeight,
+      offset: dom.timeline.scrollTop
+    };
+
+    try {
+      const olderMessages = isGlobalDepartment(department)
+        ? await fetchGlobalMessagesPage({ beforeId: oldestMessageId, limit: MESSAGE_PAGE_SIZE })
+        : await fetchConversationMessages(state.selectedConversationId, {
+            beforeId: oldestMessageId,
+            limit: MESSAGE_PAGE_SIZE
+          });
+
+      state.messages = prependMessages(state.messages, olderMessages);
+      state.hasOlderMessages = olderMessages.length >= MESSAGE_PAGE_SIZE;
+      state.loadingOlderMessages = false;
+      render({ preserveScroll });
+    } catch (error) {
+      state.loadingOlderMessages = false;
+      render();
+      console.error('Unable to load older online messages:', error.message);
     }
   }
 
@@ -458,7 +597,8 @@
       await refresh({
         keepDepartmentSelection: true,
         keepConversationSelection: true,
-        autoSelectConversation: false
+        autoSelectConversation: false,
+        scrollToBottom: true
       });
     } catch (error) {
       console.error('Unable to send online message:', error.message);
@@ -485,7 +625,9 @@
     await refresh({
       keepDepartmentSelection: true,
       keepConversationSelection: false,
-      autoSelectConversation: false
+      autoSelectConversation: false,
+      forceMessageReload: true,
+      scrollToBottom: true
     });
   }
 
@@ -503,7 +645,9 @@
     await refresh({
       keepDepartmentSelection: true,
       keepConversationSelection: true,
-      autoSelectConversation: false
+      autoSelectConversation: false,
+      forceMessageReload: true,
+      scrollToBottom: true
     });
   }
 
@@ -558,6 +702,12 @@
       event.preventDefault();
       void sendMessage(dom.composerInput.value);
     });
+
+    dom.timeline.addEventListener('scroll', () => {
+      if (dom.timeline.scrollTop <= 80) {
+        void loadOlderMessages();
+      }
+    });
   }
 
   function startPolling() {
@@ -575,6 +725,8 @@
   void refresh({
     keepDepartmentSelection: false,
     keepConversationSelection: false,
-    autoSelectConversation: false
+    autoSelectConversation: false,
+    forceMessageReload: true,
+    scrollToBottom: true
   }).then(startPolling);
 }());

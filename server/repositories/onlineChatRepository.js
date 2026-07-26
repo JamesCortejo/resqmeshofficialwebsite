@@ -300,12 +300,15 @@ function insertMessage(message) {
   });
 }
 
-function listMessages(conversationId, { beforeId = null, limit = 50 } = {}) {
+function listMessages(conversationId, { beforeId = null, afterId = null, limit = 50 } = {}) {
   const params = [conversationId];
-  let beforeClause = '';
+  let rangeClause = '';
 
-  if (beforeId) {
-    beforeClause = 'AND id < ?';
+  if (afterId) {
+    rangeClause = 'AND id > ?';
+    params.push(afterId);
+  } else if (beforeId) {
+    rangeClause = 'AND id < ?';
     params.push(beforeId);
   }
 
@@ -326,20 +329,23 @@ function listMessages(conversationId, { beforeId = null, limit = 50 } = {}) {
         created_at AS createdAt,
         updated_at AS updatedAt
       FROM online_chat_messages
-      WHERE conversation_id = ? AND deleted = 0 ${beforeClause}
-      ORDER BY id DESC
+      WHERE conversation_id = ? AND deleted = 0 ${rangeClause}
+      ORDER BY id ${afterId ? 'ASC' : 'DESC'}
       LIMIT ?
     ) recent
     ORDER BY id ASC
   `, params);
 }
 
-function listGlobalMessages(departmentId, { beforeId = null, limit = 50 } = {}) {
+function listGlobalMessages(departmentId, { beforeId = null, afterId = null, limit = 50 } = {}) {
   const params = [departmentId];
-  let beforeClause = '';
+  let rangeClause = '';
 
-  if (beforeId) {
-    beforeClause = 'AND id < ?';
+  if (afterId) {
+    rangeClause = 'AND id > ?';
+    params.push(afterId);
+  } else if (beforeId) {
+    rangeClause = 'AND id < ?';
     params.push(beforeId);
   }
 
@@ -358,8 +364,8 @@ function listGlobalMessages(departmentId, { beforeId = null, limit = 50 } = {}) 
         created_at AS createdAt,
         updated_at AS updatedAt
       FROM online_chat_global_messages
-      WHERE department_id = ? AND deleted = 0 ${beforeClause}
-      ORDER BY id DESC
+      WHERE department_id = ? AND deleted = 0 ${rangeClause}
+      ORDER BY id ${afterId ? 'ASC' : 'DESC'}
       LIMIT ?
     ) recent
     ORDER BY id ASC

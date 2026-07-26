@@ -13,6 +13,10 @@ function parseId(value) {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+function parseCursor(query, primaryKey, fallbackKey = null) {
+  return parseId(query?.[primaryKey] ?? (fallbackKey ? query?.[fallbackKey] : null));
+}
+
 function errorResponse(res, error, fallbackMessage) {
   const statusCode = error.statusCode || 500;
 
@@ -68,7 +72,8 @@ exports.listGlobalMessages = async (req, res) => {
       type: 'civilian',
       id: req.civilian.id
     }, {
-      beforeId: parseId(req.query.before),
+      beforeId: parseCursor(req.query, 'before'),
+      afterId: parseCursor(req.query, 'after', 'afterId'),
       limit: Math.min(parseId(req.query.limit) || 80, 100)
     });
 
@@ -97,7 +102,8 @@ exports.listMessages = async (req, res) => {
       type: 'civilian',
       id: req.civilian.id
     }, {
-      beforeId: parseId(req.query.before),
+      beforeId: parseCursor(req.query, 'before'),
+      afterId: parseCursor(req.query, 'after', 'afterId'),
       limit: Math.min(parseId(req.query.limit) || 50, 100)
     });
 
