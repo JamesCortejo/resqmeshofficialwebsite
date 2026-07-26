@@ -507,7 +507,6 @@ async function getRescuerConversations(departmentId, rescuer, options = {}) {
   const limit = Math.max(1, Math.min(Number(options.limit) || 12, 30));
   const rows = await listRescuerConversations(departmentId, rescuer.id, {
     search: options.search,
-    beforeId: options.beforeId || null,
     limit,
   });
   const hasMore = rows.length > limit;

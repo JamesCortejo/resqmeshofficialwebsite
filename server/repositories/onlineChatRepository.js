@@ -570,11 +570,11 @@ function getCivilianDepartmentUnreadSummary(civilianUserId) {
 function listRescuerConversations(
   departmentId,
   rescuerId,
-  { search = '', beforeId = null, limit = 20 } = {}
+  { search = '', limit = 20 } = {}
 ) {
   const query = String(search || '').trim().toLowerCase();
   const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
-  const params = [beforeId, departmentId, rescuerId, departmentId, beforeId];
+  const params = [rescuerId, departmentId];
   let searchClause = '';
 
   if (query) {
@@ -590,20 +590,6 @@ function listRescuerConversations(
   params.push(safeLimit + 1);
 
   return all(`
-    WITH anchor AS (
-      SELECT
-        CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END AS distressSort,
-        COALESCE(c.last_message_at, TIMESTAMPTZ '-infinity') AS lastMessageSort,
-        c.updated_at AS updatedAtSort,
-        c.id AS idSort
-      FROM online_chat_conversations c
-      LEFT JOIN online_distress_signals ods
-        ON ods.user_id = c.civilian_user_id
-        AND ods.status = 'active'
-        AND ods.deleted = 0
-      WHERE c.id = ? AND c.department_id = ?
-      LIMIT 1
-    )
     SELECT
       c.id,
       c.department_id AS departmentId,
@@ -654,28 +640,6 @@ function listRescuerConversations(
         WHERE seeded.conversation_id = c.id
           AND seeded.deleted = 0
           AND seeded.sender_type = 'civilian'
-      )
-      AND (
-        ? IS NULL
-        OR NOT EXISTS (SELECT 1 FROM anchor)
-        OR (
-          CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END > (SELECT distressSort FROM anchor)
-          OR (
-            CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END = (SELECT distressSort FROM anchor)
-            AND COALESCE(c.last_message_at, TIMESTAMPTZ '-infinity') < (SELECT lastMessageSort FROM anchor)
-          )
-          OR (
-            CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END = (SELECT distressSort FROM anchor)
-            AND COALESCE(c.last_message_at, TIMESTAMPTZ '-infinity') = (SELECT lastMessageSort FROM anchor)
-            AND c.updated_at < (SELECT updatedAtSort FROM anchor)
-          )
-          OR (
-            CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END = (SELECT distressSort FROM anchor)
-            AND COALESCE(c.last_message_at, TIMESTAMPTZ '-infinity') = (SELECT lastMessageSort FROM anchor)
-            AND c.updated_at = (SELECT updatedAtSort FROM anchor)
-            AND c.id < (SELECT idSort FROM anchor)
-          )
-        )
       )
     ${searchClause}
     ORDER BY
