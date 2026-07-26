@@ -1,5 +1,6 @@
 (function createMessagesManagerPage() {
   const POLL_MS = 5000;
+  const GLOBAL_SLUG = 'global-announcements';
 
   const state = {
     departments: [],
@@ -8,10 +9,10 @@
     selectedDepartmentId: null,
     selectedConversationId: null,
     searchQuery: '',
-    loading: false,
     sending: false,
     infoOpen: false,
-    pollTimer: null
+    pollTimer: null,
+    refreshToken: 0
   };
 
   const dom = {
@@ -55,6 +56,19 @@
     return payload;
   }
 
+  function formatTime(value) {
+    if (!value) {
+      return '';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return '';
+    }
+
+    return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
   function getSelectedDepartment() {
     return state.departments.find((department) => department.id === state.selectedDepartmentId) || null;
   }
@@ -64,28 +78,77 @@
   }
 
   function isGlobalDepartment(department = getSelectedDepartment()) {
-    return department?.slug === 'global-announcements';
+    return department?.slug === GLOBAL_SLUG;
   }
 
-  function formatTime(value) {
-    if (!value) {
-      return '';
+  function getFallbackDepartmentId(departments) {
+    return departments.find((department) => department.status === 'active')?.id
+      || departments[0]?.id
+      || null;
+  }
+
+  function resolveDepartmentId(departments, preferredId) {
+    if (preferredId && departments.some((department) => department.id === preferredId)) {
+      return preferredId;
     }
 
-    const parsed = new Date(value);
+    return getFallbackDepartmentId(departments);
+  }
 
-    if (Number.isNaN(parsed.getTime())) {
-      return '';
+  function resolveConversationId(conversations, preferredId) {
+    if (preferredId && conversations.some((conversation) => conversation.id === preferredId)) {
+      return preferredId;
     }
 
-    return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return conversations[0]?.id || null;
+  }
+
+  async function fetchDepartments() {
+    const payload = await adminFetch('/api/admin/online-chat/departments?includeSystem=1');
+    return payload.data || [];
+  }
+
+  async function fetchConversations(department, searchQuery) {
+    if (!department?.id) {
+      return [];
+    }
+
+    if (department.slug === GLOBAL_SLUG) {
+      return [];
+    }
+
+    const query = new URLSearchParams({ departmentId: String(department.id) });
+    if (searchQuery.trim()) {
+      query.set('search', searchQuery.trim());
+    }
+
+    const payload = await adminFetch(`/api/admin/online-chat/conversations?${query.toString()}`);
+    return payload.data?.conversations || [];
+  }
+
+  async function fetchGlobalMessages() {
+    const payload = await adminFetch('/api/admin/online-chat/global/messages?limit=80');
+    await adminFetch('/api/admin/online-chat/global/read', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+    return payload.data?.messages || [];
+  }
+
+  async function fetchConversationMessages(conversationId) {
+    if (!conversationId) {
+      return [];
+    }
+
+    const payload = await adminFetch(`/api/admin/online-chat/conversations/${conversationId}/messages?limit=80`);
+    await adminFetch(`/api/admin/online-chat/conversations/${conversationId}/read`, {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+    return payload.data?.messages || [];
   }
 
   function renderDepartmentTabs() {
-    if (!dom.scopeRail) {
-      return;
-    }
-
     if (!state.departments.length) {
       dom.scopeRail.innerHTML = `
         <div class="messages-empty-state">
@@ -107,7 +170,8 @@
           <small class="messages-scope-chip-meta">${escapeHtml(department.subtitle || '')}</small>
           ${department.unreadCount > 0 ? `<strong class="messages-scope-badge">${department.unreadCount}</strong>` : ''}
         </button>
-      `).join('');
+      `)
+      .join('');
   }
 
   function renderConversations() {
@@ -153,8 +217,8 @@
   }
 
   function renderChatHeader() {
-    const conversation = getSelectedConversation();
     const department = getSelectedDepartment();
+    const conversation = getSelectedConversation();
 
     if (isGlobalDepartment(department)) {
       dom.chatHeader.innerHTML = `
@@ -177,6 +241,10 @@
     }
 
     const civilian = conversation.civilian || {};
+    const demographics = [civilian.age ? `${civilian.age} years old` : '', civilian.bloodType || '']
+      .filter(Boolean)
+      .join(' | ');
+
     dom.chatHeader.innerHTML = `
       <div>
         <h3>${escapeHtml(civilian.fullName || 'Civilian')}</h3>
@@ -185,11 +253,11 @@
       <button type="button" class="messages-info-button" data-civilian-info-toggle aria-label="Show civilian details">
         <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
       </button>
-      <div class="messages-civilian-popover${state.infoOpen ? ' is-open' : ''}" id="messagesCivilianPopover">
+      <div class="messages-civilian-popover${state.infoOpen ? ' is-open' : ''}">
         <strong>${escapeHtml(civilian.fullName || 'Civilian')}</strong>
         <span>${escapeHtml(civilian.code || '')}</span>
         <span>${escapeHtml(civilian.phone || 'No phone listed')}</span>
-        <span>${escapeHtml([civilian.age ? `${civilian.age} years old` : '', civilian.bloodType || ''].filter(Boolean).join(' | ') || 'No medical profile')}</span>
+        <span>${escapeHtml(demographics || 'No medical profile')}</span>
         <span>${escapeHtml(civilian.occupation || 'No occupation listed')}</span>
       </div>
     `;
@@ -208,7 +276,7 @@
       return;
     }
 
-    if (!state.selectedConversationId && !viewingGlobal) {
+    if (!viewingGlobal && !state.selectedConversationId) {
       dom.timeline.innerHTML = `
         <div class="messages-empty-state">
           ${state.departments.length
@@ -248,6 +316,7 @@
         : outgoing
           ? 'Admin'
           : 'Civilian';
+
       return `
         ${separator}
         <article class="messages-bubble ${outgoing ? 'is-outgoing' : 'is-incoming'}">
@@ -262,12 +331,14 @@
   }
 
   function syncComposer() {
-    const disabled = (!state.selectedConversationId && !isGlobalDepartment()) || state.sending || !state.departments.length;
-    dom.composerInput.disabled = disabled;
+    const canSend = Boolean(state.departments.length) && (isGlobalDepartment() || Boolean(state.selectedConversationId));
+    const submitButton = dom.composerForm.querySelector('button[type="submit"]');
+
+    dom.composerInput.disabled = !canSend || state.sending;
     dom.composerInput.placeholder = isGlobalDepartment()
       ? 'Write an announcement for all civilians'
       : 'Type a message to the selected civilian';
-    dom.composerForm.querySelector('button[type="submit"]').disabled = disabled;
+    submitButton.disabled = !canSend || state.sending;
   }
 
   function render() {
@@ -278,100 +349,63 @@
     syncComposer();
   }
 
-  async function loadDepartments({ preserveSelection = true } = {}) {
-    const payload = await adminFetch('/api/admin/online-chat/departments?includeSystem=1');
-    state.departments = payload.data || [];
+  async function refresh(options = {}) {
+    const {
+      keepDepartmentSelection = true,
+      keepConversationSelection = true
+    } = options;
 
-    if (
-      !preserveSelection
-      || !state.selectedDepartmentId
-      || !state.departments.some((department) => department.id === state.selectedDepartmentId)
-    ) {
-      state.selectedDepartmentId = state.departments.find((department) => department.status === 'active')?.id
-        || state.departments[0]?.id
-        || null;
-    }
-  }
+    const refreshToken = ++state.refreshToken;
 
-  async function loadConversations({ preserveSelection = true } = {}) {
-    if (!state.selectedDepartmentId) {
-      state.conversations = [];
-      state.selectedConversationId = null;
-      return;
-    }
-
-    const query = new URLSearchParams({ departmentId: String(state.selectedDepartmentId) });
-    if (state.searchQuery.trim()) {
-      query.set('search', state.searchQuery.trim());
-    }
-
-    const payload = await adminFetch(`/api/admin/online-chat/conversations?${query.toString()}`);
-    state.conversations = payload.data?.conversations || [];
-
-    if (
-      !preserveSelection
-      || !state.selectedConversationId
-      || !state.conversations.some((conversation) => conversation.id === state.selectedConversationId)
-    ) {
-      state.selectedConversationId = state.conversations[0]?.id || null;
-    }
-  }
-
-  async function loadMessages() {
-    if (isGlobalDepartment()) {
-      const payload = await adminFetch('/api/admin/online-chat/global/messages?limit=80');
-      state.messages = payload.data?.messages || [];
-      await adminFetch('/api/admin/online-chat/global/read', {
-        method: 'POST',
-        body: JSON.stringify({})
-      });
-      return;
-    }
-
-    if (!state.selectedConversationId) {
-      state.messages = [];
-      return;
-    }
-
-    const payload = await adminFetch(`/api/admin/online-chat/conversations/${state.selectedConversationId}/messages?limit=80`);
-    state.messages = payload.data?.messages || [];
-    await adminFetch(`/api/admin/online-chat/conversations/${state.selectedConversationId}/read`, {
-      method: 'POST',
-      body: JSON.stringify({})
-    });
-  }
-
-  async function refresh({ preserveSelection = true } = {}) {
-    if (state.loading) {
-      return;
-    }
-
-    state.loading = true;
     try {
-      await loadDepartments({ preserveSelection });
-      await loadConversations({ preserveSelection });
-      await loadMessages();
+      const departments = await fetchDepartments();
+      const nextDepartmentId = resolveDepartmentId(
+        departments,
+        keepDepartmentSelection ? state.selectedDepartmentId : null
+      );
+      const nextDepartment = departments.find((department) => department.id === nextDepartmentId) || null;
+      const conversations = nextDepartment
+        ? await fetchConversations(nextDepartment, state.searchQuery)
+        : [];
+      const nextConversationId = isGlobalDepartment(nextDepartment)
+        ? null
+        : resolveConversationId(
+            conversations,
+            keepConversationSelection ? state.selectedConversationId : null
+          );
+      const messages = isGlobalDepartment(nextDepartment)
+        ? await fetchGlobalMessages()
+        : await fetchConversationMessages(nextConversationId);
+
+      if (refreshToken !== state.refreshToken) {
+        return;
+      }
+
+      state.departments = departments;
+      state.selectedDepartmentId = nextDepartmentId;
+      state.conversations = conversations;
+      state.selectedConversationId = nextConversationId;
+      state.messages = messages;
       state.infoOpen = false;
       render();
     } catch (error) {
       console.error('Unable to refresh online messages:', error.message);
-    } finally {
-      state.loading = false;
     }
   }
 
   async function sendMessage(body) {
-    if ((!state.selectedConversationId && !isGlobalDepartment()) || state.sending) {
+    const trimmed = body.trim();
+    if (!trimmed || state.sending) {
       return;
     }
 
-    const trimmed = body.trim();
-    if (!trimmed) {
+    if (!isGlobalDepartment() && !state.selectedConversationId) {
       return;
     }
 
     state.sending = true;
     syncComposer();
+
     try {
       if (isGlobalDepartment()) {
         await adminFetch('/api/admin/online-chat/global/messages', {
@@ -384,14 +418,51 @@
           body: JSON.stringify({ body: trimmed })
         });
       }
+
       dom.composerInput.value = '';
-      await refresh({ preserveSelection: true });
+      await refresh({
+        keepDepartmentSelection: true,
+        keepConversationSelection: true
+      });
     } catch (error) {
       console.error('Unable to send online message:', error.message);
     } finally {
       state.sending = false;
       syncComposer();
     }
+  }
+
+  async function handleDepartmentSelect(departmentId) {
+    if (!departmentId || departmentId === state.selectedDepartmentId) {
+      return;
+    }
+
+    state.selectedDepartmentId = departmentId;
+    state.selectedConversationId = null;
+    state.messages = [];
+    state.infoOpen = false;
+    render();
+
+    await refresh({
+      keepDepartmentSelection: true,
+      keepConversationSelection: false
+    });
+  }
+
+  async function handleConversationSelect(conversationId) {
+    if (!conversationId || conversationId === state.selectedConversationId) {
+      return;
+    }
+
+    state.selectedConversationId = conversationId;
+    state.messages = [];
+    state.infoOpen = false;
+    render();
+
+    await refresh({
+      keepDepartmentSelection: true,
+      keepConversationSelection: true
+    });
   }
 
   function bindEvents() {
@@ -401,10 +472,7 @@
         return;
       }
 
-      state.selectedDepartmentId = Number(button.getAttribute('data-department-id'));
-      state.selectedConversationId = null;
-      state.messages = [];
-      refresh({ preserveSelection: false });
+      void handleDepartmentSelect(Number(button.getAttribute('data-department-id')));
     });
 
     dom.conversationList.addEventListener('click', (event) => {
@@ -413,11 +481,7 @@
         return;
       }
 
-      state.selectedConversationId = Number(button.getAttribute('data-conversation-id'));
-      state.infoOpen = false;
-      loadMessages().then(render).catch((error) => {
-        console.error('Unable to load online conversation:', error.message);
-      });
+      void handleConversationSelect(Number(button.getAttribute('data-conversation-id')));
     });
 
     dom.chatHeader.addEventListener('click', (event) => {
@@ -434,23 +498,32 @@
       state.searchQuery = dom.conversationSearchInput.value;
       window.clearTimeout(searchTimeout);
       searchTimeout = window.setTimeout(() => {
-        refresh({ preserveSelection: false });
+        void refresh({
+          keepDepartmentSelection: true,
+          keepConversationSelection: false
+        });
       }, 250);
     });
 
     dom.composerForm.addEventListener('submit', (event) => {
       event.preventDefault();
-      sendMessage(dom.composerInput.value);
+      void sendMessage(dom.composerInput.value);
     });
   }
 
   function startPolling() {
     window.clearInterval(state.pollTimer);
     state.pollTimer = window.setInterval(() => {
-      refresh({ preserveSelection: true });
+      void refresh({
+        keepDepartmentSelection: true,
+        keepConversationSelection: true
+      });
     }, POLL_MS);
   }
 
   bindEvents();
-  refresh({ preserveSelection: false }).then(startPolling);
+  void refresh({
+    keepDepartmentSelection: false,
+    keepConversationSelection: false
+  }).then(startPolling);
 }());
