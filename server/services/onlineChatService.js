@@ -95,6 +95,26 @@ function normalizeAgency(value) {
   return normalized || null;
 }
 
+function resolveRescuerAgency(value, fallbackSlug = '', fallbackName = '') {
+  const direct = normalizeAgency(value);
+  if (direct && RESCUER_AGENCY_VALUES.has(direct)) {
+    return direct;
+  }
+
+  const source = `${fallbackSlug} ${fallbackName}`.toLowerCase();
+  if (source.includes('cdrrmo')) {
+    return 'cdrrmo';
+  }
+  if (source.includes('fire')) {
+    return 'fire-department';
+  }
+  if (source.includes('police')) {
+    return 'police-department';
+  }
+
+  return null;
+}
+
 function calculateAge(birthDateValue) {
   if (!birthDateValue) {
     return null;
@@ -155,7 +175,7 @@ function formatDepartment(row, unreadCount = 0) {
     subtitle: row.subtitle || '',
     status: row.status,
     colorTag: row.colorTag,
-    rescuerAgency: row.rescuerAgency || null,
+    rescuerAgency: resolveRescuerAgency(row.rescuerAgency, row.slug, row.name),
     iconUrl: row.iconUrl || null,
     sortOrder: row.sortOrder,
     readOnly: Number(row.readOnly) === 1,
@@ -373,7 +393,7 @@ async function getRescuerDepartments(rescuer) {
     ...departments.filter((department) => (
       department.slug !== SYSTEM_GLOBAL_DEPARTMENT.slug
       && department.status === 'active'
-      && department.rescuerAgency === rescuer.agency
+      && resolveRescuerAgency(department.rescuerAgency, department.slug, department.name) === rescuer.agency
     ))
   ];
 
@@ -469,12 +489,15 @@ async function getAdminConversations(departmentId, adminUserId, options = {}) {
 
 async function getRescuerConversations(departmentId, rescuer, options = {}) {
   const department = await getDepartmentById(departmentId);
+  const departmentAgency = department
+    ? resolveRescuerAgency(department.rescuerAgency, department.slug, department.name)
+    : null;
 
   if (!department || department.status !== 'active' || isSystemGlobalDepartment(department)) {
     throw appError('Department chat not found.', 404);
   }
 
-  if (department.rescuerAgency !== rescuer.agency) {
+  if (departmentAgency !== rescuer.agency) {
     throw appError('Department chat not found.', 404);
   }
 
@@ -532,7 +555,12 @@ async function getConversationMessages(conversationId, actor, options = {}) {
   }
 
   if (actor.type === 'rescuer') {
-    if (conversation.departmentStatus !== 'active' || conversation.departmentRescuerAgency !== actor.agency) {
+    const departmentAgency = resolveRescuerAgency(
+      conversation.departmentRescuerAgency,
+      conversation.departmentSlug,
+      conversation.departmentName
+    );
+    if (conversation.departmentStatus !== 'active' || departmentAgency !== actor.agency) {
       throw appError('Conversation not found.', 404);
     }
   }
@@ -634,11 +662,18 @@ async function sendCivilianMessage(conversationId, civilianUserId, bodyValue) {
 
 async function sendRescuerMessage(conversationId, rescuer, bodyValue) {
   const conversation = await getConversationById(conversationId);
+  const departmentAgency = conversation
+    ? resolveRescuerAgency(
+        conversation.departmentRescuerAgency,
+        conversation.departmentSlug,
+        conversation.departmentName
+      )
+    : null;
 
   if (!conversation
     || conversation.departmentStatus !== 'active'
     || isSystemGlobalDepartment({ slug: conversation.departmentSlug })
-    || conversation.departmentRescuerAgency !== rescuer.agency) {
+    || departmentAgency !== rescuer.agency) {
     throw appError('Conversation not found.', 404);
   }
 
@@ -692,7 +727,12 @@ async function markRead(conversationId, actor) {
   }
 
   if (actor.type === 'rescuer') {
-    if (conversation.departmentStatus !== 'active' || conversation.departmentRescuerAgency !== actor.agency) {
+    const departmentAgency = resolveRescuerAgency(
+      conversation.departmentRescuerAgency,
+      conversation.departmentSlug,
+      conversation.departmentName
+    );
+    if (conversation.departmentStatus !== 'active' || departmentAgency !== actor.agency) {
       throw appError('Conversation not found.', 404);
     }
   }
