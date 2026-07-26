@@ -64,7 +64,7 @@
     transform 0.2s ease;
 }
 
-.admin-nav-link span:last-child {
+.admin-nav-link > span:not(.admin-nav-link-badge) {
   min-width: 0;
   display: block;
   overflow: hidden;
