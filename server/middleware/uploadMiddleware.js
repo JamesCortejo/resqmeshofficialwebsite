@@ -1,5 +1,4 @@
 const multer = require('multer');
-const { verifyRecaptcha } = require('../services/recaptchaService');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -22,35 +21,12 @@ const registrationUploadEngine = multer({
     fileSize: 5 * 1024 * 1024
   },
   fileFilter: (req, file, callback) => {
-    const finish = (error) => {
-      if (error) {
-        callback(error);
-        return;
-      }
-
-      if (!file.mimetype || !file.mimetype.startsWith('image/')) {
-        callback(new Error('Only image files are allowed.'));
-        return;
-      }
-
-      callback(null, true);
-    };
-
-    if (req.recaptchaVerified) {
-      finish();
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      callback(new Error('Only image files are allowed.'));
       return;
     }
 
-    Promise.resolve()
-      .then(async () => {
-        await verifyRecaptcha(req.body?.recaptchaToken, 'register', {
-          remoteIp: req.ip,
-          hostname: req.hostname
-        });
-        req.recaptchaVerified = true;
-      })
-      .then(() => finish())
-      .catch((error) => finish(error));
+    callback(null, true);
   }
 });
 
