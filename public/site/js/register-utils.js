@@ -83,44 +83,61 @@
     return '';
   }
 
-  async function fetchRegistration(payload) {
+  async function fetchRegistration(payload, options = {}) {
     const config = window.ResQMeshRegisterConfig || {};
     const timeoutMs = config.submitTimeoutMs || 45000;
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+    const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null;
 
-    try {
-      const response = await fetch('/api/users/register', {
-        method: 'POST',
-        body: payload,
-        signal: controller.signal
-      });
-      const rawBody = await response.text();
-      let result = {};
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const timeoutId = window.setTimeout(() => {
+        xhr.abort();
+        reject(new Error('Registration request timed out. Please check your connection and try again.'));
+      }, timeoutMs);
 
-      try {
-        result = rawBody ? JSON.parse(rawBody) : {};
-      } catch (error) {
-        result = {
-          success: false,
-          message: rawBody.trim() || 'Unexpected server response.'
-        };
+      xhr.open('POST', '/api/users/register', true);
+
+      if (xhr.upload && onProgress) {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (!event.lengthComputable) {
+            onProgress(null);
+            return;
+          }
+
+          onProgress(Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100))));
+        });
       }
 
-      if (!response.ok) {
-        throw new Error(result.message || 'Registration failed. Please try again.');
-      }
+      xhr.onerror = () => {
+        window.clearTimeout(timeoutId);
+        reject(new Error('Registration failed. Please check your connection and try again.'));
+      };
 
-      return result;
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Registration request timed out. Please check your connection and try again.');
-      }
+      xhr.onload = () => {
+        window.clearTimeout(timeoutId);
 
-      throw error;
-    } finally {
-      window.clearTimeout(timeoutId);
-    }
+        const rawBody = xhr.responseText || '';
+        let result = {};
+
+        try {
+          result = rawBody ? JSON.parse(rawBody) : {};
+        } catch (error) {
+          result = {
+            success: false,
+            message: rawBody.trim() || 'Unexpected server response.'
+          };
+        }
+
+        if (xhr.status < 200 || xhr.status >= 300) {
+          reject(new Error(result.message || 'Registration failed. Please try again.'));
+          return;
+        }
+
+        resolve(result);
+      };
+
+      xhr.send(payload);
+    });
   }
 
   window.ResQMeshRegisterUtils = {

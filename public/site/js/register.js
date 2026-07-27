@@ -78,6 +78,7 @@ const VALENCIA_BARANGAYS = registerConfig.barangays;
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [submitError, setSubmitError] = useState('');
       const [toast, setToast] = useState(null);
+      const [uploadProgress, setUploadProgress] = useState(null);
       
       // Form fields state
       const [formData, setFormData] = useState({
@@ -454,6 +455,7 @@ const VALENCIA_BARANGAYS = registerConfig.barangays;
 
         try {
           setIsSubmitting(true);
+          setUploadProgress(0);
           const recaptchaToken = await registerUtils.timeoutPromise(
             window.ResQMeshRecaptcha.ready().then(() => window.ResQMeshRecaptcha.getToken('register')),
             registerConfig.recaptchaTimeoutMs,
@@ -463,13 +465,24 @@ const VALENCIA_BARANGAYS = registerConfig.barangays;
           payload.append('frontIdImageFile', formData.frontIdImageFile);
           payload.append('backIdImageFile', formData.backIdImageFile);
 
-          await registerUtils.fetchRegistration(payload);
+          await registerUtils.fetchRegistration(payload, {
+            onProgress: (percent) => {
+              if (percent === null) {
+                setUploadProgress(100);
+                return;
+              }
+
+              setUploadProgress(percent);
+            }
+          });
+          setUploadProgress(100);
           showToast('Registration submitted. Please check your email for account confirmation after admin review.', 'success');
           setSubmitted(true);
         } catch (error) {
           handleServerError(error.message);
         } finally {
           setIsSubmitting(false);
+          window.setTimeout(() => setUploadProgress(null), 500);
         }
       };
 
@@ -886,6 +899,18 @@ const VALENCIA_BARANGAYS = registerConfig.barangays;
                     </div>
 
                   </div>
+
+                  {isSubmitting && uploadProgress !== null && (
+                    <div class="register-upload-progress" role="status" aria-live="polite">
+                      <div class="register-upload-progress-copy">
+                        <span>Uploading ID images</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div class="register-upload-progress-bar" aria-hidden="true">
+                        <span style={{ width: `${uploadProgress}%` }}></span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* ID Card Number Input field */}
                   <div class="form-group" style={{ marginTop: '1.5rem' }}>
