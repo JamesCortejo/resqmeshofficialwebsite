@@ -452,9 +452,6 @@ const VALENCIA_BARANGAYS = registerConfig.barangays;
           payload.append(field, formData[field] || '');
         });
 
-        payload.append('frontIdImageFile', formData.frontIdImageFile);
-        payload.append('backIdImageFile', formData.backIdImageFile);
-
         try {
           setIsSubmitting(true);
           const recaptchaToken = await registerUtils.timeoutPromise(
@@ -463,6 +460,8 @@ const VALENCIA_BARANGAYS = registerConfig.barangays;
             'Security verification timed out. Please refresh the page and try again.'
           );
           payload.append('recaptchaToken', recaptchaToken);
+          payload.append('frontIdImageFile', formData.frontIdImageFile);
+          payload.append('backIdImageFile', formData.backIdImageFile);
 
           await registerUtils.fetchRegistration(payload);
           showToast('Registration submitted. Please check your email for account confirmation after admin review.', 'success');

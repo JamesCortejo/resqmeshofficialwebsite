@@ -127,10 +127,12 @@ exports.registerUser = async (req, res) => {
       });
     }
 
-    await verifyRecaptcha(req.body.recaptchaToken, 'register', {
-      remoteIp: req.ip,
-      hostname: req.hostname
-    });
+    if (!req.recaptchaVerified) {
+      await verifyRecaptcha(req.body.recaptchaToken, 'register', {
+        remoteIp: req.ip,
+        hostname: req.hostname
+      });
+    }
 
     const frontIdImageFile = firstFile(req.files, 'frontIdImageFile');
     const backIdImageFile = firstFile(req.files, 'backIdImageFile');
