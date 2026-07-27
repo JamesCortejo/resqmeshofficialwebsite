@@ -226,6 +226,14 @@ img {
   font-size: 0.8rem;
 }
 
+.admin-security-note {
+  margin: -0.15rem 0 0.15rem;
+  color: var(--admin-muted);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
 .admin-submit {
   display: inline-flex;
   width: 100%;

@@ -8,6 +8,7 @@ const {
   authenticateAdmin,
   toAdminSessionPayload
 } = require('../services/adminAuthService');
+const { verifyRecaptcha } = require('../services/recaptchaService');
 
 function invalidCredentials(res) {
   return res.status(401).json({
@@ -20,10 +21,16 @@ exports.login = async (req, res) => {
   try {
     const username = req.body && req.body.username ? String(req.body.username).trim() : '';
     const password = req.body && req.body.password ? String(req.body.password) : '';
+    const recaptchaToken = req.body && req.body.recaptchaToken ? String(req.body.recaptchaToken).trim() : '';
 
     if (!username || !password) {
       return invalidCredentials(res);
     }
+
+    await verifyRecaptcha(recaptchaToken, 'admin_login', {
+      hostname: req.hostname,
+      remoteIp: req.ip
+    });
 
     const admin = await authenticateAdmin(username, password);
 

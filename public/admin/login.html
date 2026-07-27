@@ -67,6 +67,10 @@
           <span class="form-error" id="password-error"></span>
         </div>
 
+        <p class="admin-security-note">
+          This admin sign-in is protected by reCAPTCHA and standard account security checks.
+        </p>
+
         <button type="submit" class="admin-submit">
           <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
           Sign In
@@ -88,6 +92,7 @@
   </div>
 
   <script src="/admin/js/admin-loader.js"></script>
+  <script src="/site/js/recaptcha.js"></script>
   <script>
     const form = document.getElementById('admin-login-form');
     const usernameInput = document.getElementById('admin-username');
@@ -149,13 +154,14 @@
       }
 
       try {
+        const recaptchaToken = await window.ResQMeshRecaptcha.getToken('admin_login');
         const response = await fetch('/api/admin/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           credentials: 'same-origin',
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username, password, recaptchaToken })
         });
         const result = await response.json();
 
