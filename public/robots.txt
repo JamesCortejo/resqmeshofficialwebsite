@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /resqmeshadmin
+Disallow: /resqmeshadmin/
+Disallow: /api/
+
+Sitemap: https://resqmesh.me/sitemap.xml
