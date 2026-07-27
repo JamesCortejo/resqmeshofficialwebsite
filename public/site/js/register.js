@@ -515,7 +515,7 @@ const VALENCIA_BARANGAYS = registerConfig.barangays;
                 Please wait for the approval or decline confirmation through the email address you entered.
               </p>
               <p class="success-message">
-                Once approved, your account can be synced to mesh nodes for emergency app access.
+                Once approved, your account can be used for online access and mesh-supported emergency fallback access.
               </p>
               <a href="/" class="btn btn-primary">Return to Homepage</a>
             </div>
@@ -531,8 +531,8 @@ const VALENCIA_BARANGAYS = registerConfig.barangays;
               <span className="register-kicker">Civilian account registration</span>
               <h2>Prepare your ResQMesh access before an emergency</h2>
               <p>
-                Submit your profile for admin approval. Approved civilian records are synced to ResQMesh devices so the
-                mobile app can be used through nearby mesh nodes when internet service is unavailable.
+                Submit your profile for admin approval. Approved civilian records can be used for online access when internet is available
+                and for mesh-supported emergency access when internet service is unavailable.
               </p>
             </div>
 
