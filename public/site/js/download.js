@@ -71,11 +71,30 @@
   }
 
   async function verifyDownload() {
-    await timeoutPromise(
+    const recaptchaToken = await timeoutPromise(
       window.ResQMeshRecaptcha.ready().then(() => window.ResQMeshRecaptcha.getToken('download')),
       TOKEN_TIMEOUT_MS,
       'Security verification timed out. Please refresh the page and try again.'
     );
+
+    const response = await fetch('/api/download/request', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        filename: 'resqmesh.apk',
+        recaptchaToken
+      })
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success || !result.data || !result.data.url) {
+      throw new Error(result.message || 'Unable to authorize download right now.');
+    }
+
+    return result.data.url;
   }
 
   buttons.forEach((button) => {
@@ -102,10 +121,10 @@
       try {
         setButtonsDisabled(true, 'Verifying...');
         setStatus('Checking download security...', 'neutral');
-        await verifyDownload();
+        const authorizedUrl = await verifyDownload();
         setStatus('Security check passed. Starting download...', 'success');
         startCooldown();
-        window.location.href = url;
+        window.location.href = authorizedUrl;
       } catch (error) {
         setButtonsDisabled(false);
         restoreLabels();

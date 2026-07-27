@@ -3,6 +3,7 @@ const path = require('path');
 const config = require('./server/config/env');
 const userRoutes = require('./server/routes/userRoutes');
 const contactRoutes = require('./server/routes/contactRoutes');
+const downloadRoutes = require('./server/routes/downloadRoutes');
 const adminRoutes = require('./server/routes/adminRoutes');
 const deviceSyncRoutes = require('./server/routes/deviceSyncRoutes');
 const mobileRoutes = require('./server/routes/mobileRoutes');
@@ -21,6 +22,8 @@ app.set('trust proxy', 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/downloads/:filename', require('./server/controllers/downloadController').serveProtectedDownload);
+
 // Serve static frontend files (CSS, JS, images) while HTML pages are routed below.
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
@@ -34,6 +37,7 @@ app.get('/api/public-config', (req, res) => {
 // MVC API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/download', downloadRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', deviceSyncRoutes);
 app.use('/', mobileRoutes);
