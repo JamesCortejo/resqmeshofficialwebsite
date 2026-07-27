@@ -453,6 +453,35 @@
   gap: 0.35rem;
 }
 
+.department-chat-upload-progress {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.department-chat-upload-progress-bar {
+  position: relative;
+  width: min(100%, 16rem);
+  height: 0.42rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(220, 227, 234, 0.95);
+}
+
+.department-chat-upload-progress-bar span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--admin-primary), #f15d3a);
+  transition: width 0.18s ease;
+}
+
+.department-chat-upload-progress-text {
+  color: var(--admin-muted);
+  font: 800 0.72rem/1.35 'Inter', system-ui, -apple-system, sans-serif;
+}
+
 .department-chat-upload-copy small {
   color: var(--admin-muted);
   font: 700 0.76rem/1.45 'Inter', system-ui, -apple-system, sans-serif;

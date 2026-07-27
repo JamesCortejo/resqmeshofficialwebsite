@@ -4,7 +4,12 @@ const config = require('../config/env');
 
 const VERIFY_HOST = 'www.google.com';
 const VERIFY_PATH = '/recaptcha/api/siteverify';
-const MIN_SCORE = 0.5;
+const DEFAULT_MIN_SCORE = 0.5;
+const ACTION_MIN_SCORES = {
+  register: 0.3,
+  contact: 0.5,
+  download: 0.5
+};
 const PUBLIC_FAILURE_MESSAGE = 'Security verification failed. Please refresh the page and try again.';
 
 function isLocalDevelopmentHost(hostname) {
@@ -76,12 +81,14 @@ async function verifyRecaptcha(token, expectedAction, options = {}) {
   });
 
   const score = Number(result.score || 0);
+  const minScore = ACTION_MIN_SCORES[expectedAction] || DEFAULT_MIN_SCORE;
 
-  if (!result.success || result.action !== expectedAction || score < MIN_SCORE) {
+  if (!result.success || result.action !== expectedAction || score < minScore) {
     console.warn('reCAPTCHA verification rejected:', {
       expectedAction,
       receivedAction: result.action || null,
       score: Number.isFinite(score) ? score : null,
+      minScore,
       hostname: result.hostname || null,
       errors: result['error-codes'] || []
     });

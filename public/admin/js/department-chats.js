@@ -28,6 +28,9 @@
     logoPreview: document.getElementById('departmentChatLogoPreview'),
     logoPreviewImage: document.getElementById('departmentChatLogoPreviewImage'),
     logoPreviewFallback: document.getElementById('departmentChatLogoPreviewFallback'),
+    uploadProgress: document.getElementById('departmentChatUploadProgress'),
+    uploadProgressFill: document.getElementById('departmentChatUploadProgressFill'),
+    uploadProgressText: document.getElementById('departmentChatUploadProgressText'),
     colorInput: document.getElementById('departmentChatColorInput'),
     readOnlyInput: document.getElementById('departmentChatReadOnlyInput'),
     submitButton: document.getElementById('departmentChatFormSubmitButton'),
@@ -63,6 +66,63 @@
     }
 
     return payload;
+  }
+
+  async function adminUploadFetch(url, { method = 'POST', body, onProgress } = {}) {
+    const requestOptions = await window.ResQMeshAdminAuth.prepareRequestOptions({
+      method,
+      body
+    });
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(requestOptions.method, url, true);
+      xhr.withCredentials = true;
+
+      requestOptions.headers.forEach((value, key) => {
+        xhr.setRequestHeader(key, value);
+      });
+
+      if (xhr.upload && typeof onProgress === 'function') {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (!event.lengthComputable) {
+            onProgress(null);
+            return;
+          }
+
+          const percent = Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100)));
+          onProgress(percent);
+        });
+      }
+
+      xhr.onerror = () => reject(new Error('Network request failed.'));
+      xhr.ontimeout = () => reject(new Error('Upload timed out.'));
+
+      xhr.onload = () => {
+        let payload = {};
+
+        try {
+          payload = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+        } catch (error) {
+          payload = {};
+        }
+
+        if (xhr.status === 401) {
+          window.ResQMeshAdminAuth.handleUnauthorized(payload.message || 'Admin session expired.');
+          reject(new Error(payload.message || 'Admin session expired.'));
+          return;
+        }
+
+        if (xhr.status < 200 || xhr.status >= 300 || payload.success === false) {
+          reject(new Error(payload.message || 'Request failed.'));
+          return;
+        }
+
+        resolve(payload);
+      };
+
+      xhr.send(requestOptions.body);
+    });
   }
 
   function showFeedback(message, tone = 'success') {
@@ -118,6 +178,27 @@
     dom.logoPreviewImage.hidden = true;
     dom.logoPreviewFallback.hidden = false;
     dom.logoPreview.classList.remove('has-image');
+  }
+
+  function setUploadProgress(percent, message) {
+    if (!dom.uploadProgress || !dom.uploadProgressFill || !dom.uploadProgressText) {
+      return;
+    }
+
+    if (percent === null && !message) {
+      dom.uploadProgress.hidden = true;
+      dom.uploadProgressFill.style.width = '0%';
+      dom.uploadProgressText.textContent = '';
+      return;
+    }
+
+    dom.uploadProgress.hidden = false;
+
+    if (typeof percent === 'number') {
+      dom.uploadProgressFill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    }
+
+    dom.uploadProgressText.textContent = message || `Uploading logo ${percent || 0}%`;
   }
 
   function getVisibleRooms() {
@@ -245,6 +326,7 @@
 
     dom.logoInput.value = '';
     syncLogoPreview(dom.nameInput.value || room?.name || 'DP', state.pendingLogoSrc);
+    setUploadProgress(null, '');
 
     dom.formModal.classList.add('is-open');
     dom.formModal.setAttribute('aria-hidden', 'false');
@@ -256,6 +338,7 @@
     dom.formModal.setAttribute('aria-hidden', 'true');
     state.editingRoomId = null;
     state.pendingLogoSrc = '';
+    setUploadProgress(null, '');
   }
 
   function openArchiveModal(room) {
@@ -304,11 +387,36 @@
         ? `/api/admin/online-chat/departments/${state.editingRoomId}`
         : '/api/admin/online-chat/departments';
       const method = state.editingRoomId ? 'PATCH' : 'POST';
+      const formData = buildFormData();
+      const hasLogoFile = Boolean(dom.logoInput.files && dom.logoInput.files[0]);
 
-      const payload = await adminFetch(url, {
-        method,
-        body: buildFormData()
-      });
+      if (hasLogoFile) {
+        setUploadProgress(0, 'Uploading logo 0%');
+      } else {
+        setUploadProgress(null, '');
+      }
+
+      const payload = hasLogoFile
+        ? await adminUploadFetch(url, {
+            method,
+            body: formData,
+            onProgress: (percent) => {
+              if (percent === null) {
+                setUploadProgress(100, 'Finishing upload...');
+                return;
+              }
+
+              setUploadProgress(percent, `Uploading logo ${percent}%`);
+            }
+          })
+        : await adminFetch(url, {
+            method,
+            body: formData
+          });
+
+      if (hasLogoFile) {
+        setUploadProgress(100, 'Logo uploaded');
+      }
 
       showFeedback(payload.message || 'Department chat saved.');
       closeFormModal();
@@ -318,6 +426,7 @@
     } finally {
       dom.submitButton.disabled = false;
       dom.submitButton.textContent = state.editingRoomId ? 'Save Changes' : 'Save Room';
+      window.setTimeout(() => setUploadProgress(null, ''), 450);
     }
   }
 

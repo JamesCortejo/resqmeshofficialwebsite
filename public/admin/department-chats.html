@@ -188,6 +188,12 @@
             <div class="department-chat-upload-copy">
               <input type="file" id="departmentChatLogoInput" accept="image/*">
               <small>Upload a small image for the room logo shown in the admin and civilian app.</small>
+              <div class="department-chat-upload-progress" id="departmentChatUploadProgress" hidden aria-live="polite">
+                <div class="department-chat-upload-progress-bar" aria-hidden="true">
+                  <span id="departmentChatUploadProgressFill"></span>
+                </div>
+                <span class="department-chat-upload-progress-text" id="departmentChatUploadProgressText">Uploading logo 0%</span>
+              </div>
             </div>
           </div>
         </label>
