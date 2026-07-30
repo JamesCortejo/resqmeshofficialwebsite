@@ -9,7 +9,10 @@ const {
   getEtaByDistressId,
   getPublicNodes,
   getNodeDistress,
-  getOnlineDistressMarkers
+  getOnlineDistressMarkers,
+  getRescuerLocationSharingStatus,
+  setRescuerLocationSharing,
+  getPublicSharedRescuers
 } = require('../services/mobileOperationsService');
 
 function parseId(value) {
@@ -95,6 +98,7 @@ exports.getMapSnapshot = async (_req, res) => {
   try {
     const nodes = await getPublicNodes();
     const onlineDistress = await getOnlineDistressMarkers();
+    const sharedRescuers = await getPublicSharedRescuers();
     return res.json({
       status: {
         internet: true,
@@ -125,6 +129,7 @@ exports.getMapSnapshot = async (_req, res) => {
           user: distress.user
         }))),
       onlineDistress,
+      sharedRescuers,
       serverTime: new Date().toISOString()
     });
   } catch (error) {
@@ -188,5 +193,33 @@ exports.getDistressEta = async (req, res) => {
     return res.json({ eta_minutes: etaMinutes });
   } catch (error) {
     return errorResponse(res, error, 'Unable to load distress ETA.');
+  }
+};
+
+exports.getRescuerLocationSharingStatus = async (req, res) => {
+  try {
+    const data = await getRescuerLocationSharingStatus(req.rescuer);
+    return res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load rescuer sharing status.');
+  }
+};
+
+exports.updateRescuerLocationSharing = async (req, res) => {
+  try {
+    const enabled = Boolean(req.body?.enabled);
+    const data = await setRescuerLocationSharing(req.rescuer, enabled);
+    return res.json({
+      success: true,
+      message: enabled
+        ? 'Live location sharing enabled.'
+        : 'Live location sharing disabled.',
+      data
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to update rescuer sharing status.');
   }
 };

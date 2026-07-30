@@ -11,7 +11,11 @@ const {
   listPublicNodes,
   getNodeActiveDistress,
   upsertRescuerLocationCurrent,
-  insertRescuerLocationHistory
+  insertRescuerLocationHistory,
+  getRescuerLocationSharingSettingByRescuerId,
+  upsertRescuerLocationSharingSetting,
+  disableRescuerLocationSharingByRescuerId,
+  listPublicSharedRescuers
 } = require('../repositories/deploymentRepository');
 const { accomplishDeployment } = require('./distressDeploymentService');
 const { listPublicOnlineDistressSignals } = require('./civilianDistressService');
@@ -19,9 +23,11 @@ const {
   buildLiveRouteResponse,
   ensureDeploymentRouteSnapshot
 } = require('./deploymentRouteService');
+const { decryptText } = require('./encryptionService');
 
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 const STALE_THRESHOLD_MS = 10 * 60 * 1000;
+const SHARED_RESCUER_STALE_TIMEOUT_MS = 2 * 60 * 1000;
 
 function ensurePositiveInteger(value) {
   const parsed = Number.parseInt(String(value || ''), 10);
@@ -159,6 +165,66 @@ function assignmentSummary(row) {
   };
 }
 
+function isRescuerSharingEligible(rescuer) {
+  return Boolean(rescuer?.id) && String(rescuer?.accessStatus || '').trim().toLowerCase() === 'active';
+}
+
+function getAgencyLabel(agency) {
+  switch (String(agency || '').trim().toLowerCase()) {
+    case 'cdrrmo':
+      return 'CDRRMO';
+    case 'fire-department':
+      return 'Fire Department';
+    case 'police-department':
+      return 'Police Department';
+    default:
+      return 'Rescue Department';
+  }
+}
+
+async function getRescuerLocationSharingStatus(rescuer) {
+  const setting = await getRescuerLocationSharingSettingByRescuerId(rescuer.id);
+  const eligible = isRescuerSharingEligible(rescuer);
+
+  return {
+    rescuerId: rescuer.id,
+    eligible,
+    sharingEnabled: eligible && Boolean(setting?.sharingEnabled),
+    enabledAt: eligible ? setting?.enabledAt || null : null,
+    disabledAt: setting?.disabledAt || null,
+    updatedAt: setting?.updatedAt || null,
+    staleTimeoutSeconds: Math.floor(SHARED_RESCUER_STALE_TIMEOUT_MS / 1000),
+  };
+}
+
+async function setRescuerLocationSharing(rescuer, enabled) {
+  if (!isRescuerSharingEligible(rescuer)) {
+    const error = new Error('This rescuer is not eligible for live location sharing.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const timestamp = new Date().toISOString();
+  await upsertRescuerLocationSharingSetting({
+    rescuerId: rescuer.id,
+    sharingEnabled: Boolean(enabled),
+    enabledAt: enabled ? timestamp : null,
+    disabledAt: enabled ? null : timestamp,
+    updatedAt: timestamp,
+    createdAt: timestamp,
+  });
+
+  return getRescuerLocationSharingStatus(rescuer);
+}
+
+async function disableRescuerLocationSharing(rescuerId) {
+  if (!rescuerId) {
+    return;
+  }
+
+  await disableRescuerLocationSharingByRescuerId(rescuerId, new Date().toISOString());
+}
+
 async function getRescuerAssignments(rescuer) {
   const rows = await listAssignmentsForRescuer(rescuer.id);
   return rows.map(assignmentSummary);
@@ -200,11 +266,16 @@ async function resolveRescuerAssignment(assignmentId, rescuer) {
 
 async function updateRescuerLocation(rescuer, payload) {
   const assignment = await findActiveAssignmentForRescuer(rescuer.id);
+  const sharingStatus = await getRescuerLocationSharingStatus(rescuer);
 
-  if (!assignment) {
-    const error = new Error('No active deployment is assigned to this rescuer.');
-    error.statusCode = 403;
-    throw error;
+  if (!assignment && !sharingStatus.sharingEnabled) {
+    return {
+      accepted: false,
+      trackingMode: 'idle',
+      sharingEnabled: false,
+      recordedAt: null,
+      routeUpdatedAt: null
+    };
   }
 
   const latitude = ensureCoordinate(payload.latitude, 'Latitude');
@@ -212,14 +283,14 @@ async function updateRescuerLocation(rescuer, payload) {
   const timestamp = new Date().toISOString();
   const location = {
     rescuerId: rescuer.id,
-    deploymentId: assignment.id,
-    teamId: assignment.teamId,
+    deploymentId: assignment?.id || null,
+    teamId: assignment?.teamId || rescuer.teamId || null,
     latitude,
     longitude,
     accuracyM: payload.accuracy_m ?? payload.accuracy ?? null,
     headingDeg: payload.heading_deg ?? payload.heading ?? null,
     speedMps: payload.speed_mps ?? payload.speed ?? null,
-    nodeId: payload.node_id ?? payload.nodeId ?? assignment.originNodeId,
+    nodeId: payload.node_id ?? payload.nodeId ?? assignment?.originNodeId ?? null,
     recordedAt: payload.recorded_at ?? payload.recordedAt ?? timestamp,
     receivedAt: timestamp,
     updatedAt: timestamp
@@ -228,9 +299,15 @@ async function updateRescuerLocation(rescuer, payload) {
   await upsertRescuerLocationCurrent(location);
   await insertRescuerLocationHistory(location);
 
-  const { snapshot } = await ensureDeploymentRouteSnapshot(assignment);
+  let snapshot = null;
+  if (assignment) {
+    ({ snapshot } = await ensureDeploymentRouteSnapshot(assignment));
+  }
 
   return {
+    accepted: true,
+    trackingMode: assignment ? 'assignment' : 'sharing',
+    sharingEnabled: sharingStatus.sharingEnabled,
     recordedAt: location.recordedAt,
     routeUpdatedAt: snapshot?.updatedAt || null
   };
@@ -330,6 +407,32 @@ async function getOnlineDistressMarkers() {
   return listPublicOnlineDistressSignals();
 }
 
+async function getPublicSharedRescuers() {
+  const cutoffTimestamp = new Date(Date.now() - SHARED_RESCUER_STALE_TIMEOUT_MS).toISOString();
+  const rows = await listPublicSharedRescuers(cutoffTimestamp);
+
+  return rows.map((row) => ({
+    id: row.id,
+    rescuerCode: row.rescuerCode,
+    firstName: decryptText(row.firstNameEnc) || 'Rescuer',
+    phone: decryptText(row.phoneEnc) || '',
+    department: getAgencyLabel(row.agency),
+    latitude: row.latitude,
+    longitude: row.longitude,
+    accuracyM: row.accuracyM ?? null,
+    headingDeg: row.headingDeg ?? null,
+    speedMps: row.speedMps ?? null,
+    nodeId: row.nodeId ?? null,
+    lastUpdated: toIsoTimestamp(row.recordedAt) || toIsoTimestamp(row.updatedAt),
+    staleTimeoutSeconds: Math.floor(SHARED_RESCUER_STALE_TIMEOUT_MS / 1000),
+    team: row.teamId ? {
+      id: row.teamId,
+      code: row.teamCode || '',
+      name: row.teamName || '',
+    } : null,
+  }));
+}
+
 async function getNodeDistress(nodeId) {
   const distress = await getNodeActiveDistress(nodeId);
 
@@ -367,5 +470,9 @@ module.exports = {
   getEtaByDistressId,
   getPublicNodes,
   getNodeDistress,
-  getOnlineDistressMarkers
+  getOnlineDistressMarkers,
+  getRescuerLocationSharingStatus,
+  setRescuerLocationSharing,
+  disableRescuerLocationSharing,
+  getPublicSharedRescuers
 };

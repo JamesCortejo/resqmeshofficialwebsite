@@ -45,6 +45,8 @@ router.post('/api/rescuer/online-chat/conversations/:id/read', requireRescuerSes
 
 router.get('/api/rescuer/assignments', requireRescuerSession, mobileOperationsController.listRescuerAssignments);
 router.get('/api/rescuer/route/live', requireRescuerSession, mobileOperationsController.getRescuerLiveRoute);
+router.get('/api/rescuer/location-sharing', requireRescuerSession, mobileOperationsController.getRescuerLocationSharingStatus);
+router.post('/api/rescuer/location-sharing', requireRescuerSession, mobileOperationsController.updateRescuerLocationSharing);
 router.post('/api/assignment/:id/resolve', requireRescuerSession, mobileOperationsController.resolveAssignment);
 router.post('/api/location/update', requireRescuerSession, mobileOperationsController.updateLocation);
 

@@ -2,6 +2,7 @@ const {
   revokeAuthenticatedSession
 } = require('../services/authSessionService');
 const { loginRescuer } = require('../services/rescuerMobileAuthService');
+const { disableRescuerLocationSharing } = require('../services/mobileOperationsService');
 
 function errorResponse(res, error, fallbackMessage) {
   const statusCode = error.statusCode || 500;
@@ -43,6 +44,10 @@ exports.login = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
+    if (req.mobilePrincipal?.id && req.mobilePrincipal?.rescuerCode) {
+      await disableRescuerLocationSharing(req.mobilePrincipal.id);
+    }
+
     await revokeAuthenticatedSession(req.mobileSession?.id || req.rescuerSession?.id);
 
     return res.json({
