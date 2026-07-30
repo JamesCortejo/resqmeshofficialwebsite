@@ -4,15 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="ResQMesh admin overview workspace.">
-  <title>Admin Overview - ResQMesh</title>
+  <meta name="description" content="ResQMesh admin overview dashboard.">
+  <title>Overview - ResQMesh</title>
   <link rel="icon" type="image/png" href="/assets/logo-icon.png">
 
   <link rel="stylesheet" href="/admin/css/login.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
   <link rel="stylesheet" href="/admin/css/app-shell.css">
-  <link rel="stylesheet" href="/admin/css/overview.css">
   <link rel="stylesheet" href="/admin/css/admin-notifications.css">
+  <link rel="stylesheet" href="/admin/css/overview.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -22,7 +22,7 @@
       <span class="admin-loader-mark" aria-hidden="true"></span>
       <span>
         <span class="admin-loader-title">ResQMesh Admin</span>
-        <span class="admin-loader-subtitle">Preparing admin workspace</span>
+        <span class="admin-loader-subtitle">Preparing command dashboard</span>
       </span>
     </div>
   </div>
@@ -92,11 +92,11 @@
       <header class="admin-topbar">
         <div class="admin-topbar-copy">
           <span class="admin-kicker">
-            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+            <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
             Valencia City Emergency Network
           </span>
           <h1 class="admin-topbar-title">Overview</h1>
-          <p class="admin-topbar-desc">Monitor emergency operations, responder readiness, mesh health, and sync activity.</p>
+          <p class="admin-topbar-desc">Live command view for incidents, responders, cloud chat, and mesh intake.</p>
         </div>
 
         <div class="admin-topbar-actions">
@@ -111,83 +111,88 @@
         </div>
       </header>
 
-      <section class="overview-dashboard" aria-label="ResQMesh operational overview">
+      <section class="overview-dashboard" aria-labelledby="overviewDashboardTitle">
+        <h2 id="overviewDashboardTitle" class="overview-visually-hidden">Overview Dashboard</h2>
         <div class="overview-feedback" id="overviewFeedback" hidden></div>
 
-        <div class="overview-stat-grid" id="overviewStatGrid" aria-label="Overview summary cards"></div>
+        <section class="overview-kpi-strip" id="overviewStatGrid" aria-label="Key system metrics"></section>
 
-        <div class="overview-grid">
-          <article class="admin-content-panel overview-panel overview-chart-panel" aria-labelledby="overview-emergency-chart-title">
+        <section class="overview-grid">
+          <article class="overview-panel overview-panel-status">
             <div class="overview-panel-heading">
               <div>
-                <h3 id="overview-emergency-chart-title">Emergency Outcomes</h3>
-                <p>Current active cases compared with completed and canceled cases.</p>
+                <span class="overview-panel-kicker">Incidents</span>
+                <h3>Incident Status</h3>
               </div>
             </div>
-            <div class="overview-donut-layout">
-              <div class="overview-donut" id="overviewEmergencyDonut" role="img" aria-label="Emergency outcome chart"></div>
-              <div class="overview-chart-legend" id="overviewEmergencyLegend"></div>
+            <div class="overview-status-layout">
+              <div class="overview-chart-box overview-chart-box-donut">
+                <canvas id="overviewEmergencyDonut" aria-label="Incident status chart"></canvas>
+              </div>
+              <div class="overview-legend" id="overviewEmergencyLegend"></div>
             </div>
           </article>
 
-          <article class="admin-content-panel overview-panel overview-chart-panel" aria-labelledby="overview-readiness-chart-title">
+          <article class="overview-panel overview-panel-trend">
             <div class="overview-panel-heading">
               <div>
-                <h3 id="overview-readiness-chart-title">Responder Readiness</h3>
-                <p>Rescuer and team availability by operational state.</p>
+                <span class="overview-panel-kicker">Last 7 days</span>
+                <h3>Activity Trend</h3>
               </div>
             </div>
-            <div class="overview-bar-chart" id="overviewReadinessBars" aria-label="Responder readiness bar chart"></div>
+            <div class="overview-chart-box overview-chart-box-line">
+              <canvas id="overviewNetworkTrend" aria-label="Seven day activity trend"></canvas>
+            </div>
           </article>
-        </div>
 
-        <div class="overview-grid overview-grid-wide">
-          <article class="admin-content-panel overview-panel overview-line-panel" aria-labelledby="overview-network-trend-title">
+          <article class="overview-panel overview-panel-readiness">
             <div class="overview-panel-heading">
               <div>
-                <h3 id="overview-network-trend-title">7-Day Network Activity</h3>
-                <p>Distress reports and synced mesh messages over the last week.</p>
+                <span class="overview-panel-kicker">Response</span>
+                <h3>Readiness</h3>
               </div>
             </div>
-            <div class="overview-line-chart" id="overviewNetworkTrend" aria-label="Network activity line chart"></div>
+            <div class="overview-chart-box overview-chart-box-bars">
+              <canvas id="overviewReadinessBars" aria-label="Responder readiness chart"></canvas>
+            </div>
           </article>
 
-          <article class="admin-content-panel overview-panel overview-summary-panel" aria-labelledby="overview-sync-title">
+          <article class="overview-panel overview-panel-pulse">
             <div class="overview-panel-heading">
               <div>
-                <h3 id="overview-sync-title">Sync Health</h3>
-                <p>Firmware activity and latest server-side mesh intake.</p>
+                <span class="overview-panel-kicker">Hybrid system</span>
+                <h3>Hybrid Pulse</h3>
               </div>
             </div>
-            <div class="overview-mini-summary" id="overviewSyncSummary"></div>
+            <div class="overview-pulse-grid" id="overviewHybridSummary"></div>
           </article>
-        </div>
 
-        <div class="overview-grid overview-grid-wide">
-          <article class="admin-content-panel overview-panel" aria-labelledby="overview-recent-emergencies-title">
+          <article class="overview-panel overview-panel-emergencies">
             <div class="overview-panel-heading">
               <div>
-                <h3 id="overview-recent-emergencies-title">Recent Emergencies</h3>
-                <p>Newest distress cases from synced mesh nodes.</p>
+                <span class="overview-panel-kicker">Latest</span>
+                <h3>Recent Emergencies</h3>
               </div>
               <a class="overview-panel-link" href="/resqmeshadmin/distress-signals">View all</a>
             </div>
             <div class="overview-list" id="overviewRecentEmergencies"></div>
           </article>
 
-          <article class="admin-content-panel overview-panel" aria-labelledby="overview-recent-activity-title">
+          <article class="overview-panel overview-panel-activity">
             <div class="overview-panel-heading">
               <div>
-                <h3 id="overview-recent-activity-title">Recent Activity</h3>
-                <p>Latest admin notifications and operational events.</p>
+                <span class="overview-panel-kicker">Operations</span>
+                <h3>Recent Activity</h3>
               </div>
             </div>
             <div class="overview-list" id="overviewRecentActivity"></div>
           </article>
-        </div>
+        </section>
       </section>
     </section>
   </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
   <script src="/admin/js/admin-loader.js"></script>
   <script src="/admin/js/admin-auth.js"></script>
   <script src="/admin/js/admin-notifications.js"></script>

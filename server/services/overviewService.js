@@ -93,36 +93,54 @@ function dateLabel(value) {
 }
 
 function buildStatCards(counts, deviceSummary) {
+  const activeIncidents = numberValue(counts.meshActiveDistressCount) + numberValue(counts.onlineActiveDistressCount);
+
   return [
     {
-      key: 'activeDistress',
-      label: 'Active emergencies',
-      value: numberValue(counts.activeDistressCount),
-      detail: `${numberValue(counts.deployedDeploymentCount)} deployed response${numberValue(counts.deployedDeploymentCount) === 1 ? '' : 's'}`,
+      key: 'activeIncidents',
+      label: 'Active incidents',
+      value: activeIncidents,
+      detail: `${numberValue(counts.deployedDeploymentCount)} deployed`,
       tone: 'danger',
       icon: 'fa-triangle-exclamation'
+    },
+    {
+      key: 'onlineDistress',
+      label: 'Online distress',
+      value: numberValue(counts.onlineActiveDistressCount),
+      detail: 'cloud reports',
+      tone: 'warning',
+      icon: 'fa-location-dot'
+    },
+    {
+      key: 'meshDistress',
+      label: 'Mesh distress',
+      value: numberValue(counts.meshActiveDistressCount),
+      detail: 'device reports',
+      tone: 'danger',
+      icon: 'fa-tower-broadcast'
+    },
+    {
+      key: 'availableRescuers',
+      label: 'Available rescuers',
+      value: numberValue(counts.availableRescuerCount),
+      detail: `${numberValue(counts.dispatchedRescuerCount)} dispatched`,
+      tone: 'success',
+      icon: 'fa-user-shield'
     },
     {
       key: 'meshOnline',
       label: 'Online mesh nodes',
       value: deviceSummary.online,
-      detail: `${deviceSummary.stale} stale, ${deviceSummary.offline} offline`,
+      detail: `${deviceSummary.stale} stale | ${deviceSummary.offline} offline`,
       tone: 'success',
       icon: 'fa-tower-broadcast'
-    },
-    {
-      key: 'responders',
-      label: 'Available rescuers',
-      value: numberValue(counts.availableRescuerCount),
-      detail: `${numberValue(counts.dispatchedRescuerCount)} dispatched, ${numberValue(counts.unavailableRescuerCount)} unavailable`,
-      tone: 'neutral',
-      icon: 'fa-user-shield'
     },
     {
       key: 'accounts',
       label: 'Pending accounts',
       value: numberValue(counts.pendingUserCount),
-      detail: `${numberValue(counts.approvedUserCount)} approved civilians`,
+      detail: `${numberValue(counts.approvedUserCount)} approved`,
       tone: 'warning',
       icon: 'fa-users-gear'
     }
@@ -131,8 +149,18 @@ function buildStatCards(counts, deviceSummary) {
 
 function buildDonut(counts) {
   return [
-    { key: 'active', label: 'Active', value: numberValue(counts.activeDistressCount), color: '#e54b31' },
-    { key: 'canceled', label: 'Canceled', value: numberValue(counts.canceledDistressCount), color: '#64717f' },
+    {
+      key: 'active',
+      label: 'Active',
+      value: numberValue(counts.meshActiveDistressCount) + numberValue(counts.onlineActiveDistressCount),
+      color: '#e54b31'
+    },
+    {
+      key: 'canceled',
+      label: 'Canceled',
+      value: numberValue(counts.meshCanceledDistressCount) + numberValue(counts.onlineCanceledDistressCount),
+      color: '#64717f'
+    },
     { key: 'accomplished', label: 'Accomplished', value: numberValue(counts.accomplishedDeploymentCount), color: '#0e8b70' }
   ];
 }
@@ -173,12 +201,27 @@ function buildDeviceSummary(rows) {
   return summary;
 }
 
+function buildHybridSummary(counts, deviceSummary) {
+  return {
+    onlineDistress: numberValue(counts.onlineActiveDistressCount),
+    meshDistress: numberValue(counts.meshActiveDistressCount),
+    activeDepartmentChats: numberValue(counts.activeDepartmentChatCount),
+    openConversations: numberValue(counts.openConversationCount),
+    chatMessages24h: numberValue(counts.chatMessage24hCount),
+    sharedRescuers: numberValue(counts.sharedRescuerLiveCount),
+    latestMeshSyncAt: deviceSummary.latestSyncAt,
+    staleMeshNodes: deviceSummary.stale,
+    offlineMeshNodes: deviceSummary.offline
+  };
+}
+
 function shapeTrendRows(rows) {
   return rows.map((row) => ({
     day: row.day,
     label: parseDate(`${row.day}T00:00:00Z`)?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) || row.day,
     distressCount: numberValue(row.distressCount),
-    messageCount: numberValue(row.messageCount)
+    messageCount: numberValue(row.messageCount),
+    chatCount: numberValue(row.chatCount)
   }));
 }
 
@@ -186,6 +229,8 @@ function shapeEmergency(row) {
   const deploymentStatus = row.deploymentStatus || null;
   const signalStatus = String(row.status || 'active').toLowerCase();
   const status = deploymentStatus || (signalStatus === 'cancelled' ? 'canceled' : signalStatus);
+  const sourceType = String(row.sourceType || 'mesh').toLowerCase();
+  const subjectName = row.subjectName || (sourceType === 'online' ? 'Civilian online location' : row.originLabel || 'Unknown node');
 
   return {
     id: row.id,
@@ -193,14 +238,15 @@ function shapeEmergency(row) {
     reason: labelFromValue(row.reason),
     status,
     statusLabel: titleCaseStatus(status),
+    sourceType,
+    sourceLabel: sourceType === 'online' ? 'Online' : 'Mesh',
     priority: titleCaseStatus(row.priority || 'high'),
-    nodeId: row.nodeId,
-    nodeName: row.nodeName || row.nodeId || 'Unknown node',
+    originLabel: row.originLabel || null,
+    subjectName,
     deploymentCode: row.deploymentCode || null,
-    teamCode: row.teamCode || null,
     teamName: row.teamName || null,
-    timestamp: toIsoTimestamp(row.timestamp || row.updatedAt),
-    displayTime: dateLabel(row.timestamp || row.updatedAt)
+    timestamp: toIsoTimestamp(row.reportedAt || row.updatedAt),
+    displayTime: dateLabel(row.reportedAt || row.updatedAt)
   };
 }
 
@@ -233,12 +279,13 @@ async function getOverviewDashboard() {
     stats: buildStatCards(safeCounts, deviceSummary),
     summaries: {
       emergencies: {
-        active: numberValue(safeCounts.activeDistressCount),
+        active: numberValue(safeCounts.meshActiveDistressCount) + numberValue(safeCounts.onlineActiveDistressCount),
         deployed: numberValue(safeCounts.deployedDeploymentCount),
-        canceled: numberValue(safeCounts.canceledDistressCount),
+        canceled: numberValue(safeCounts.meshCanceledDistressCount) + numberValue(safeCounts.onlineCanceledDistressCount),
         accomplished: numberValue(safeCounts.accomplishedDeploymentCount)
       },
       mesh: deviceSummary,
+      hybrid: buildHybridSummary(safeCounts, deviceSummary),
       responders: {
         rescuers: {
           available: numberValue(safeCounts.availableRescuerCount),
@@ -254,11 +301,6 @@ async function getOverviewDashboard() {
       accounts: {
         pending: numberValue(safeCounts.pendingUserCount),
         approved: numberValue(safeCounts.approvedUserCount)
-      },
-      sync: {
-        totalMessages: numberValue(safeCounts.totalMessageCount),
-        healthLogs24h: numberValue(safeCounts.healthLog24hCount),
-        latestSyncAt: deviceSummary.latestSyncAt
       }
     },
     charts: {
