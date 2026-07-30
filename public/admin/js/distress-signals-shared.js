@@ -47,6 +47,24 @@
     });
   }
 
+  function formatDurationCompact(totalSeconds) {
+    const seconds = Number.parseInt(totalSeconds, 10);
+
+    if (!Number.isFinite(seconds) || seconds < 0) {
+      return 'Not available';
+    }
+
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${String(minutes).padStart(2, '0')}m ${String(remainingSeconds).padStart(2, '0')}s`;
+    }
+
+    return `${minutes}m ${String(remainingSeconds).padStart(2, '0')}s`;
+  }
+
   function getPriorityDisplay(priority) {
     const normalized = String(priority || '').toLowerCase();
     if (normalized === 'high') return 'High';
@@ -299,6 +317,7 @@
         escapeHtml,
         formatDate,
         formatShortDate,
+        formatDurationCompact,
         getPriorityDisplay,
         getAssignmentDisplay,
         getTeamStatusDisplay,

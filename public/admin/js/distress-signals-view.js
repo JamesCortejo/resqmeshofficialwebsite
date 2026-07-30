@@ -3,6 +3,7 @@
     init(context) {
       const { dom, state, helpers, ui, data } = context;
       const VISIBLE_TEAM_LIMIT = 3;
+      let liveTimingIntervalId = null;
 
       function getSelectedSignalDetails() {
         return state.selectedSignalDetails;
@@ -34,9 +35,199 @@
         return details?.deployment?.status || details?.accessState || 'unassigned';
       }
 
+      function stopLiveTiming() {
+        if (liveTimingIntervalId) {
+          window.clearInterval(liveTimingIntervalId);
+          liveTimingIntervalId = null;
+        }
+      }
+
+      function parseTimestampMs(value) {
+        if (!value) {
+          return null;
+        }
+
+        const timestamp = new Date(value).getTime();
+        return Number.isNaN(timestamp) ? null : timestamp;
+      }
+
+      function getElapsedSeconds(startValue, endValue = Date.now()) {
+        const startMs = parseTimestampMs(startValue);
+        const endMs = typeof endValue === 'number' ? endValue : parseTimestampMs(endValue);
+
+        if (startMs === null || endMs === null || endMs < startMs) {
+          return null;
+        }
+
+        return Math.max(0, Math.floor((endMs - startMs) / 1000));
+      }
+
+      function getLiveTimingValues(details = getSelectedSignalDetails(), nowMs = Date.now()) {
+        const timing = details?.timing || null;
+
+        if (!timing) {
+          return null;
+        }
+
+        const currentPhase = String(timing.currentPhase || details?.accessState || 'unassigned').toLowerCase();
+        const reportedAt = timing.reportedAt || details?.reportedAt || null;
+        const deployedAt = timing.deployedAt || details?.deployment?.deployedAt || null;
+        const endedAt = timing.endedAt || timing.accomplishedAt || timing.canceledAt || details?.deployment?.accomplishedAt || details?.deployment?.canceledAt || null;
+        const isTerminal = currentPhase === 'canceled' || currentPhase === 'accomplished';
+
+        return {
+          currentPhase,
+          reportedAt,
+          deployedAt,
+          endedAt,
+          timeWaitingSeconds: !deployedAt && reportedAt && !isTerminal ? getElapsedSeconds(reportedAt, nowMs) : null,
+          responseTimeSeconds: timing.timeToDeploySeconds,
+          activeDeploymentSeconds: deployedAt
+            ? (endedAt
+              ? (timing.deploymentDurationSeconds ?? getElapsedSeconds(deployedAt, endedAt))
+              : (currentPhase === 'deployed' ? getElapsedSeconds(deployedAt, nowMs) : null))
+            : null,
+          totalIncidentDurationSeconds: endedAt
+            ? (timing.totalIncidentDurationSeconds ?? getElapsedSeconds(reportedAt, endedAt))
+            : null
+        };
+      }
+
+      function refreshLiveTiming(details = getSelectedSignalDetails()) {
+        const values = getLiveTimingValues(details);
+
+        if (!values || !dom.distressSignalModalBody) {
+          return;
+        }
+
+        const fieldMap = {
+          waiting: values.timeWaitingSeconds,
+          response: values.responseTimeSeconds,
+          active: values.activeDeploymentSeconds,
+          total: values.totalIncidentDurationSeconds
+        };
+
+        Object.entries(fieldMap).forEach(([field, seconds]) => {
+          const elements = dom.distressSignalModalBody.querySelectorAll(`[data-timing-field="${field}"]`);
+          elements.forEach((element) => {
+            element.textContent = helpers.formatDurationCompact(seconds);
+          });
+        });
+
+        if (values.currentPhase === 'canceled' || values.currentPhase === 'accomplished') {
+          stopLiveTiming();
+        }
+      }
+
+      function startLiveTiming(details = getSelectedSignalDetails()) {
+        stopLiveTiming();
+        refreshLiveTiming(details);
+
+        const values = getLiveTimingValues(details);
+        if (!values) {
+          return;
+        }
+
+        const shouldTick = values.timeWaitingSeconds !== null || (values.currentPhase === 'deployed' && values.activeDeploymentSeconds !== null);
+        if (!shouldTick) {
+          return;
+        }
+
+        liveTimingIntervalId = window.setInterval(() => {
+          refreshLiveTiming(details);
+        }, 1000);
+      }
+
       function isReadOnlyEmergency(details = getSelectedSignalDetails()) {
         const status = getDeploymentStatus(details);
         return status === 'canceled' || status === 'accomplished';
+      }
+
+      function renderTimingSection(details) {
+        const values = getLiveTimingValues(details);
+        const timing = details?.timing || null;
+
+        if (!values || !timing) {
+          return '';
+        }
+
+        const rows = [
+          {
+            label: 'Reported',
+            value: helpers.formatDate(values.reportedAt),
+            compact: false
+          }
+        ];
+
+        if (!values.deployedAt && values.currentPhase === 'unassigned') {
+          rows.push({
+            label: 'Time waiting for deployment',
+            value: helpers.formatDurationCompact(values.timeWaitingSeconds),
+            field: 'waiting'
+          });
+        }
+
+        if (values.deployedAt) {
+          rows.push({
+            label: 'Deployed',
+            value: helpers.formatDate(values.deployedAt),
+            compact: false
+          });
+
+          rows.push({
+            label: 'Response time',
+            value: helpers.formatDurationCompact(values.responseTimeSeconds),
+            field: 'response'
+          });
+        }
+
+        if (values.currentPhase === 'deployed' && values.deployedAt) {
+          rows.push({
+            label: 'Active deployment time',
+            value: helpers.formatDurationCompact(values.activeDeploymentSeconds),
+            field: 'active'
+          });
+        }
+
+        if ((values.currentPhase === 'canceled' || values.currentPhase === 'accomplished') && values.endedAt) {
+          rows.push({
+            label: 'Ended',
+            value: helpers.formatDate(values.endedAt),
+            compact: false
+          });
+
+          if (values.deployedAt) {
+            rows.push({
+              label: 'Deployment duration',
+              value: helpers.formatDurationCompact(values.activeDeploymentSeconds),
+              field: 'active'
+            });
+          }
+
+          rows.push({
+            label: 'Total incident duration',
+            value: helpers.formatDurationCompact(values.totalIncidentDurationSeconds),
+            field: 'total'
+          });
+        }
+
+        const content = rows.map((row) => `
+          <div class="distress-signal-timing-item ${row.compact === false ? 'is-wide' : ''}">
+            <span>${helpers.escapeHtml(row.label)}</span>
+            <strong ${row.field ? `data-timing-field="${helpers.escapeHtml(row.field)}"` : ''}>${helpers.escapeHtml(row.value)}</strong>
+          </div>
+        `).join('');
+
+        return `
+          <section class="distress-signal-detail-card distress-signal-timing-card">
+            <div class="distress-signal-detail-section">
+              <h3>Emergency Timing</h3>
+              <div class="distress-signal-timing-grid">
+                ${content}
+              </div>
+            </div>
+          </section>
+        `;
       }
 
       function renderTeamOptions() {
@@ -126,6 +317,7 @@
       }
 
       function renderSignal(details) {
+        stopLiveTiming();
         const teamName = details.team?.name || 'No rescue team selected yet.';
         const leaderDisplay = details.deployment?.teamLeaderName || 'Not assigned';
         const readOnly = isReadOnlyEmergency(details);
@@ -223,10 +415,13 @@
               </div>
               ${deploymentControls}
             </section>
+
+            ${renderTimingSection(details)}
           </div>
         `;
 
         syncActionButtons();
+        startLiveTiming(details);
       }
 
       function preserveSearchInputFocus(cursorStart, cursorEnd) {
@@ -244,6 +439,7 @@
       }
 
       async function openDetails(signalId) {
+        stopLiveTiming();
         state.selectedSignalId = String(signalId);
         state.selectedSignalDetails = null;
         state.selectedTeamId = null;
@@ -351,6 +547,7 @@
 
       dom.distressSignalModal.addEventListener('click', (event) => {
         if (event.target.closest('[data-close-distress-signal-modal]')) {
+          stopLiveTiming();
           ui.closeModal();
           return;
         }
@@ -418,6 +615,8 @@
       context.view = {
         openDetails
       };
+
+      window.addEventListener('beforeunload', stopLiveTiming);
     }
   };
 }());

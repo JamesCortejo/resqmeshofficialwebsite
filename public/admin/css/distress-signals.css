@@ -501,6 +501,42 @@
   gap: 0.85rem;
 }
 
+.distress-signal-timing-card {
+  margin-top: 0.2rem;
+}
+
+.distress-signal-timing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.distress-signal-timing-item {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 84px;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(220, 227, 234, 0.92);
+  border-radius: var(--admin-radius-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 245, 0.94));
+}
+
+.distress-signal-timing-item.is-wide {
+  min-height: 92px;
+}
+
+.distress-signal-timing-item span {
+  color: var(--admin-muted);
+  font: 800 0.76rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.distress-signal-timing-item strong {
+  color: var(--admin-ink);
+  font: 900 1.18rem/1.2 'Inter', system-ui, -apple-system, sans-serif;
+}
+
 .distress-signal-detail-item {
   display: grid;
   gap: 0.22rem;
@@ -770,7 +806,8 @@ body.distress-signal-modal-open {
 
 @media (max-width: 720px) {
   .distress-signals-summary-cards,
-  .distress-signal-detail-grid {
+  .distress-signal-detail-grid,
+  .distress-signal-timing-grid {
     grid-template-columns: 1fr;
   }
 

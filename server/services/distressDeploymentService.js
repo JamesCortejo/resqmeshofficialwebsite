@@ -75,6 +75,55 @@ function teamSummary(row) {
   };
 }
 
+function parseTimestampMs(value) {
+  if (!value) {
+    return null;
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function diffSeconds(startValue, endValue) {
+  const startMs = parseTimestampMs(startValue);
+  const endMs = parseTimestampMs(endValue);
+
+  if (startMs === null || endMs === null || endMs < startMs) {
+    return null;
+  }
+
+  return Math.max(0, Math.floor((endMs - startMs) / 1000));
+}
+
+function buildTiming(summary, row) {
+  const reportedAt = summary.reportedAt || row.timestamp || null;
+  const deployedAt = row.deployedAt || null;
+  const canceledAt = row.canceledAt || null;
+  const accomplishedAt = row.accomplishedAt || null;
+  const endedAt = accomplishedAt || canceledAt || null;
+
+  let currentPhase = 'unassigned';
+  if (summary.accessState === DEPLOYMENT_STATUSES.ACCOMPLISHED) {
+    currentPhase = 'accomplished';
+  } else if (summary.accessState === DEPLOYMENT_STATUSES.CANCELED) {
+    currentPhase = 'canceled';
+  } else if (summary.accessState === DEPLOYMENT_STATUSES.DEPLOYED || deployedAt) {
+    currentPhase = 'deployed';
+  }
+
+  return {
+    reportedAt,
+    deployedAt,
+    canceledAt,
+    accomplishedAt,
+    endedAt,
+    currentPhase,
+    timeToDeploySeconds: diffSeconds(reportedAt, deployedAt),
+    deploymentDurationSeconds: diffSeconds(deployedAt, endedAt),
+    totalIncidentDurationSeconds: diffSeconds(reportedAt, endedAt)
+  };
+}
+
 function parseDistressSourceKey(value) {
   const raw = String(value || '').trim();
   const match = raw.match(/^(mesh|online):(\d+)$/i);
@@ -198,6 +247,7 @@ async function getDistressSignalDetails(id) {
 
   const teams = await buildTeamChoices();
   const summary = distressSummary(row);
+  const timing = buildTiming(summary, row);
   const deploymentMembers = row.deploymentId
     ? await listDeploymentMembers(row.deploymentId)
     : [];
@@ -223,6 +273,7 @@ async function getDistressSignalDetails(id) {
       teamLeaderRescuerCode: row.teamLeaderRescuerCode || null,
       teamLeaderName: row.teamLeaderRescuerId ? leaderName(row) : null
     } : null,
+    timing,
     deploymentMembers: deploymentMembers.map((member) => ({
       id: member.rescuerId,
       rescuerCode: member.rescuerCode,
