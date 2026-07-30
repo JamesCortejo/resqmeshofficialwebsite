@@ -398,6 +398,8 @@ async function setDeploymentStatus(id, status) {
   if (status === DEPLOYMENT_STATUSES.CANCELED) {
     if (updated.distressSource === 'online' && updated.onlineDistressSignalId) {
       await updateOnlineDistressStatus(updated.onlineDistressSignalId, DEPLOYMENT_STATUSES.CANCELED, timestamp);
+    } else {
+      await enqueueDistressCancelCommand(updated);
     }
     await notifyDeploymentCanceled(updated);
   } else if (status === DEPLOYMENT_STATUSES.ACCOMPLISHED) {
