@@ -505,36 +505,126 @@
   margin-top: 0.2rem;
 }
 
-.distress-signal-timing-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.85rem;
+.distress-signal-timing-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.distress-signal-timing-item {
+.distress-signal-timing-header h3 {
+  margin: 0;
+}
+
+.distress-signal-timing-header p {
+  margin: 0.35rem 0 0;
+  color: var(--admin-muted);
+  font: 700 0.9rem/1.4 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.distress-signal-timing-layout {
   display: grid;
-  gap: 0.35rem;
-  min-height: 84px;
+  grid-template-columns: minmax(280px, 1.1fr) minmax(0, 0.9fr);
+  gap: 1rem;
+}
+
+.distress-signal-timing-rail {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.distress-signal-timing-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.85rem;
   padding: 0.95rem 1rem;
   border: 1px solid rgba(220, 227, 234, 0.92);
   border-radius: var(--admin-radius-md);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 245, 0.94));
 }
 
-.distress-signal-timing-item.is-wide {
-  min-height: 92px;
+.distress-signal-timing-step-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  background: #fff;
+  color: var(--admin-muted);
+  font: 900 0.9rem/1 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-.distress-signal-timing-item span {
+.distress-signal-timing-step[data-state="done"] .distress-signal-timing-step-marker {
+  border-color: rgba(14, 139, 112, 0.24);
+  background: rgba(14, 139, 112, 0.1);
+  color: #0b6b56;
+}
+
+.distress-signal-timing-step[data-state="current"] .distress-signal-timing-step-marker {
+  border-color: rgba(231, 75, 50, 0.24);
+  background: rgba(231, 75, 50, 0.12);
+  color: var(--admin-primary-hover);
+}
+
+.distress-signal-timing-step-copy {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.distress-signal-timing-step-copy span,
+.distress-signal-timing-metric span {
   color: var(--admin-muted);
   font: 800 0.76rem 'Inter', system-ui, -apple-system, sans-serif;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.distress-signal-timing-item strong {
+.distress-signal-timing-step-copy strong {
   color: var(--admin-ink);
-  font: 900 1.18rem/1.2 'Inter', system-ui, -apple-system, sans-serif;
+  font: 800 1rem/1.35 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.distress-signal-timing-metrics {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.distress-signal-timing-metric {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 88px;
+  padding: 1rem 1.05rem;
+  border: 1px solid rgba(220, 227, 234, 0.92);
+  border-radius: var(--admin-radius-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 245, 0.94));
+}
+
+.distress-signal-timing-metric strong {
+  color: var(--admin-ink);
+  font: 900 1.34rem/1.2 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.distress-signal-timing-metric[data-tone="live"] {
+  border-color: rgba(231, 75, 50, 0.24);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 242, 238, 0.98));
+}
+
+.distress-signal-timing-metric[data-tone="live"] strong {
+  color: var(--admin-primary-hover);
+}
+
+.distress-signal-timing-metric[data-tone="strong"] {
+  border-color: rgba(14, 139, 112, 0.22);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(243, 252, 248, 0.98));
+}
+
+.distress-signal-timing-metric[data-tone="strong"] strong {
+  color: #0b6b56;
 }
 
 .distress-signal-detail-item {
@@ -807,7 +897,7 @@ body.distress-signal-modal-open {
 @media (max-width: 720px) {
   .distress-signals-summary-cards,
   .distress-signal-detail-grid,
-  .distress-signal-timing-grid {
+  .distress-signal-timing-layout {
     grid-template-columns: 1fr;
   }
 

@@ -151,30 +151,45 @@
           return '';
         }
 
-        const rows = [
+        const phaseLabel = values.currentPhase === 'deployed'
+          ? 'Deployment active'
+          : values.currentPhase === 'accomplished'
+            ? 'Incident accomplished'
+            : values.currentPhase === 'canceled'
+              ? 'Incident canceled'
+              : 'Awaiting deployment';
+
+        const milestones = [
           {
             label: 'Reported',
             value: helpers.formatDate(values.reportedAt),
-            compact: false
+            state: 'done'
+          },
+          {
+            label: 'Deployed',
+            value: values.deployedAt ? helpers.formatDate(values.deployedAt) : 'Not deployed yet',
+            state: values.deployedAt ? 'done' : (values.currentPhase === 'unassigned' ? 'current' : 'pending')
+          },
+          {
+            label: 'Ended',
+            value: values.endedAt ? helpers.formatDate(values.endedAt) : 'Still active',
+            state: values.endedAt ? 'done' : ((values.currentPhase === 'deployed' || values.currentPhase === 'unassigned') ? 'current' : 'pending')
           }
         ];
 
+        const metrics = [];
+
         if (!values.deployedAt && values.currentPhase === 'unassigned') {
-          rows.push({
-            label: 'Time waiting for deployment',
+          metrics.push({
+            label: 'Waiting for deployment',
             value: helpers.formatDurationCompact(values.timeWaitingSeconds),
-            field: 'waiting'
+            field: 'waiting',
+            tone: 'live'
           });
         }
 
         if (values.deployedAt) {
-          rows.push({
-            label: 'Deployed',
-            value: helpers.formatDate(values.deployedAt),
-            compact: false
-          });
-
-          rows.push({
+          metrics.push({
             label: 'Response time',
             value: helpers.formatDurationCompact(values.responseTimeSeconds),
             field: 'response'
@@ -182,37 +197,43 @@
         }
 
         if (values.currentPhase === 'deployed' && values.deployedAt) {
-          rows.push({
-            label: 'Active deployment time',
+          metrics.push({
+            label: 'Deployment live time',
             value: helpers.formatDurationCompact(values.activeDeploymentSeconds),
-            field: 'active'
+            field: 'active',
+            tone: 'live'
           });
         }
 
         if ((values.currentPhase === 'canceled' || values.currentPhase === 'accomplished') && values.endedAt) {
-          rows.push({
-            label: 'Ended',
-            value: helpers.formatDate(values.endedAt),
-            compact: false
-          });
-
           if (values.deployedAt) {
-            rows.push({
+            metrics.push({
               label: 'Deployment duration',
               value: helpers.formatDurationCompact(values.activeDeploymentSeconds),
               field: 'active'
             });
           }
 
-          rows.push({
+          metrics.push({
             label: 'Total incident duration',
             value: helpers.formatDurationCompact(values.totalIncidentDurationSeconds),
-            field: 'total'
+            field: 'total',
+            tone: 'strong'
           });
         }
 
-        const content = rows.map((row) => `
-          <div class="distress-signal-timing-item ${row.compact === false ? 'is-wide' : ''}">
+        const milestoneMarkup = milestones.map((row, index) => `
+          <div class="distress-signal-timing-step" data-state="${helpers.escapeHtml(row.state)}">
+            <div class="distress-signal-timing-step-marker">${index + 1}</div>
+            <div class="distress-signal-timing-step-copy">
+              <span>${helpers.escapeHtml(row.label)}</span>
+              <strong>${helpers.escapeHtml(row.value)}</strong>
+            </div>
+          </div>
+        `).join('');
+
+        const metricMarkup = metrics.map((row) => `
+          <div class="distress-signal-timing-metric" data-tone="${helpers.escapeHtml(row.tone || 'default')}">
             <span>${helpers.escapeHtml(row.label)}</span>
             <strong ${row.field ? `data-timing-field="${helpers.escapeHtml(row.field)}"` : ''}>${helpers.escapeHtml(row.value)}</strong>
           </div>
@@ -221,9 +242,19 @@
         return `
           <section class="distress-signal-detail-card distress-signal-timing-card">
             <div class="distress-signal-detail-section">
-              <h3>Emergency Timing</h3>
-              <div class="distress-signal-timing-grid">
-                ${content}
+              <div class="distress-signal-timing-header">
+                <div>
+                  <h3>Emergency Timing</h3>
+                  <p>${helpers.escapeHtml(phaseLabel)}</p>
+                </div>
+              </div>
+              <div class="distress-signal-timing-layout">
+                <div class="distress-signal-timing-rail">
+                  ${milestoneMarkup}
+                </div>
+                <div class="distress-signal-timing-metrics">
+                  ${metricMarkup}
+                </div>
               </div>
             </div>
           </section>
