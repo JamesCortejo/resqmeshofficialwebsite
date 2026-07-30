@@ -1,7 +1,7 @@
 const { USER_STATUSES } = require('../models/userModel');
 const { lookupHash } = require('./encryptionService');
 const { verifyPassword } = require('./passwordService');
-const { findAdminCandidateByUsernameHash } = require('../repositories/adminRepository');
+const { findAdminCandidateByUsernameHash, findAdminCredentialById } = require('../repositories/adminRepository');
 
 async function authenticateAdmin(username, password) {
   const usernameLookupHash = lookupHash(username);
@@ -38,5 +38,18 @@ function toAdminSessionPayload(admin) {
 
 module.exports = {
   authenticateAdmin,
-  toAdminSessionPayload
+  toAdminSessionPayload,
+  verifyAdminPassword: async function verifyAdminPassword(adminUserId, password) {
+    const normalizedPassword = String(password || '');
+    if (!normalizedPassword) {
+      return false;
+    }
+
+    const admin = await findAdminCredentialById(adminUserId);
+    if (!admin || admin.status !== USER_STATUSES.ADMIN) {
+      return false;
+    }
+
+    return verifyPassword(normalizedPassword, admin.passwordHash);
+  }
 };

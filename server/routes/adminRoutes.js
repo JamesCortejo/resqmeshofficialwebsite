@@ -3,6 +3,7 @@ const adminAuthController = require('../controllers/adminAuthController');
 const adminAccountsController = require('../controllers/adminAccountsController');
 const adminNotificationsController = require('../controllers/adminNotificationsController');
 const adminDistressController = require('../controllers/adminDistressController');
+const reportController = require('../controllers/reportController');
 const onlineChatAdminController = require('../controllers/onlineChatAdminController');
 const overviewController = require('../controllers/overviewController');
 const deviceManagerController = require('../controllers/deviceManagerController');
@@ -48,6 +49,10 @@ router.get('/distress-signals/:id', adminDistressController.getDistressSignalDet
 router.post('/distress-signals/:id/deploy', adminDistressController.deployDistressSignal);
 router.post('/deployments/:id/cancel', adminDistressController.cancelDeployment);
 router.post('/deployments/:id/accomplish', adminDistressController.accomplishDeployment);
+router.get('/reports/catalog', reportController.getCatalog);
+router.get('/reports/exports', reportController.listExports);
+router.post('/reports/incident-summary/generate', reportController.generateIncidentSummary);
+router.post('/reports/rescue-team-activity/generate', reportController.generateRescueTeamActivity);
 router.get('/online-chat/departments', onlineChatAdminController.listDepartments);
 router.post('/online-chat/departments', departmentChatIconUpload, handleUploadErrors, onlineChatAdminController.createDepartment);
 router.patch('/online-chat/departments/:id', departmentChatIconUpload, handleUploadErrors, onlineChatAdminController.updateDepartment);

@@ -30,7 +30,21 @@ function findAdminById(id) {
   `, [id]);
 }
 
+function findAdminCredentialById(id) {
+  return get(`
+    SELECT
+      id,
+      user_code AS userCode,
+      password_hash AS passwordHash,
+      status
+    FROM users
+    WHERE id = ? AND status = 'admin'
+    LIMIT 1
+  `, [id]);
+}
+
 module.exports = {
   findAdminCandidateByUsernameHash,
-  findAdminById
+  findAdminById,
+  findAdminCredentialById
 };

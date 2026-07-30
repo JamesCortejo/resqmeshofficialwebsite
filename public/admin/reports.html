@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ResQMesh PDF reports workspace.">
+  <title>Reports - ResQMesh</title>
+  <link rel="icon" type="image/png" href="/assets/logo-icon.png">
+
+  <link rel="stylesheet" href="/admin/css/login.css">
+  <link rel="stylesheet" href="/admin/css/admin-loader.css">
+  <link rel="stylesheet" href="/admin/css/app-shell.css">
+  <link rel="stylesheet" href="/admin/css/admin-notifications.css">
+  <link rel="stylesheet" href="/admin/css/reports.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="admin-login-page admin-loading">
+  <div class="admin-loader" aria-live="polite" aria-label="Loading ResQMesh admin">
+    <div class="admin-loader-content">
+      <span class="admin-loader-mark" aria-hidden="true"></span>
+      <span>
+        <span class="admin-loader-title">ResQMesh Admin</span>
+        <span class="admin-loader-subtitle">Preparing reports workspace</span>
+      </span>
+    </div>
+  </div>
+
+  <main class="admin-app-shell">
+    <aside class="admin-sidebar" aria-label="Admin navigation">
+      <div>
+        <a href="/resqmeshadmin/overview" class="admin-logo-link" aria-label="ResQMesh admin overview">
+          <img src="/assets/logo-icon.png" alt="ResQMesh Logo" class="admin-logo-icon">
+          <div>
+            <span class="admin-logo-title">RESQ-MESH</span>
+            <span class="admin-logo-subtitle">Admin Console</span>
+          </div>
+        </a>
+
+        <div class="admin-sidebar-group">
+          <span class="admin-sidebar-label">Navigation</span>
+          <nav class="admin-nav">
+            <a href="/resqmeshadmin/overview" class="admin-nav-link">
+              <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+              <span>Overview</span>
+            </a>
+            <a href="/resqmeshadmin/device-map" class="admin-nav-link">
+              <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+              <span>Mesh Node Map</span>
+            </a>
+            <a href="/resqmeshadmin/accounts" class="admin-nav-link">
+              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+              <span>Accounts Manager</span>
+            </a>
+            <a href="/resqmeshadmin/rescuers" class="admin-nav-link">
+              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+              <span>Rescuer Manager</span>
+            </a>
+            <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link">
+              <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+              <span>Rescue Teams</span>
+            </a>
+            <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
+              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+              <span>Distress Signals</span>
+            </a>
+            <a href="/resqmeshadmin/messages" class="admin-nav-link">
+              <i class="fa-regular fa-comments" aria-hidden="true"></i>
+              <span>Messages Manager</span>
+            </a>
+            <a href="/resqmeshadmin/devices" class="admin-nav-link">
+              <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+              <span>Device Manager</span>
+            </a>
+            <a href="/resqmeshadmin/department-chats" class="admin-nav-link">
+              <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
+              <span>Department Chats</span>
+            </a>
+            <a href="/resqmeshadmin/reports" class="admin-nav-link is-active" aria-current="page">
+              <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+              <span>Reports</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+
+      <p class="admin-sidebar-footnote">Administrative tools for the ResQMesh emergency network.</p>
+    </aside>
+
+    <section class="admin-app-main">
+      <header class="admin-topbar">
+        <div class="admin-topbar-copy">
+          <span class="admin-kicker">
+            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+            Valencia City Emergency Network
+          </span>
+          <h1 class="admin-topbar-title">Reports</h1>
+          <p class="admin-topbar-desc">Prepare printable PDF reports for incidents, teams, devices, and audits from one reporting workspace.</p>
+        </div>
+
+        <div class="admin-topbar-actions">
+          <button type="button" class="admin-notification-button" id="adminNotificationButton" aria-label="Notifications" aria-expanded="false">
+            <i class="fa-regular fa-bell" aria-hidden="true"></i>
+            <span class="admin-notification-badge" id="adminNotificationBadge" hidden>0</span>
+          </button>
+          <button type="button" class="admin-topbar-button" data-admin-logout>
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span data-admin-logout-label>Logout</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="admin-content-panel reports-panel" aria-labelledby="reportsPanelTitle">
+        <div class="reports-panel-header">
+          <div>
+            <h2 id="reportsPanelTitle">PDF Report Builder</h2>
+            <p>Choose a report, set the range, and prepare a printable PDF.</p>
+          </div>
+        </div>
+
+        <div class="reports-workspace">
+          <section class="reports-catalog-panel" aria-labelledby="reportsCatalogTitle">
+            <div class="reports-pane-header">
+              <div>
+                <span class="reports-pane-kicker">Report catalog</span>
+                <h3 id="reportsCatalogTitle">Available exports</h3>
+              </div>
+            </div>
+            <div class="reports-catalog-rail">
+              <div class="reports-catalog-list" id="reportsCatalogList"></div>
+            </div>
+          </section>
+
+          <section class="reports-builder-panel" aria-labelledby="reportsBuilderTitle">
+            <div class="reports-pane-header">
+              <div>
+                <span class="reports-pane-kicker">Report setup</span>
+                <h3 id="reportsBuilderTitle">Selected report</h3>
+              </div>
+            </div>
+
+            <div class="reports-builder-shell">
+              <div class="reports-builder-controls">
+                <div class="reports-builder-grid">
+                  <label class="reports-field">
+                    <span>Date range</span>
+                    <select id="reportsDateRangeInput">
+                      <option value="today">Today</option>
+                      <option value="7d" selected>Last 7 days</option>
+                      <option value="30d">Last 30 days</option>
+                      <option value="month">This month</option>
+                      <option value="custom" disabled>Custom range</option>
+                    </select>
+                  </label>
+                  <label class="reports-field">
+                    <span>Source scope</span>
+                    <select id="reportsSourceScopeInput">
+                      <option value="all" selected>All sources</option>
+                      <option value="mesh">Mesh only</option>
+                      <option value="online">Online only</option>
+                    </select>
+                  </label>
+                  <label class="reports-field">
+                    <span>Export format</span>
+                    <select id="reportsFormatInput" disabled>
+                      <option value="pdf" selected>PDF</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="reports-include-panel">
+                <div class="reports-pane-header reports-pane-header-compact">
+                  <div>
+                    <span class="reports-pane-kicker">Include in PDF</span>
+                  </div>
+                </div>
+                <div class="reports-checkbox-grid" id="reportsIncludeGrid"></div>
+              </div>
+            </div>
+
+            <div class="reports-feedback" id="reportsFeedback" role="status" hidden></div>
+          </section>
+
+          <section class="reports-preview-panel" aria-labelledby="reportsPreviewTitle">
+            <div class="reports-pane-header">
+              <div>
+                <span class="reports-pane-kicker">Preview</span>
+                <h3 id="reportsPreviewTitle">Document outline</h3>
+              </div>
+            </div>
+
+            <div class="reports-preview-shell">
+              <div class="reports-preview-card">
+                <div class="reports-preview-head">
+                  <span class="reports-preview-badge">PDF</span>
+                  <strong id="reportsPreviewName">Incident Summary Report</strong>
+                  <p id="reportsPreviewSubtitle">Quick export preview.</p>
+                </div>
+
+                <div class="reports-preview-meta">
+                  <div class="reports-preview-meta-item">
+                    <span>Date range</span>
+                    <strong id="reportsPreviewRange">Last 7 days</strong>
+                  </div>
+                  <div class="reports-preview-meta-item">
+                    <span>Source scope</span>
+                    <strong id="reportsPreviewScope">All sources</strong>
+                  </div>
+                  <div class="reports-preview-meta-item">
+                    <span>Export format</span>
+                    <strong>PDF</strong>
+                  </div>
+                </div>
+
+                <div class="reports-preview-sections">
+                  <span class="reports-preview-sections-label">Planned sections</span>
+                  <ul id="reportsPreviewSections"></ul>
+                </div>
+
+                <div class="reports-preview-actions">
+                  <button type="button" class="reports-primary-button reports-primary-button-full" id="reportsGenerateButton">
+                    <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i>
+                    <span>Generate PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="reports-recent-card">
+                <div class="reports-pane-header reports-pane-header-compact">
+                  <div>
+                    <span class="reports-pane-kicker">Recent exports</span>
+                  </div>
+                </div>
+                <div class="reports-recent-list" id="reportsRecentList">
+                  <article class="reports-recent-item">
+                    <strong>No exports yet</strong>
+                    <span>Generate an incident summary PDF to start the export history.</span>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="admin-review-toast" id="adminReviewToast" role="status" aria-live="polite" aria-hidden="true">
+    <span class="admin-review-toast-icon" id="adminReviewToastIcon">
+      <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+    </span>
+    <span class="admin-review-toast-message" id="adminReviewToastMessage">PDF generation will be wired next.</span>
+  </div>
+
+  <div class="reports-password-modal" id="reportsPasswordModal" aria-hidden="true">
+    <div class="reports-password-backdrop" data-close-reports-password></div>
+    <section class="reports-password-dialog" role="dialog" aria-modal="true" aria-labelledby="reportsPasswordTitle">
+      <header class="reports-password-header">
+        <div>
+          <span class="reports-password-kicker">Security Check</span>
+          <h2 id="reportsPasswordTitle">Confirm admin password</h2>
+        </div>
+        <button type="button" class="reports-password-close" aria-label="Close password confirmation" data-close-reports-password>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+      <div class="reports-password-body">
+        <p>Enter your current admin password before generating a PDF export.</p>
+        <label class="reports-field">
+          <span>Admin password</span>
+          <input type="password" id="reportsPasswordInput" autocomplete="current-password" placeholder="Enter current password">
+        </label>
+        <div class="reports-password-message" id="reportsPasswordMessage" hidden></div>
+      </div>
+      <footer class="reports-password-actions">
+        <button type="button" class="admin-topbar-button" data-close-reports-password>Cancel</button>
+        <button type="button" class="reports-primary-button" id="reportsPasswordConfirmButton">
+          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+          <span>Confirm and Generate</span>
+        </button>
+      </footer>
+    </section>
+  </div>
+
+  <script src="/admin/js/admin-loader.js"></script>
+  <script src="/admin/js/admin-auth.js"></script>
+  <script src="/admin/js/admin-notifications.js"></script>
+  <script src="/admin/js/reports.js"></script>
+</body>
+
+</html>
