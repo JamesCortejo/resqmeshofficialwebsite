@@ -10,8 +10,12 @@ const {
   formatChatSenderLabel,
   formatModerationEventLabel,
   createPreviewText,
-  resolveDisplayName
+  resolveDisplayName,
+  fullName,
+  decryptLeaderName,
+  formatRescuerOrNodeStatus
 } = require('./reportShared');
+const { decryptText } = require('../encryptionService');
 
 function normalizeIncidentRows(rows) {
   return rows.map((row) => ({
