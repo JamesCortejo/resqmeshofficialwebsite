@@ -930,16 +930,6 @@ const VALENCIA_BARANGAYS = registerConfig.barangays;
               )}
 
               {/* Navigation Controls */}
-              <div class="recaptcha-notice" data-recaptcha-notice hidden>
-                <span class="recaptcha-notice-icon">
-                  <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-                </span>
-                <span>
-                  Protected by reCAPTCHA v3
-                  <strong data-recaptcha-state>Loading</strong>
-                </span>
-              </div>
-
               <div class="form-navigation">
                 {currentStep > 1 ? (
                   <button type="button" class="btn btn-secondary" onClick={handlePrev}>
