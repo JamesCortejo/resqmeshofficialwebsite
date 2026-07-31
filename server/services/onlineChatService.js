@@ -13,6 +13,10 @@ const {
   notifyOnlineChatMessageReceived
 } = require('./notificationService');
 const {
+  pushGlobalAnnouncementNotification,
+  pushOnlineChatMessageNotification,
+} = require('./mobilePushService');
+const {
   archiveDepartment,
   createDepartment,
   getActiveDepartmentByRescuerAgency,
@@ -623,7 +627,32 @@ async function sendAdminMessage(conversationId, adminUserId, bodyValue) {
   });
 
   await markConversationRead(conversationId, 'admin', adminUserId);
-  return formatMessage(message);
+  const formattedMessage = formatMessage(message);
+  const formattedConversation = formatConversation(conversation);
+  const formattedDepartment = formatDepartment({
+    id: conversation.departmentId,
+    slug: conversation.departmentSlug,
+    name: conversation.departmentName,
+    subtitle: conversation.departmentSubtitle,
+    status: conversation.departmentStatus,
+    colorTag: conversation.departmentColorTag,
+    rescuerAgency: conversation.departmentRescuerAgency,
+    iconUrl: conversation.departmentIconUrl,
+    sortOrder: conversation.departmentSortOrder,
+    readOnly: conversation.departmentReadOnly,
+    archivedAt: conversation.departmentArchivedAt,
+    createdAt: conversation.departmentCreatedAt,
+    updatedAt: conversation.departmentUpdatedAt
+  });
+
+  await pushOnlineChatMessageNotification({
+    conversation: formattedConversation,
+    department: formattedDepartment,
+    civilian: formattedConversation.civilian,
+    message: formattedMessage,
+  });
+
+  return formattedMessage;
 }
 
 async function sendCivilianMessage(conversationId, civilianUserId, bodyValue) {
@@ -669,7 +698,32 @@ async function sendCivilianMessage(conversationId, civilianUserId, bodyValue) {
     civilian: formatCivilian(conversation),
     message
   });
-  return formatMessage(message);
+  const formattedMessage = formatMessage(message);
+  const formattedConversation = formatConversation(conversation);
+  const formattedDepartment = formatDepartment({
+    id: conversation.departmentId,
+    slug: conversation.departmentSlug,
+    name: conversation.departmentName,
+    subtitle: conversation.departmentSubtitle,
+    status: conversation.departmentStatus,
+    colorTag: conversation.departmentColorTag,
+    rescuerAgency: conversation.departmentRescuerAgency,
+    iconUrl: conversation.departmentIconUrl,
+    sortOrder: conversation.departmentSortOrder,
+    readOnly: conversation.departmentReadOnly,
+    archivedAt: conversation.departmentArchivedAt,
+    createdAt: conversation.departmentCreatedAt,
+    updatedAt: conversation.departmentUpdatedAt
+  });
+
+  await pushOnlineChatMessageNotification({
+    conversation: formattedConversation,
+    department: formattedDepartment,
+    civilian: formattedConversation.civilian,
+    message: formattedMessage,
+  });
+
+  return formattedMessage;
 }
 
 async function sendRescuerMessage(conversationId, rescuer, bodyValue) {
@@ -712,7 +766,32 @@ async function sendRescuerMessage(conversationId, rescuer, bodyValue) {
   });
 
   await markConversationRead(conversationId, 'rescuer', rescuer.id);
-  return formatMessage(message);
+  const formattedMessage = formatMessage(message);
+  const formattedConversation = formatConversation(conversation);
+  const formattedDepartment = formatDepartment({
+    id: conversation.departmentId,
+    slug: conversation.departmentSlug,
+    name: conversation.departmentName,
+    subtitle: conversation.departmentSubtitle,
+    status: conversation.departmentStatus,
+    colorTag: conversation.departmentColorTag,
+    rescuerAgency: conversation.departmentRescuerAgency,
+    iconUrl: conversation.departmentIconUrl,
+    sortOrder: conversation.departmentSortOrder,
+    readOnly: conversation.departmentReadOnly,
+    archivedAt: conversation.departmentArchivedAt,
+    createdAt: conversation.departmentCreatedAt,
+    updatedAt: conversation.departmentUpdatedAt
+  });
+
+  await pushOnlineChatMessageNotification({
+    conversation: formattedConversation,
+    department: formattedDepartment,
+    civilian: formattedConversation.civilian,
+    message: formattedMessage,
+  });
+
+  return formattedMessage;
 }
 
 async function sendGlobalAnnouncement(adminUserId, bodyValue) {
@@ -731,7 +810,12 @@ async function sendGlobalAnnouncement(adminUserId, bodyValue) {
   });
 
   await markGlobalRead(department.id, 'admin', adminUserId);
-  return formatMessage(await getGlobalMessageById(result.lastID));
+  const formattedMessage = formatMessage(await getGlobalMessageById(result.lastID));
+  await pushGlobalAnnouncementNotification({
+    department: formatDepartment(department),
+    message: formattedMessage,
+  });
+  return formattedMessage;
 }
 
 async function markRead(conversationId, actor) {

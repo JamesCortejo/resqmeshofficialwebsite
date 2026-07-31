@@ -3,6 +3,7 @@ const civilianMobileAuthController = require('../controllers/civilianMobileAuthC
 const civilianDistressController = require('../controllers/civilianDistressController');
 const onlineChatCivilianController = require('../controllers/onlineChatCivilianController');
 const onlineChatRescuerController = require('../controllers/onlineChatRescuerController');
+const mobilePushController = require('../controllers/mobilePushController');
 const rescuerMobileAuthController = require('../controllers/rescuerMobileAuthController');
 const mobileOperationsController = require('../controllers/mobileOperationsController');
 const { requireCivilianSession, requireMobileSession, requireRescuerSession } = require('../middleware/rescuerSessionMiddleware');
@@ -12,6 +13,8 @@ const router = express.Router();
 router.post('/auth/rescuer/login', rescuerMobileAuthController.login);
 router.post('/auth/civilian/login', civilianMobileAuthController.login);
 router.post('/auth/logout', requireMobileSession, rescuerMobileAuthController.logout);
+router.post('/api/mobile/push/register', requireMobileSession, mobilePushController.register);
+router.post('/api/mobile/push/unregister', requireMobileSession, mobilePushController.unregister);
 
 router.get('/api/nodes', mobileOperationsController.listNodes);
 router.get('/api/map/snapshot', mobileOperationsController.getMapSnapshot);

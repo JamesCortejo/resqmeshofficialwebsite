@@ -12,6 +12,7 @@ const {
   notifyOnlineDistressSignalActive,
   notifyOnlineDistressSignalCanceled
 } = require('./notificationService');
+const { pushOnlineDistressNotification } = require('./mobilePushService');
 
 const VALID_REASONS = new Set(['flooding', 'fire', 'medical', 'landslide', 'earthquake', 'accident', 'other']);
 
@@ -136,6 +137,7 @@ async function createCivilianOnlineDistress(civilian, payload) {
 
   const distress = await getActiveCivilianOnlineDistress({ id: civilian.id });
   await notifyOnlineDistressSignalActive(distress);
+  await pushOnlineDistressNotification(distress);
   return distress;
 }
 

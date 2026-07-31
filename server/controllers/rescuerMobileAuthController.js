@@ -2,6 +2,7 @@ const {
   revokeAuthenticatedSession
 } = require('../services/authSessionService');
 const { loginRescuer } = require('../services/rescuerMobileAuthService');
+const { disableActorMobilePushTokens } = require('../services/mobilePushService');
 const { disableRescuerLocationSharing } = require('../services/mobileOperationsService');
 
 function errorResponse(res, error, fallbackMessage) {
@@ -46,6 +47,11 @@ exports.logout = async (req, res) => {
   try {
     if (req.mobilePrincipal?.id && req.mobilePrincipal?.rescuerCode) {
       await disableRescuerLocationSharing(req.mobilePrincipal.id);
+    }
+
+    if (req.mobilePrincipal?.id) {
+      const role = req.mobilePrincipal?.rescuerCode ? 'rescuer' : 'civilian';
+      await disableActorMobilePushTokens(req.mobilePrincipal, role);
     }
 
     await revokeAuthenticatedSession(req.mobileSession?.id || req.rescuerSession?.id);
