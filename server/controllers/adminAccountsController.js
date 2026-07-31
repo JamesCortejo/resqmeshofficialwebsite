@@ -123,7 +123,7 @@ exports.updateStatus = async (req, res) => {
 
     const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
     const reason = req.body && req.body.reason ? String(req.body.reason) : '';
-    const account = await updateAccountReviewStatus(id, status, reason);
+    const account = await updateAccountReviewStatus(id, status, reason, req.adminUser?.id || null);
 
     return res.json({
       success: true,
@@ -149,7 +149,7 @@ exports.updateAccessStatus = async (req, res) => {
 
     const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
     const reason = req.body && req.body.reason ? String(req.body.reason) : '';
-    const account = await updateAccountAccessReviewStatus(id, status, reason);
+    const account = await updateAccountAccessReviewStatus(id, status, reason, req.adminUser?.id || null);
     const action = account.status === 'suspended' ? 'suspended' : 'activated';
 
     return res.json({

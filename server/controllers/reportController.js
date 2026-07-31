@@ -1,6 +1,9 @@
 const {
   generateIncidentSummaryReport,
+  generateAccountsAccessAuditReport,
   generateRescueTeamActivityReport,
+  generateMeshDeviceSyncHealthReport,
+  generateOnlineCommunicationsModerationReport,
   getAdminReportCatalog,
   listAdminReportExports
 } = require('../services/reportService');
@@ -72,5 +75,53 @@ exports.generateRescueTeamActivity = async (req, res) => {
     return res.send(result.buffer);
   } catch (error) {
     return errorResponse(res, error, 'Unable to generate rescue team activity report.');
+  }
+};
+
+exports.generateAccountsAccessAudit = async (req, res) => {
+  try {
+    const result = await generateAccountsAccessAuditReport(req.adminUser.id, req.body || {});
+
+    res.setHeader('Content-Type', result.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader('Content-Length', result.buffer.length);
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Report-Export-Id', String(result.exportId));
+
+    return res.send(result.buffer);
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to generate accounts and access audit report.');
+  }
+};
+
+exports.generateMeshDeviceSyncHealth = async (req, res) => {
+  try {
+    const result = await generateMeshDeviceSyncHealthReport(req.adminUser.id, req.body || {});
+
+    res.setHeader('Content-Type', result.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader('Content-Length', result.buffer.length);
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Report-Export-Id', String(result.exportId));
+
+    return res.send(result.buffer);
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to generate mesh device and sync health report.');
+  }
+};
+
+exports.generateOnlineCommunicationsModeration = async (req, res) => {
+  try {
+    const result = await generateOnlineCommunicationsModerationReport(req.adminUser.id, req.body || {});
+
+    res.setHeader('Content-Type', result.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader('Content-Length', result.buffer.length);
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Report-Export-Id', String(result.exportId));
+
+    return res.send(result.buffer);
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to generate online communications and moderation report.');
   }
 };

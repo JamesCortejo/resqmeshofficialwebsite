@@ -12,9 +12,30 @@
     online: 'Online only'
   };
 
+  const ACCOUNT_SCOPE_LABELS = {
+    all: 'All accounts',
+    civilian: 'Civilian only',
+    rescuer: 'Rescuer only'
+  };
+
+  const NODE_SCOPE_LABELS = {
+    all: 'All nodes',
+    active: 'Active nodes',
+    offline: 'Offline nodes'
+  };
+
+  const CHAT_SCOPE_LABELS = {
+    all: 'All chat activity',
+    department: 'Department chats only',
+    global: 'Global announcements only'
+  };
+
   const GENERATE_ENDPOINTS = Object.freeze({
     'incident-summary': '/api/admin/reports/incident-summary/generate',
-    'rescue-team-activity': '/api/admin/reports/rescue-team-activity/generate'
+    'rescue-team-activity': '/api/admin/reports/rescue-team-activity/generate',
+    'accounts-access-audit': '/api/admin/reports/accounts-access-audit/generate',
+    'mesh-device-sync-health': '/api/admin/reports/mesh-device-sync-health/generate',
+    'online-communications-moderation': '/api/admin/reports/online-communications-moderation/generate'
   });
 
   const state = {
@@ -32,10 +53,12 @@
     includeGrid: document.getElementById('reportsIncludeGrid'),
     feedback: document.getElementById('reportsFeedback'),
     dateRangeInput: document.getElementById('reportsDateRangeInput'),
+    scopeLabel: document.getElementById('reportsScopeLabel'),
     sourceScopeInput: document.getElementById('reportsSourceScopeInput'),
     previewName: document.getElementById('reportsPreviewName'),
     previewSubtitle: document.getElementById('reportsPreviewSubtitle'),
     previewRange: document.getElementById('reportsPreviewRange'),
+    previewScopeLabel: document.getElementById('reportsPreviewScopeLabel'),
     previewScope: document.getElementById('reportsPreviewScope'),
     previewSections: document.getElementById('reportsPreviewSections'),
     generateButton: document.getElementById('reportsGenerateButton'),
@@ -121,6 +144,43 @@
 
   function syncSelectedSections(report) {
     state.includeSections = new Set(defaultIncludeSectionIds(report));
+  }
+
+  function scopeLabelsForReport(report) {
+    if (report?.id === 'accounts-access-audit') {
+      return ACCOUNT_SCOPE_LABELS;
+    }
+
+    if (report?.id === 'mesh-device-sync-health') {
+      return NODE_SCOPE_LABELS;
+    }
+
+    if (report?.id === 'online-communications-moderation') {
+      return CHAT_SCOPE_LABELS;
+    }
+
+    return SCOPE_LABELS;
+  }
+
+  function updateScopeField(report) {
+    const labels = scopeLabelsForReport(report);
+    const supportedScopes = Array.isArray(report?.supportedSourceScopes) && report.supportedSourceScopes.length
+      ? report.supportedSourceScopes
+      : Object.keys(labels);
+    const currentValue = supportedScopes.includes(dom.sourceScopeInput.value)
+      ? dom.sourceScopeInput.value
+      : supportedScopes[0];
+
+    dom.sourceScopeInput.innerHTML = supportedScopes.map((value) => `
+      <option value="${escapeHtml(value)}">${escapeHtml(labels[value] || value)}</option>
+    `).join('');
+    dom.sourceScopeInput.value = currentValue || 'all';
+    if (dom.scopeLabel) {
+      dom.scopeLabel.textContent = report?.scopeLabel || 'Source scope';
+    }
+    if (dom.previewScopeLabel) {
+      dom.previewScopeLabel.textContent = report?.scopeLabel || 'Source scope';
+    }
   }
 
   function showFeedback(message, tone = 'warning') {
@@ -246,7 +306,7 @@
       ? report.description
       : (report.pendingMessage || 'Backend generation is not available yet.');
     dom.previewRange.textContent = RANGE_LABELS[dom.dateRangeInput.value] || 'Selected range';
-    dom.previewScope.textContent = SCOPE_LABELS[dom.sourceScopeInput.value] || 'All sources';
+    dom.previewScope.textContent = scopeLabelsForReport(report)[dom.sourceScopeInput.value] || 'Selected scope';
 
     const selectedLabels = report.available
       ? (report.include || [])
@@ -307,6 +367,7 @@
   }
 
   function applyReportConstraints(report) {
+    updateScopeField(report);
     const dateOptions = new Set(report?.supportedDateRanges || ['today', '7d', '30d', 'month']);
     Array.from(dom.dateRangeInput.options).forEach((option) => {
       if (option.value === 'custom') {
@@ -320,11 +381,8 @@
     }
 
     const scopeOptions = new Set(report?.supportedSourceScopes || ['all', 'mesh', 'online']);
-    Array.from(dom.sourceScopeInput.options).forEach((option) => {
-      option.disabled = !scopeOptions.has(option.value);
-    });
     if (!scopeOptions.has(dom.sourceScopeInput.value)) {
-      dom.sourceScopeInput.value = 'all';
+      dom.sourceScopeInput.value = Array.from(scopeOptions)[0] || 'all';
     }
   }
 

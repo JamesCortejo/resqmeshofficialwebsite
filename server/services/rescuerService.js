@@ -27,6 +27,9 @@ const {
 const {
   countRescuersForTeam
 } = require('../repositories/rescueTeamRepository');
+const {
+  createAccountAccessAuditLog
+} = require('../repositories/accountAccessAuditRepository');
 
 const ALLOWED_STATUSES = new Set(Object.values(RESCUER_STATUSES));
 const ALLOWED_AGENCIES = new Set(Object.values(RESCUER_AGENCIES));
@@ -182,7 +185,20 @@ function validatePasswordFields(passwordValue, confirmPasswordValue) {
   return password;
 }
 
-async function createRescuerProfile(payload) {
+async function recordRescuerAudit(rescuer, actionType, actorAdminUserId, metadata = null) {
+  await createAccountAccessAuditLog({
+    subjectType: 'rescuer',
+    subjectId: rescuer.id,
+    subjectCode: rescuer.rescuerCode,
+    actionType,
+    actorAdminId: actorAdminUserId || null,
+    reasonText: null,
+    metadataJson: metadata ? JSON.stringify(metadata) : null,
+    occurredAt: new Date().toISOString()
+  });
+}
+
+async function createRescuerProfile(payload, actorAdminUserId = null) {
   const missing = missingFields(payload);
 
   if (missing.length > 0) {
@@ -285,6 +301,12 @@ async function createRescuerProfile(payload) {
 
   const created = await getRescuerById(result.lastID);
   const response = rescuerResponse(created);
+  await recordRescuerAudit(response, 'rescuer_created', actorAdminUserId, {
+    agency: response.agency,
+    status: response.status,
+    accessStatus: response.accessStatus,
+    teamId: response.team?.id || null
+  });
   notifyRescuerCreated(response);
   return response;
 }
@@ -304,7 +326,7 @@ async function getRescuerDetails(id) {
   return rescuerDetailResponse(row);
 }
 
-async function setRescuerAccessStatus(id, nextStatus) {
+async function setRescuerAccessStatus(id, nextStatus, actorAdminUserId = null) {
   const normalizedStatus = String(nextStatus || '').trim().toLowerCase();
 
   if (!ALLOWED_ACCESS_STATUSES.has(normalizedStatus)) {
@@ -347,6 +369,15 @@ async function setRescuerAccessStatus(id, nextStatus) {
 
   const updated = await getRescuerById(id);
   const response = rescuerDetailResponse(updated);
+  await recordRescuerAudit(
+    response,
+    normalizedStatus === RESCUER_ACCESS_STATUSES.ARCHIVED ? 'rescuer_archived' : 'access_status_changed',
+    actorAdminUserId,
+    {
+      previousAccessStatus: currentStatus,
+      nextAccessStatus: normalizedStatus
+    }
+  );
   notifyRescuerAccessChanged(response, normalizedStatus);
 
   return {
@@ -402,7 +433,7 @@ async function updateRescuerOperationalStatus(id, nextStatus) {
   };
 }
 
-async function resetRescuerPassword(id, payload) {
+async function resetRescuerPassword(id, payload, actorAdminUserId = null) {
   const existing = await getRescuerById(id);
 
   if (!existing) {
@@ -422,6 +453,9 @@ async function resetRescuerPassword(id, payload) {
 
   const updated = await getRescuerById(id);
   const response = rescuerDetailResponse(updated);
+  await recordRescuerAudit(response, 'password_changed', actorAdminUserId, {
+    resetByAdmin: true
+  });
   notifyRescuerPasswordReset(response);
 
   return {

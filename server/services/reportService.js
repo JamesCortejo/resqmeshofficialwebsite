@@ -1,21 +1,44 @@
 const {
   listReportCatalog,
   INCIDENT_SUMMARY_REPORT,
-  RESCUE_TEAM_ACTIVITY_REPORT
+  RESCUE_TEAM_ACTIVITY_REPORT,
+  ACCOUNTS_ACCESS_AUDIT_REPORT,
+  MESH_DEVICE_SYNC_HEALTH_REPORT,
+  ONLINE_COMMUNICATIONS_MODERATION_REPORT
 } = require('../reports/catalog');
 const { buildIncidentSummaryPdf } = require('../reports/builders/incidentSummaryPdfBuilder');
 const { buildRescueTeamActivityPdf } = require('../reports/builders/rescueTeamActivityPdfBuilder');
+const { buildAccountsAccessAuditPdf } = require('../reports/builders/accountsAccessAuditPdfBuilder');
+const { buildMeshDeviceSyncHealthPdf } = require('../reports/builders/meshDeviceSyncHealthPdfBuilder');
+const { buildOnlineCommunicationsModerationPdf } = require('../reports/builders/onlineCommunicationsModerationPdfBuilder');
 const { verifyAdminPassword } = require('./adminAuthService');
 const { decryptText } = require('./encryptionService');
 const {
   listIncidentSummaryRows,
   listRescueTeamActivityRows,
   listRescueTeamRosterRows,
+  listMeshDeviceSyncHealthRows,
+  listMeshCommandTypeRows,
+  listOnlineDepartmentActivityRows,
+  getOnlineGlobalAnnouncementSummary,
+  getOnlineConversationLoadSummary,
+  getOnlineSenderActivitySummary,
+  getOnlineModerationSummary,
+  listRecentOnlineCommunicationEventRows,
   createReportExport,
   updateReportExportStatus,
   listRecentReportExports,
   getAdminExportCount
 } = require('../repositories/reportRepository');
+const {
+  listAccountAccessAuditRows,
+  getAccountStatusSnapshot,
+  getRescuerAccessSnapshot,
+  getRegistrationIntakeTotals,
+  getAdminActionTotals,
+  getLoginSessionActivity,
+  listRescuerAccessRosterRows
+} = require('../repositories/accountAccessAuditRepository');
 
 const DATE_RANGE_LABELS = Object.freeze({
   today: 'Today',
@@ -28,6 +51,24 @@ const SOURCE_SCOPE_LABELS = Object.freeze({
   all: 'All sources',
   mesh: 'Mesh only',
   online: 'Online only'
+});
+
+const ACCOUNT_SCOPE_LABELS = Object.freeze({
+  all: 'All accounts',
+  civilian: 'Civilian only',
+  rescuer: 'Rescuer only'
+});
+
+const NODE_SCOPE_LABELS = Object.freeze({
+  all: 'All nodes',
+  active: 'Active nodes',
+  offline: 'Offline nodes'
+});
+
+const CHAT_SCOPE_LABELS = Object.freeze({
+  all: 'All chat activity',
+  department: 'Department chats only',
+  global: 'Global announcements only'
 });
 
 const AGENCY_LABELS = Object.freeze({
@@ -90,6 +131,23 @@ function formatTeamStatusLabel(value) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function formatActionLabel(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  const labels = {
+    registered: 'Registered',
+    approved: 'Approved',
+    declined: 'Declined',
+    suspended: 'Suspended',
+    reactivated: 'Reactivated',
+    rescuer_created: 'Rescuer created',
+    rescuer_archived: 'Rescuer archived',
+    access_status_changed: 'Access activated',
+    password_changed: 'Password reset'
+  };
+
+  return labels[normalized] || formatStatusLabel(normalized);
 }
 
 function fullName(...parts) {
@@ -282,6 +340,100 @@ function buildRescueTeamActivityFilename(dateRangeKind, sourceScope) {
   return `resqmesh-rescue-team-activity-${sourceScope}-${dateRangeKind}-${dateStamp}.pdf`;
 }
 
+function buildAccountsAccessAuditFilename(dateRangeKind, scope) {
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  return `resqmesh-accounts-access-audit-${scope}-${dateRangeKind}-${dateStamp}.pdf`;
+}
+
+function buildMeshDeviceSyncHealthFilename(dateRangeKind, scope) {
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  return `resqmesh-mesh-device-sync-health-${scope}-${dateRangeKind}-${dateStamp}.pdf`;
+}
+
+function buildOnlineCommunicationsModerationFilename(dateRangeKind, scope) {
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  return `resqmesh-online-communications-moderation-${scope}-${dateRangeKind}-${dateStamp}.pdf`;
+}
+
+function scopeLabelsForReport(reportType) {
+  if (reportType === ACCOUNTS_ACCESS_AUDIT_REPORT.id) {
+    return ACCOUNT_SCOPE_LABELS;
+  }
+
+  if (reportType === MESH_DEVICE_SYNC_HEALTH_REPORT.id) {
+    return NODE_SCOPE_LABELS;
+  }
+
+  if (reportType === ONLINE_COMMUNICATIONS_MODERATION_REPORT.id) {
+    return CHAT_SCOPE_LABELS;
+  }
+
+  return SOURCE_SCOPE_LABELS;
+}
+
+function formatChatSenderLabel(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  const labels = {
+    civilian: 'Civilian',
+    admin: 'Admin',
+    rescuer: 'Rescuer',
+    system: 'System'
+  };
+
+  return labels[normalized] || formatStatusLabel(normalized);
+}
+
+function formatModerationEventLabel(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  const labels = {
+    profanity_blocked: 'Profanity blocked',
+    link_blocked: 'Link blocked',
+    duplicate_message_blocked: 'Duplicate blocked',
+    spam_timeout_triggered: 'Spam timeout'
+  };
+
+  return labels[normalized] || formatStatusLabel(normalized.replace(/_/g, ' '));
+}
+
+function createPreviewText(value, maxLength = 72) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!text) {
+    return 'Not available';
+  }
+
+  return text.length > maxLength
+    ? `${text.slice(0, maxLength)}...`
+    : text;
+}
+
+function resolveDisplayName({ civilianCode, civilianFirstNameEnc, civilianMiddleNameEnc, civilianLastNameEnc, adminCode, adminFirstNameEnc, adminMiddleNameEnc, adminLastNameEnc, rescuerCode, rescuerFirstNameEnc, rescuerMiddleNameEnc, rescuerLastNameEnc, senderType }) {
+  if (senderType === 'civilian') {
+    return fullName(
+      decryptText(civilianFirstNameEnc || ''),
+      decryptText(civilianMiddleNameEnc || ''),
+      decryptText(civilianLastNameEnc || '')
+    ) || civilianCode || 'Civilian';
+  }
+
+  if (senderType === 'admin') {
+    return fullName(
+      decryptText(adminFirstNameEnc || ''),
+      decryptText(adminMiddleNameEnc || ''),
+      decryptText(adminLastNameEnc || '')
+    ) || adminCode || 'Admin';
+  }
+
+  if (senderType === 'rescuer') {
+    return fullName(
+      decryptText(rescuerFirstNameEnc || ''),
+      decryptText(rescuerMiddleNameEnc || ''),
+      decryptText(rescuerLastNameEnc || '')
+    ) || rescuerCode || 'Rescuer';
+  }
+
+  return 'System';
+}
+
 function shapeCatalogReport(report) {
   return {
     id: report.id,
@@ -292,6 +444,7 @@ function shapeCatalogReport(report) {
     range: report.range,
     available: Boolean(report.available),
     pendingMessage: report.pendingMessage || null,
+    scopeLabel: report.scopeLabel || 'Source scope',
     supportedDateRanges: report.supportedDateRanges || [],
     supportedSourceScopes: report.supportedSourceScopes || [],
     supportedOutputModes: report.supportedOutputModes || [],
@@ -310,6 +463,7 @@ async function getAdminReportCatalog() {
     },
     supportedDateRanges: DATE_RANGE_LABELS,
     supportedSourceScopes: SOURCE_SCOPE_LABELS,
+    supportedAccountScopes: ACCOUNT_SCOPE_LABELS,
     supportedOutputModes: OUTPUT_MODE_LABELS
   };
 }
@@ -336,7 +490,7 @@ function shapeExportRow(row) {
     reportType: row.reportType,
     reportName: summaryMetadata.reportName || reportDefinition?.name || 'ResQMesh Report',
     sourceScope: row.sourceScope,
-    sourceScopeLabel: SOURCE_SCOPE_LABELS[row.sourceScope] || row.sourceScope,
+    sourceScopeLabel: scopeLabelsForReport(row.reportType)[row.sourceScope] || row.sourceScope,
     dateRangeKind: row.dateRangeKind,
     dateRangeLabel: DATE_RANGE_LABELS[row.dateRangeKind] || row.dateRangeKind,
     outputMode: row.outputMode,
@@ -357,6 +511,19 @@ function shapeExportRow(row) {
 async function listAdminReportExports() {
   const rows = await listRecentReportExports(5);
   return rows.map(shapeExportRow);
+}
+
+function formatRescuerOrNodeStatus(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) {
+    return 'Unknown';
+  }
+
+  return normalized
+    .split(/[_-\s]+/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 async function generateIncidentSummaryReport(adminUserId, payload = {}) {
@@ -469,6 +636,811 @@ async function generateIncidentSummaryReport(adminUserId, payload = {}) {
         reportName: reportDefinition.name
       }),
       errorMessage: error.message || 'Incident summary export failed.'
+    });
+    throw error;
+  }
+}
+
+function normalizeAuditRows(rows) {
+  return rows.map((row) => {
+    const subjectName = row.subjectType === 'civilian'
+      ? fullName(
+          decryptText(row.civilianFirstNameEnc || ''),
+          decryptText(row.civilianMiddleNameEnc || ''),
+          decryptText(row.civilianLastNameEnc || '')
+        )
+      : fullName(
+          decryptText(row.rescuerFirstNameEnc || ''),
+          decryptText(row.rescuerMiddleNameEnc || ''),
+          decryptText(row.rescuerLastNameEnc || '')
+        );
+
+    return {
+      id: row.id,
+      subjectType: row.subjectType,
+      subjectTypeLabel: row.subjectType === 'rescuer' ? 'Rescuer' : 'Civilian',
+      subjectCode: row.subjectCode || row.rescuerCode || 'Unknown',
+      subjectName: subjectName || row.subjectCode || row.rescuerCode || 'Unknown',
+      actionType: row.actionType,
+      actionLabel: formatActionLabel(row.actionType),
+      actorAdminCode: row.actorAdminCode || 'System',
+      reasonText: row.reasonText || '',
+      occurredAt: row.occurredAt
+    };
+  });
+}
+
+function normalizeRescuerAccessRoster(rows) {
+  return rows.map((row) => ({
+    rescuerCode: row.rescuerCode,
+    fullName: fullName(
+      decryptText(row.firstNameEnc || ''),
+      decryptText(row.middleNameEnc || ''),
+      decryptText(row.lastNameEnc || '')
+    ) || row.rescuerCode,
+    phone: decryptText(row.phoneEnc || ''),
+    agency: formatAgencyLabel(row.agency),
+    operationalStatus: formatTeamStatusLabel(row.status),
+    accessStatus: formatTeamStatusLabel(row.accessStatus),
+    teamName: row.teamName || 'Unassigned',
+    teamCode: row.teamCode || '',
+    archivedAt: row.archivedAt || null,
+    createdAt: row.createdAt
+  }));
+}
+
+function buildAccountsAccessAuditSummary({
+  scope,
+  intakeTotals,
+  civilianSnapshot,
+  rescuerSnapshot,
+  actionTotals,
+  sessionTotals,
+  auditRows,
+  rosterRows
+}) {
+  const filteredRosterRows = scope === 'civilian' ? [] : rosterRows;
+
+  return {
+    overview: {
+      scope,
+      civilianRegistrations: Number(intakeTotals?.civilianRegistrationCount || 0),
+      rescuerProfilesCreated: Number(intakeTotals?.rescuerCreationCount || 0),
+      auditEventCount: auditRows.length,
+      rosterCount: filteredRosterRows.length
+    },
+    civilianStatus: {
+      pending: Number(civilianSnapshot?.pendingCivilianCount || 0),
+      approved: Number(civilianSnapshot?.approvedCivilianCount || 0),
+      declined: Number(civilianSnapshot?.declinedCivilianCount || 0),
+      suspended: Number(civilianSnapshot?.suspendedCivilianCount || 0)
+    },
+    rescuerStatus: {
+      total: Number(rescuerSnapshot?.totalRescuerCount || 0),
+      activeAccess: Number(rescuerSnapshot?.activeAccessCount || 0),
+      archivedAccess: Number(rescuerSnapshot?.archivedAccessCount || 0),
+      available: Number(rescuerSnapshot?.availableStatusCount || 0),
+      dispatched: Number(rescuerSnapshot?.dispatchedStatusCount || 0),
+      unavailable: Number(rescuerSnapshot?.unavailableStatusCount || 0)
+    },
+    adminActions: {
+      approved: Number(actionTotals?.approvedCount || 0),
+      declined: Number(actionTotals?.declinedCount || 0),
+      suspended: Number(actionTotals?.suspendedCount || 0),
+      reactivated: Number(actionTotals?.reactivatedCount || 0),
+      rescuerCreated: Number(actionTotals?.rescuerCreatedCount || 0),
+      rescuerArchived: Number(actionTotals?.rescuerArchivedCount || 0),
+      accessStatusChanged: Number(actionTotals?.accessStatusChangedCount || 0),
+      passwordChanged: Number(actionTotals?.passwordChangedCount || 0)
+    },
+    sessions: {
+      civilianIssued: Number(sessionTotals?.civilianSessionIssuedCount || 0),
+      rescuerIssued: Number(sessionTotals?.rescuerSessionIssuedCount || 0),
+      civilianRevoked: Number(sessionTotals?.civilianSessionRevokedCount || 0),
+      rescuerRevoked: Number(sessionTotals?.rescuerSessionRevokedCount || 0),
+      liveMobileSessions: Number(sessionTotals?.liveMobileSessionCount || 0)
+    },
+    recentAuditRows: auditRows.slice(0, 24),
+    rosterRows: filteredRosterRows.slice(0, 40)
+  };
+}
+
+async function generateAccountsAccessAuditReport(adminUserId, payload = {}) {
+  const reportDefinition = ACCOUNTS_ACCESS_AUDIT_REPORT;
+  const dateRangeKind = String(payload.dateRange || '7d').trim();
+  const sourceScope = String(payload.sourceScope || 'all').trim();
+  const outputMode = String(payload.outputMode || 'briefing').trim();
+  const confirmPassword = String(payload.confirmPassword || '');
+
+  if (!confirmPassword) {
+    throw appError('Confirm your admin password before generating a PDF.', 400);
+  }
+
+  const passwordIsValid = await verifyAdminPassword(adminUserId, confirmPassword);
+  if (!passwordIsValid) {
+    throw appError('Admin password confirmation failed.', 403);
+  }
+
+  if (!reportDefinition.supportedDateRanges.includes(dateRangeKind)) {
+    throw appError('Unsupported date range for accounts and access audit report.');
+  }
+
+  if (!reportDefinition.supportedSourceScopes.includes(sourceScope)) {
+    throw appError('Unsupported account scope for accounts and access audit report.');
+  }
+
+  if (!reportDefinition.supportedOutputModes.includes(outputMode)) {
+    throw appError('Unsupported output mode for accounts and access audit report.');
+  }
+
+  const sectionIds = normalizeSectionIds(reportDefinition, payload.includeSections);
+  const { start, end } = getUtcRange(dateRangeKind);
+  const rangeStartIso = start.toISOString();
+  const rangeEndIso = end.toISOString();
+  const filename = buildAccountsAccessAuditFilename(dateRangeKind, sourceScope);
+  const exportInsert = await createReportExport({
+    reportType: reportDefinition.id,
+    sourceScope,
+    dateRangeKind,
+    rangeStartAt: rangeStartIso,
+    rangeEndAt: rangeEndIso,
+    outputMode,
+    selectedSectionIdsJson: JSON.stringify(sectionIds),
+    generatedByAdminUserId: adminUserId,
+    status: 'started',
+    filename,
+    byteSize: null,
+    summaryMetadataJson: JSON.stringify({
+      reportName: reportDefinition.name
+    }),
+    errorMessage: null
+  });
+  const exportId = exportInsert.lastID;
+
+  try {
+    const [intakeTotals, civilianSnapshot, rescuerSnapshot, actionTotals, sessionTotals, rawAuditRows, rawRosterRows] = await Promise.all([
+      getRegistrationIntakeTotals({ scope: sourceScope, rangeStartIso, rangeEndIso }),
+      sourceScope === 'rescuer' ? null : getAccountStatusSnapshot(),
+      sourceScope === 'civilian' ? null : getRescuerAccessSnapshot(),
+      getAdminActionTotals({ scope: sourceScope, rangeStartIso, rangeEndIso }),
+      getLoginSessionActivity({ scope: sourceScope, rangeStartIso, rangeEndIso }),
+      listAccountAccessAuditRows({ scope: sourceScope, rangeStartIso, rangeEndIso, limit: 80 }),
+      sourceScope === 'civilian' ? [] : listRescuerAccessRosterRows()
+    ]);
+
+    const auditRows = normalizeAuditRows(rawAuditRows);
+    const rosterRows = normalizeRescuerAccessRoster(rawRosterRows);
+    const summary = buildAccountsAccessAuditSummary({
+      scope: sourceScope,
+      intakeTotals,
+      civilianSnapshot,
+      rescuerSnapshot,
+      actionTotals,
+      sessionTotals,
+      auditRows,
+      rosterRows
+    });
+
+    const pdfPayload = {
+      reportName: reportDefinition.name,
+      generatedAt: new Date().toISOString(),
+      filters: {
+        dateRangeKind,
+        dateRangeLabel: formatDateRangeLabel(dateRangeKind, rangeStartIso, rangeEndIso),
+        sourceScope,
+        sourceScopeLabel: ACCOUNT_SCOPE_LABELS[sourceScope] || sourceScope,
+        outputMode,
+        outputModeLabel: OUTPUT_MODE_LABELS[outputMode] || outputMode
+      },
+      sectionIds,
+      summary
+    };
+
+    const pdfBuffer = await buildAccountsAccessAuditPdf(pdfPayload);
+    const summaryMetadata = {
+      reportName: reportDefinition.name,
+      auditEventCount: summary.recentAuditRows.length,
+      rosterCount: summary.rosterRows.length,
+      sourceScope,
+      dateRangeKind,
+      sectionCount: sectionIds.length
+    };
+
+    await updateReportExportStatus(exportId, {
+      status: 'generated',
+      filename,
+      byteSize: pdfBuffer.length,
+      summaryMetadataJson: JSON.stringify(summaryMetadata),
+      errorMessage: null
+    });
+
+    return {
+      exportId,
+      filename,
+      contentType: 'application/pdf',
+      buffer: pdfBuffer,
+      summary: summaryMetadata
+    };
+  } catch (error) {
+    await updateReportExportStatus(exportId, {
+      status: 'failed',
+      filename,
+      byteSize: null,
+      summaryMetadataJson: JSON.stringify({
+        reportName: reportDefinition.name
+      }),
+      errorMessage: error.message || 'Accounts and access audit export failed.'
+    });
+    throw error;
+  }
+}
+
+function normalizeMeshDeviceSyncRows(rows) {
+  return rows.map((row) => {
+    const latestSeenAt = row.deviceLastSeenAt || row.nodeLastSeenAt || null;
+    const statusParts = [];
+
+    if (row.isOfflineStale) {
+      statusParts.push('Offline');
+    } else if (row.isOnlineRecent) {
+      statusParts.push('Online');
+    } else {
+      statusParts.push('Unknown');
+    }
+
+    if (row.deviceStatus) {
+      statusParts.push(formatRescuerOrNodeStatus(row.deviceStatus));
+    }
+
+    return {
+      deviceId: row.deviceId,
+      nodeId: row.nodeId,
+      nodeName: row.nodeName || row.nodeId,
+      deviceStatus: String(row.deviceStatus || ''),
+      deviceStatusLabel: formatRescuerOrNodeStatus(row.deviceStatus),
+      nodeStatus: String(row.nodeStatus || ''),
+      nodeStatusLabel: formatRescuerOrNodeStatus(row.nodeStatus),
+      usersConnected: Number(row.usersConnected || 0),
+      latestSeenAt,
+      lastSyncAt: row.lastSyncAt || null,
+      latestHealthRecordedAt: row.latestHealthRecordedAt || null,
+      latestActivityAt: row.latestActivityAt || row.createdAt || null,
+      healthLogRangeCount: Number(row.healthLogRangeCount || 0),
+      pendingCommandCount: Number(row.pendingCommandCount || 0),
+      processedCommandCount: Number(row.processedCommandCount || 0),
+      cancelledCommandCount: Number(row.cancelledCommandCount || 0),
+      commandRangeCount: Number(row.commandRangeCount || 0),
+      stalePendingCommandCount: Number(row.stalePendingCommandCount || 0),
+      oldestPendingAt: row.oldestPendingAt || null,
+      latestCommandActivityAt: row.latestCommandActivityAt || null,
+      batteryVoltage: row.batteryVoltage == null ? null : Number(row.batteryVoltage),
+      signalStrength: row.signalStrength == null ? null : Number(row.signalStrength),
+      gpsStatus: row.gpsStatus || '',
+      cpuTemp: row.cpuTemp == null ? null : Number(row.cpuTemp),
+      storageRemaining: row.storageRemaining == null ? null : Number(row.storageRemaining),
+      ramUsage: row.ramUsage == null ? null : Number(row.ramUsage),
+      isOnlineRecent: Boolean(row.isOnlineRecent),
+      isOfflineStale: Boolean(row.isOfflineStale),
+      isSyncStale: Boolean(row.isSyncStale),
+      isHeartbeatMissing: Boolean(row.isHeartbeatMissing),
+      isHealthMissing: Boolean(row.isHealthMissing),
+      liveStateLabel: statusParts.join(' • ')
+    };
+  });
+}
+
+function buildMeshDeviceSyncHealthSummary(deviceRows, commandTypeRows) {
+  const activeRows = deviceRows.filter((row) => row.deviceStatus === 'active');
+  const revokedRows = deviceRows.filter((row) => row.deviceStatus === 'revoked');
+  const onlineRows = deviceRows.filter((row) => row.isOnlineRecent);
+  const offlineRows = deviceRows.filter((row) => row.isOfflineStale);
+  const syncedRows = activeRows.filter((row) => !row.isSyncStale);
+  const staleSyncRows = activeRows.filter((row) => row.isSyncStale);
+  const neverSyncedRows = activeRows.filter((row) => !row.lastSyncAt);
+  const missingHeartbeatRows = activeRows.filter((row) => row.isHeartbeatMissing);
+  const missingHealthRows = activeRows.filter((row) => row.isHealthMissing);
+  const stalePendingRows = deviceRows.filter((row) => row.stalePendingCommandCount > 0);
+
+  const latestMeshSyncAt = deviceRows
+    .map((row) => row.lastSyncAt)
+    .filter(Boolean)
+    .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] || null;
+
+  const queue = {
+    pendingCount: deviceRows.reduce((sum, row) => sum + row.pendingCommandCount, 0),
+    processedCount: deviceRows.reduce((sum, row) => sum + row.processedCommandCount, 0),
+    cancelledCount: deviceRows.reduce((sum, row) => sum + row.cancelledCommandCount, 0),
+    commandRangeCount: deviceRows.reduce((sum, row) => sum + row.commandRangeCount, 0),
+    stalePendingCount: deviceRows.reduce((sum, row) => sum + row.stalePendingCommandCount, 0),
+    oldestPendingAt: stalePendingRows
+      .map((row) => row.oldestPendingAt)
+      .filter(Boolean)
+      .sort((left, right) => new Date(left).getTime() - new Date(right).getTime())[0] || null
+  };
+
+  const failureRows = deviceRows
+    .filter((row) => row.isSyncStale || row.isHeartbeatMissing || row.isHealthMissing || row.stalePendingCommandCount > 0)
+    .slice(0, 24)
+    .map((row) => {
+      const issues = [];
+      if (row.isSyncStale) {
+        issues.push('Sync stale');
+      }
+      if (row.isHeartbeatMissing) {
+        issues.push('No recent heartbeat');
+      }
+      if (row.isHealthMissing) {
+        issues.push('No recent health log');
+      }
+      if (row.stalePendingCommandCount > 0) {
+        issues.push(`Pending >30m (${row.stalePendingCommandCount})`);
+      }
+
+      return {
+        nodeId: row.nodeId,
+        nodeName: row.nodeName,
+        issueSummary: issues.join(', '),
+        lastSyncAt: row.lastSyncAt,
+        latestSeenAt: row.latestSeenAt
+      };
+    });
+
+  return {
+    overview: {
+      registeredDevices: deviceRows.length,
+      activeDevices: activeRows.length,
+      revokedDevices: revokedRows.length,
+      onlineRecentDevices: onlineRows.length,
+      offlineStaleDevices: offlineRows.length
+    },
+    syncHealth: {
+      syncedWithinWindow: syncedRows.length,
+      staleSyncCount: staleSyncRows.length,
+      neverSyncedCount: neverSyncedRows.length,
+      missingHeartbeatCount: missingHeartbeatRows.length,
+      latestMeshSyncAt
+    },
+    queue,
+    telemetryRows: deviceRows.slice(0, 40),
+    recentActivityRows: deviceRows.slice(0, 32),
+    commandTypeRows: commandTypeRows.map((row) => ({
+      commandType: row.commandType,
+      totalCount: Number(row.totalCount || 0),
+      pendingCount: Number(row.pendingCount || 0),
+      processedCount: Number(row.processedCount || 0),
+      cancelledCount: Number(row.cancelledCount || 0)
+    })),
+    failureSummary: {
+      noRecentHealthCount: missingHealthRows.length,
+      noRecentSyncCount: staleSyncRows.length,
+      missingHeartbeatCount: missingHeartbeatRows.length,
+      stalePendingCommandDeviceCount: stalePendingRows.length
+    },
+    failureRows
+  };
+}
+
+function normalizeOnlineDepartmentActivityRows(rows) {
+  return rows.map((row) => ({
+    departmentId: row.departmentId,
+    slug: row.slug,
+    name: row.name,
+    subtitle: row.subtitle || '',
+    status: row.status,
+    readOnly: Boolean(Number(row.readOnly || 0)),
+    openConversationCount: Number(row.openConversationCount || 0),
+    activeConversationCount: Number(row.activeConversationCount || 0),
+    messageCount: Number(row.messageCount || 0),
+    civilianMessageCount: Number(row.civilianMessageCount || 0),
+    adminMessageCount: Number(row.adminMessageCount || 0),
+    rescuerMessageCount: Number(row.rescuerMessageCount || 0),
+    latestMessageAt: row.latestMessageAt || null
+  }));
+}
+
+function normalizeTopConversationRows(rows) {
+  return rows.map((row) => ({
+    conversationId: row.conversationId,
+    departmentName: row.departmentName,
+    civilianCode: row.civilianCode || 'Unknown',
+    civilianName: fullName(
+      decryptText(row.civilianFirstNameEnc || ''),
+      decryptText(row.civilianMiddleNameEnc || ''),
+      decryptText(row.civilianLastNameEnc || '')
+    ) || row.civilianCode || 'Unknown civilian',
+    messageCount: Number(row.messageCount || 0),
+    latestMessageAt: row.latestMessageAt || null
+  }));
+}
+
+function normalizeRecentCommunicationEventRows(rows) {
+  return rows.map((row) => {
+    const senderType = String(row.senderType || '').toLowerCase();
+    const senderLabel = formatChatSenderLabel(senderType);
+    const senderDisplay = resolveDisplayName({
+      civilianCode: row.civilianCode,
+      civilianFirstNameEnc: row.civilianFirstNameEnc,
+      civilianMiddleNameEnc: row.civilianMiddleNameEnc,
+      civilianLastNameEnc: row.civilianLastNameEnc,
+      adminCode: row.adminCode,
+      adminFirstNameEnc: row.adminFirstNameEnc,
+      adminMiddleNameEnc: row.adminMiddleNameEnc,
+      adminLastNameEnc: row.adminLastNameEnc,
+      rescuerCode: row.rescuerCode,
+      rescuerFirstNameEnc: row.rescuerFirstNameEnc,
+      rescuerMiddleNameEnc: row.rescuerMiddleNameEnc,
+      rescuerLastNameEnc: row.rescuerLastNameEnc,
+      senderType
+    });
+
+    const eventKind = String(row.eventKind || '');
+    return {
+      eventKind,
+      eventKindLabel: eventKind === 'moderation'
+        ? 'Moderation'
+        : (eventKind === 'global-message' ? 'Global message' : 'Department message'),
+      roomName: row.roomName || 'Unknown room',
+      senderType,
+      senderTypeLabel: senderLabel,
+      senderDisplay,
+      preview: createPreviewText(eventKind === 'moderation' ? row.reason || row.preview : row.preview),
+      moderationReason: row.reason ? formatModerationEventLabel(row.reason) : '',
+      eventAt: row.eventAt || null
+    };
+  });
+}
+
+function summarizeUnreadRows(rows) {
+  return rows.reduce((accumulator, row) => {
+    const readerType = String(row.readerType || '').toLowerCase();
+    accumulator[readerType] = Number(row.count || 0);
+    return accumulator;
+  }, { admin: 0, civilian: 0, rescuer: 0 });
+}
+
+function buildOnlineCommunicationsModerationSummary({
+  chatScope,
+  departmentRows,
+  globalSummary,
+  conversationLoad,
+  senderActivity,
+  moderationSummary,
+  recentEventRows
+}) {
+  const departmentSenderTotals = senderActivity.departmentSenderRows.reduce((accumulator, row) => {
+    accumulator[String(row.senderType || '').toLowerCase()] = Number(row.count || 0);
+    return accumulator;
+  }, { civilian: 0, admin: 0, rescuer: 0, system: 0 });
+
+  const globalSenderTotals = senderActivity.globalSenderRows.reduce((accumulator, row) => {
+    accumulator[String(row.senderType || '').toLowerCase()] = Number(row.count || 0);
+    return accumulator;
+  }, { admin: 0, system: 0 });
+
+  const moderationCounts = moderationSummary.eventRows.reduce((accumulator, row) => {
+    const eventType = String(row.eventType || '').toLowerCase();
+    accumulator[eventType] = (accumulator[eventType] || 0) + Number(row.totalCount || 0);
+    return accumulator;
+  }, {});
+
+  const totalDepartmentMessages = departmentRows.reduce((sum, row) => sum + row.messageCount, 0);
+  const totalDepartmentOpenConversations = departmentRows.reduce((sum, row) => sum + row.openConversationCount, 0);
+  const totalDepartmentActiveConversations = departmentRows.reduce((sum, row) => sum + row.activeConversationCount, 0);
+  const departmentUnread = summarizeUnreadRows(conversationLoad.departmentUnreadRows || []);
+  const globalUnread = summarizeUnreadRows(conversationLoad.globalUnreadRows || []);
+
+  return {
+    overview: {
+      chatScope,
+      departmentRoomCount: departmentRows.length,
+      departmentMessageCount: totalDepartmentMessages,
+      globalMessageCount: Number(globalSummary?.messageCount || 0),
+      openConversationCount: Number(conversationLoad.openConversationCount || 0),
+      activeConversationCount: Number(conversationLoad.activeConversationCount || 0),
+      moderationEventCount: moderationSummary.eventRows.reduce((sum, row) => sum + Number(row.totalCount || 0), 0)
+    },
+    departmentRows: departmentRows.slice(0, 16),
+    globalActivity: {
+      messageCount: Number(globalSummary?.messageCount || 0),
+      adminMessageCount: Number(globalSummary?.adminMessageCount || 0),
+      systemMessageCount: Number(globalSummary?.systemMessageCount || 0),
+      latestMessageAt: globalSummary?.latestMessageAt || null,
+      civilianReaderCount: Number(globalSummary?.civilianReaderCount || 0),
+      rescuerReaderCount: Number(globalSummary?.rescuerReaderCount || 0),
+      adminReaderCount: Number(globalSummary?.adminReaderCount || 0)
+    },
+    conversationLoad: {
+      openConversationCount: Number(conversationLoad.openConversationCount || 0),
+      activeConversationCount: Number(conversationLoad.activeConversationCount || 0),
+      departmentUnread,
+      globalUnread
+    },
+    senderActivity: {
+      departmentSenderTotals,
+      globalSenderTotals,
+      topDepartmentRows: senderActivity.topDepartmentRows.map((row) => ({
+        departmentId: row.departmentId,
+        name: row.name,
+        messageCount: Number(row.messageCount || 0)
+      })).slice(0, 5),
+      topConversationRows: normalizeTopConversationRows(senderActivity.topConversationRows).slice(0, 8)
+    },
+    moderation: {
+      profanityBlockedCount: Number(moderationCounts.profanity_blocked || 0),
+      linkBlockedCount: Number(moderationCounts.link_blocked || 0),
+      duplicateBlockedCount: Number(moderationCounts.duplicate_message_blocked || 0),
+      spamTimeoutCount: Number(moderationCounts.spam_timeout_triggered || 0),
+      activeCivilianTimeoutCount: Number(moderationSummary.activeCivilianTimeoutCount || 0),
+      activeRescuerTimeoutCount: Number(moderationSummary.activeRescuerTimeoutCount || 0),
+      eventRows: moderationSummary.eventRows.map((row) => ({
+        eventType: row.eventType,
+        eventLabel: formatModerationEventLabel(row.eventType),
+        reason: row.reason,
+        reasonLabel: formatModerationEventLabel(row.reason),
+        totalCount: Number(row.totalCount || 0),
+        civilianCount: Number(row.civilianCount || 0),
+        rescuerCount: Number(row.rescuerCount || 0),
+        latestEventAt: row.latestEventAt || null
+      })).slice(0, 12)
+    },
+    recentEventRows: normalizeRecentCommunicationEventRows(recentEventRows).slice(0, 32),
+    totals: {
+      totalDepartmentOpenConversations,
+      totalDepartmentActiveConversations
+    }
+  };
+}
+
+async function generateOnlineCommunicationsModerationReport(adminUserId, payload = {}) {
+  const reportDefinition = ONLINE_COMMUNICATIONS_MODERATION_REPORT;
+  const dateRangeKind = String(payload.dateRange || '7d').trim();
+  const sourceScope = String(payload.sourceScope || 'all').trim();
+  const outputMode = String(payload.outputMode || 'briefing').trim();
+  const confirmPassword = String(payload.confirmPassword || '');
+
+  if (!confirmPassword) {
+    throw appError('Confirm your admin password before generating a PDF.', 400);
+  }
+
+  const passwordIsValid = await verifyAdminPassword(adminUserId, confirmPassword);
+  if (!passwordIsValid) {
+    throw appError('Admin password confirmation failed.', 403);
+  }
+
+  if (!reportDefinition.supportedDateRanges.includes(dateRangeKind)) {
+    throw appError('Unsupported date range for online communications and moderation report.');
+  }
+
+  if (!reportDefinition.supportedSourceScopes.includes(sourceScope)) {
+    throw appError('Unsupported chat scope for online communications and moderation report.');
+  }
+
+  if (!reportDefinition.supportedOutputModes.includes(outputMode)) {
+    throw appError('Unsupported output mode for online communications and moderation report.');
+  }
+
+  const sectionIds = normalizeSectionIds(reportDefinition, payload.includeSections);
+  const { start, end } = getUtcRange(dateRangeKind);
+  const rangeStartIso = start.toISOString();
+  const rangeEndIso = end.toISOString();
+  const filename = buildOnlineCommunicationsModerationFilename(dateRangeKind, sourceScope);
+  const exportInsert = await createReportExport({
+    reportType: reportDefinition.id,
+    sourceScope,
+    dateRangeKind,
+    rangeStartAt: rangeStartIso,
+    rangeEndAt: rangeEndIso,
+    outputMode,
+    selectedSectionIdsJson: JSON.stringify(sectionIds),
+    generatedByAdminUserId: adminUserId,
+    status: 'started',
+    filename,
+    byteSize: null,
+    summaryMetadataJson: JSON.stringify({
+      reportName: reportDefinition.name
+    }),
+    errorMessage: null
+  });
+  const exportId = exportInsert.lastID;
+
+  try {
+    const includeDepartments = sourceScope === 'all' || sourceScope === 'department';
+    const includeGlobal = sourceScope === 'all' || sourceScope === 'global';
+
+    const [rawDepartmentRows, globalSummary, conversationLoad, senderActivity, moderationSummary, recentEventRows] = await Promise.all([
+      includeDepartments ? listOnlineDepartmentActivityRows({ rangeStartIso, rangeEndIso }) : [],
+      includeGlobal ? getOnlineGlobalAnnouncementSummary({ rangeStartIso, rangeEndIso }) : null,
+      getOnlineConversationLoadSummary({ chatScope: sourceScope, rangeStartIso, rangeEndIso }),
+      getOnlineSenderActivitySummary({ chatScope: sourceScope, rangeStartIso, rangeEndIso }),
+      sourceScope === 'global'
+        ? Promise.resolve({ eventRows: [], activeCivilianTimeoutCount: 0, activeRescuerTimeoutCount: 0 })
+        : getOnlineModerationSummary({ rangeStartIso, rangeEndIso }),
+      listRecentOnlineCommunicationEventRows({ chatScope: sourceScope, rangeStartIso, rangeEndIso, limit: 60 })
+    ]);
+
+    const departmentRows = normalizeOnlineDepartmentActivityRows(rawDepartmentRows);
+    const summary = buildOnlineCommunicationsModerationSummary({
+      chatScope: sourceScope,
+      departmentRows,
+      globalSummary,
+      conversationLoad,
+      senderActivity,
+      moderationSummary,
+      recentEventRows
+    });
+
+    const pdfPayload = {
+      reportName: reportDefinition.name,
+      generatedAt: new Date().toISOString(),
+      filters: {
+        dateRangeKind,
+        dateRangeLabel: formatDateRangeLabel(dateRangeKind, rangeStartIso, rangeEndIso),
+        sourceScope,
+        sourceScopeLabel: CHAT_SCOPE_LABELS[sourceScope] || sourceScope,
+        outputMode,
+        outputModeLabel: OUTPUT_MODE_LABELS[outputMode] || outputMode
+      },
+      sectionIds,
+      summary
+    };
+
+    const pdfBuffer = await buildOnlineCommunicationsModerationPdf(pdfPayload);
+    const summaryMetadata = {
+      reportName: reportDefinition.name,
+      departmentMessageCount: summary.overview.departmentMessageCount,
+      globalMessageCount: summary.overview.globalMessageCount,
+      moderationEventCount: summary.overview.moderationEventCount,
+      sourceScope,
+      dateRangeKind,
+      sectionCount: sectionIds.length
+    };
+
+    await updateReportExportStatus(exportId, {
+      status: 'generated',
+      filename,
+      byteSize: pdfBuffer.length,
+      summaryMetadataJson: JSON.stringify(summaryMetadata),
+      errorMessage: null
+    });
+
+    return {
+      exportId,
+      filename,
+      contentType: 'application/pdf',
+      buffer: pdfBuffer,
+      summary: summaryMetadata
+    };
+  } catch (error) {
+    await updateReportExportStatus(exportId, {
+      status: 'failed',
+      filename,
+      byteSize: null,
+      summaryMetadataJson: JSON.stringify({
+        reportName: reportDefinition.name
+      }),
+      errorMessage: error.message || 'Online communications and moderation export failed.'
+    });
+    throw error;
+  }
+}
+
+async function generateMeshDeviceSyncHealthReport(adminUserId, payload = {}) {
+  const reportDefinition = MESH_DEVICE_SYNC_HEALTH_REPORT;
+  const dateRangeKind = String(payload.dateRange || '7d').trim();
+  const sourceScope = String(payload.sourceScope || 'all').trim();
+  const outputMode = String(payload.outputMode || 'briefing').trim();
+  const confirmPassword = String(payload.confirmPassword || '');
+
+  if (!confirmPassword) {
+    throw appError('Confirm your admin password before generating a PDF.', 400);
+  }
+
+  const passwordIsValid = await verifyAdminPassword(adminUserId, confirmPassword);
+  if (!passwordIsValid) {
+    throw appError('Admin password confirmation failed.', 403);
+  }
+
+  if (!reportDefinition.supportedDateRanges.includes(dateRangeKind)) {
+    throw appError('Unsupported date range for mesh device and sync health report.');
+  }
+
+  if (!reportDefinition.supportedSourceScopes.includes(sourceScope)) {
+    throw appError('Unsupported node scope for mesh device and sync health report.');
+  }
+
+  if (!reportDefinition.supportedOutputModes.includes(outputMode)) {
+    throw appError('Unsupported output mode for mesh device and sync health report.');
+  }
+
+  const sectionIds = normalizeSectionIds(reportDefinition, payload.includeSections);
+  const { start, end } = getUtcRange(dateRangeKind);
+  const rangeStartIso = start.toISOString();
+  const rangeEndIso = end.toISOString();
+  const filename = buildMeshDeviceSyncHealthFilename(dateRangeKind, sourceScope);
+  const exportInsert = await createReportExport({
+    reportType: reportDefinition.id,
+    sourceScope,
+    dateRangeKind,
+    rangeStartAt: rangeStartIso,
+    rangeEndAt: rangeEndIso,
+    outputMode,
+    selectedSectionIdsJson: JSON.stringify(sectionIds),
+    generatedByAdminUserId: adminUserId,
+    status: 'started',
+    filename,
+    byteSize: null,
+    summaryMetadataJson: JSON.stringify({
+      reportName: reportDefinition.name
+    }),
+    errorMessage: null
+  });
+  const exportId = exportInsert.lastID;
+
+  try {
+    const [rawDeviceRows, commandTypeRows] = await Promise.all([
+      listMeshDeviceSyncHealthRows({
+        nodeScope: sourceScope,
+        rangeStartIso,
+        rangeEndIso
+      }),
+      listMeshCommandTypeRows({
+        nodeScope: sourceScope,
+        rangeStartIso,
+        rangeEndIso
+      })
+    ]);
+
+    const deviceRows = normalizeMeshDeviceSyncRows(rawDeviceRows);
+    const summary = buildMeshDeviceSyncHealthSummary(deviceRows, commandTypeRows);
+    const pdfPayload = {
+      reportName: reportDefinition.name,
+      generatedAt: new Date().toISOString(),
+      filters: {
+        dateRangeKind,
+        dateRangeLabel: formatDateRangeLabel(dateRangeKind, rangeStartIso, rangeEndIso),
+        sourceScope,
+        sourceScopeLabel: NODE_SCOPE_LABELS[sourceScope] || sourceScope,
+        outputMode,
+        outputModeLabel: OUTPUT_MODE_LABELS[outputMode] || outputMode
+      },
+      sectionIds,
+      summary
+    };
+
+    const pdfBuffer = await buildMeshDeviceSyncHealthPdf(pdfPayload);
+    const summaryMetadata = {
+      reportName: reportDefinition.name,
+      registeredDevices: summary.overview.registeredDevices,
+      pendingCommands: summary.queue.pendingCount,
+      sourceScope,
+      dateRangeKind,
+      sectionCount: sectionIds.length
+    };
+
+    await updateReportExportStatus(exportId, {
+      status: 'generated',
+      filename,
+      byteSize: pdfBuffer.length,
+      summaryMetadataJson: JSON.stringify(summaryMetadata),
+      errorMessage: null
+    });
+
+    return {
+      exportId,
+      filename,
+      contentType: 'application/pdf',
+      buffer: pdfBuffer,
+      summary: summaryMetadata
+    };
+  } catch (error) {
+    await updateReportExportStatus(exportId, {
+      status: 'failed',
+      filename,
+      byteSize: null,
+      summaryMetadataJson: JSON.stringify({
+        reportName: reportDefinition.name
+      }),
+      errorMessage: error.message || 'Mesh device and sync health export failed.'
     });
     throw error;
   }
@@ -788,5 +1760,8 @@ module.exports = {
   getAdminReportCatalog,
   listAdminReportExports,
   generateIncidentSummaryReport,
-  generateRescueTeamActivityReport
+  generateRescueTeamActivityReport,
+  generateAccountsAccessAuditReport,
+  generateMeshDeviceSyncHealthReport,
+  generateOnlineCommunicationsModerationReport
 };

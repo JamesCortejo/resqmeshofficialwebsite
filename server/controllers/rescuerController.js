@@ -28,7 +28,7 @@ function errorResponse(res, error, fallbackMessage) {
 
 exports.createRescuer = async (req, res) => {
   try {
-    const rescuer = await createRescuerProfile(req.body || {});
+    const rescuer = await createRescuerProfile(req.body || {}, req.adminUser?.id || null);
 
     return res.status(201).json({
       success: true,
@@ -95,7 +95,7 @@ exports.updateAccessStatus = async (req, res) => {
     }
 
     const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
-    const result = await setRescuerAccessStatus(id, status);
+    const result = await setRescuerAccessStatus(id, status, req.adminUser?.id || null);
 
     return res.json({
       success: true,
@@ -142,7 +142,7 @@ exports.updatePassword = async (req, res) => {
       });
     }
 
-    const result = await resetRescuerPassword(id, req.body || {});
+    const result = await resetRescuerPassword(id, req.body || {}, req.adminUser?.id || null);
 
     return res.json({
       success: true,

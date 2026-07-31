@@ -860,7 +860,7 @@ function insertModerationEvent(event) {
       body_preview,
       metadata_json,
       created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
   `, [
     event.civilianUserId,
     event.rescuerId || null,

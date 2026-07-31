@@ -23,6 +23,9 @@ const {
   updatePendingAccountStatus,
   updateAccountAccessStatus
 } = require('../repositories/adminAccountsRepository');
+const {
+  createAccountAccessAuditLog
+} = require('../repositories/accountAccessAuditRepository');
 
 function fullName(row) {
   return [decryptText(row.firstNameEnc), decryptText(row.middleNameEnc), decryptText(row.lastNameEnc)]
@@ -207,7 +210,20 @@ async function getReviewableAccountIdImage(id, side) {
   return decryptBuffer(encryptedPayload);
 }
 
-async function updateAccountReviewStatus(id, status, reason = '') {
+async function recordCivilianAudit(account, actionType, actorAdminUserId, reasonText = '', metadata = null) {
+  await createAccountAccessAuditLog({
+    subjectType: 'civilian',
+    subjectId: account.id,
+    subjectCode: account.userCode,
+    actionType,
+    actorAdminId: actorAdminUserId || null,
+    reasonText: reasonText || null,
+    metadataJson: metadata ? JSON.stringify(metadata) : null,
+    occurredAt: new Date().toISOString()
+  });
+}
+
+async function updateAccountReviewStatus(id, status, reason = '', actorAdminUserId = null) {
   if (![USER_STATUSES.APPROVED, USER_STATUSES.DECLINED].includes(status)) {
     const error = new Error('Status must be approved or declined.');
     error.statusCode = 400;
@@ -247,6 +263,16 @@ async function updateAccountReviewStatus(id, status, reason = '') {
   if (result.changes > 0) {
     const account = await getAccountStatusById(id);
     verifyStatusUpdateIntegrity(pendingAccount, account, 'Pending account review');
+    await recordCivilianAudit(
+      account,
+      status === USER_STATUSES.APPROVED ? 'approved' : 'declined',
+      actorAdminUserId,
+      normalizedReason,
+      {
+        previousStatus: USER_STATUSES.PENDING,
+        nextStatus: status
+      }
+    );
 
     const emailUser = reviewEmailUser(pendingAccount);
     let emailWarning = '';
@@ -283,7 +309,7 @@ async function updateAccountReviewStatus(id, status, reason = '') {
   throw error;
 }
 
-async function updateAccountAccessReviewStatus(id, status, reason = '') {
+async function updateAccountAccessReviewStatus(id, status, reason = '', actorAdminUserId = null) {
   if (![USER_STATUSES.APPROVED, USER_STATUSES.SUSPENDED].includes(status)) {
     const error = new Error('Status must be approved or suspended.');
     error.statusCode = 400;
@@ -340,6 +366,16 @@ async function updateAccountAccessReviewStatus(id, status, reason = '') {
 
   const account = await getAccountStatusById(id);
   verifyStatusUpdateIntegrity(existing, account, 'Account access review');
+  await recordCivilianAudit(
+    account,
+    status === USER_STATUSES.SUSPENDED ? 'suspended' : 'reactivated',
+    actorAdminUserId,
+    normalizedReason,
+    {
+      previousStatus: existing.status,
+      nextStatus: status
+    }
+  );
 
   const emailUser = reviewEmailUser(existing);
   let emailWarning = '';
