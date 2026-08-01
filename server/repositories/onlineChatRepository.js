@@ -575,12 +575,13 @@ function getCivilianDepartmentUnreadSummary(civilianUserId) {
 function listRescuerConversations(
   departmentId,
   rescuerId,
-  { search = '', limit = 20 } = {}
+  { search = '', beforeId = null, limit = 20 } = {}
 ) {
   const query = String(search || '').trim().toLowerCase();
   const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
   const params = [rescuerId, departmentId];
   let searchClause = '';
+  let cursorClause = '';
 
   if (query) {
     searchClause = `
@@ -590,6 +591,11 @@ function listRescuerConversations(
       )
     `;
     params.push(`%${query}%`, `%${query}%`);
+  }
+
+  if (beforeId) {
+    cursorClause = 'AND c.id < ?';
+    params.push(beforeId);
   }
 
   params.push(safeLimit + 1);
@@ -647,6 +653,7 @@ function listRescuerConversations(
           AND seeded.sender_type = 'civilian'
       )
     ${searchClause}
+    ${cursorClause}
     ORDER BY
       CASE WHEN ods.id IS NULL THEN 1 ELSE 0 END ASC,
       c.last_message_at DESC NULLS LAST,
