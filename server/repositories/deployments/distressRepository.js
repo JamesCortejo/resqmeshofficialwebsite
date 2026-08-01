@@ -378,6 +378,12 @@ function listPublicNodes() {
       sd.status AS deviceStatus,
       sd.last_seen_at AS deviceLastSeen,
       sd.last_sync_at AS lastSyncAt,
+      COALESCE(mnl.rssi, lh.signal_strength) AS signal,
+      COALESCE(mnl.rssi, lh.signal_strength) AS signalStrengthDbm,
+      mnl.rssi AS rssi,
+      mnl.reporting_node_id AS signalReportedByNodeId,
+      mnl.last_seen_at AS signalLastSeenAt,
+      lh.recorded_at AS signalHealthRecordedAt,
       n.users_connected AS users,
       CASE WHEN EXISTS (
         SELECT 1
@@ -397,6 +403,22 @@ function listPublicNodes() {
       ) AS activeDistressId
     FROM mesh_nodes n
     LEFT JOIN sync_devices sd ON sd.node_id = n.node_id
+    LEFT JOIN mesh_node_links mnl
+      ON mnl.id = (
+        SELECT inner_mnl.id
+        FROM mesh_node_links inner_mnl
+        WHERE inner_mnl.neighbor_node_id = n.node_id
+        ORDER BY COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at) DESC, inner_mnl.id DESC
+        LIMIT 1
+      )
+    LEFT JOIN mesh_node_health_logs lh
+      ON lh.id = (
+        SELECT inner_lh.id
+        FROM mesh_node_health_logs inner_lh
+        WHERE inner_lh.node_id = n.node_id
+        ORDER BY inner_lh.recorded_at DESC, inner_lh.id DESC
+        LIMIT 1
+      )
     WHERE n.deleted = 0
     ORDER BY COALESCE(n.updated_at, n.created_at) DESC, n.id DESC
   `);
