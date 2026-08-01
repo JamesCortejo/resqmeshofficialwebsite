@@ -8,6 +8,7 @@ const { DEPLOYMENT_STATUSES } = require('../models/distressDeploymentModel');
 const {
   generateDeploymentCode,
   listDistressSignals,
+  countUnresolvedDistressSignals,
   getDistressSignalById,
   getActiveDistressSignalById,
   getOnlineDistressSignalById,
@@ -235,6 +236,11 @@ async function getDistressSignalSummaries() {
   return rows.map(distressSummary);
 }
 
+async function getUnresolvedDistressSignalCount() {
+  const row = await countUnresolvedDistressSignals();
+  return Number(row?.count || 0);
+}
+
 async function getDistressSignalDetails(id) {
   const sourceKey = parseDistressSourceKey(id);
   const row = sourceKey.source === 'online'
@@ -424,6 +430,7 @@ async function accomplishDeployment(id) {
 
 module.exports = {
   getDistressSignalSummaries,
+  getUnresolvedDistressSignalCount,
   getDistressSignalDetails,
   deployDistressSignal,
   cancelDeployment,

@@ -59,6 +59,7 @@
   const headsUpMessage = document.getElementById('adminNotificationHeadsUpMessage');
   let notifications = [];
   let previousUnreadCount = null;
+  let activeDistressCount = 0;
   let headsUpTimer = null;
   let markChatReadPromise = null;
   let lastRefreshAt = 0;
@@ -133,12 +134,7 @@
       return;
     }
 
-    const hasUnreadEmergency = notifications.some((notification) =>
-      notification &&
-      !notification.isRead &&
-      notification.type === 'distress.active'
-    );
-    const shouldAlert = hasUnreadEmergency && !distressNavLink.classList.contains('is-active');
+    const shouldAlert = activeDistressCount > 0 && !distressNavLink.classList.contains('is-active');
 
     distressNavLink.classList.toggle('is-alerting', shouldAlert);
     distressNavLink.setAttribute('data-alerting', shouldAlert ? 'true' : 'false');
@@ -265,12 +261,14 @@
     lastRefreshAt = Date.now();
 
     try {
-      const [itemsPayload, countPayload] = await Promise.all([
+      const [itemsPayload, countPayload, distressCountPayload] = await Promise.all([
         fetchJson('/api/admin/notifications'),
-        fetchJson('/api/admin/notifications/unread-count')
+        fetchJson('/api/admin/notifications/unread-count'),
+        fetchJson('/api/admin/distress-signals/active-count')
       ]);
 
       notifications = itemsPayload.data || [];
+      activeDistressCount = Number(distressCountPayload.count || 0);
       renderNotifications();
       renderBadge(countPayload.count || 0);
       dispatchNotificationsRefreshed(countPayload.count || 0);
@@ -284,12 +282,14 @@
     lastRefreshAt = Date.now();
 
     try {
-      const [itemsPayload, countPayload] = await Promise.all([
+      const [itemsPayload, countPayload, distressCountPayload] = await Promise.all([
         fetchJson('/api/admin/notifications'),
-        fetchJson('/api/admin/notifications/unread-count')
+        fetchJson('/api/admin/notifications/unread-count'),
+        fetchJson('/api/admin/distress-signals/active-count')
       ]);
 
       notifications = itemsPayload.data || [];
+      activeDistressCount = Number(distressCountPayload.count || 0);
       renderDistressAlertState();
       renderMessagesNavBadge();
       renderBadge(countPayload.count || 0);

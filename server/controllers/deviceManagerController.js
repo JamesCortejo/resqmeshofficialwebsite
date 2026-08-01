@@ -2,6 +2,9 @@ const {
   getDeviceSummaries,
   getDeviceMapSummaries,
   getDeviceMapRoutes,
+  getDeviceMapOnlineDistress,
+  getDeviceMapSharedRescuers,
+  getDeviceMapLinks,
   getDeviceDetails,
   getDeviceMessages,
   getMeshMessageFeed
@@ -64,6 +67,48 @@ exports.listDeviceMapRoutes = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to load device map routes.');
+  }
+};
+
+exports.listDeviceMapOnlineDistress = async (req, res) => {
+  try {
+    const markers = await getDeviceMapOnlineDistress();
+
+    return res.json({
+      success: true,
+      count: markers.length,
+      data: markers
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load online distress map markers.');
+  }
+};
+
+exports.listDeviceMapSharedRescuers = async (req, res) => {
+  try {
+    const markers = await getDeviceMapSharedRescuers();
+
+    return res.json({
+      success: true,
+      count: markers.length,
+      data: markers
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load shared rescuer map markers.');
+  }
+};
+
+exports.listDeviceMapLinks = async (req, res) => {
+  try {
+    const links = await getDeviceMapLinks();
+
+    return res.json({
+      success: true,
+      count: links.length,
+      data: links
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load mesh node links.');
   }
 };
 

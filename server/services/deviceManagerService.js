@@ -8,12 +8,16 @@ const {
   getTotalMessageCount,
   getTotalAuditCount,
   listRecentMeshMessages,
-  listMeshMessageFeed
+  listMeshMessageFeed,
+  listActiveOnlineDistressMapMarkers,
+  listSharedRescuerMapMarkers,
+  listMeshNodeMapLinks
 } = require('../repositories/deviceManagerRepository');
 const { decryptText } = require('./encryptionService');
 
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 const STALE_THRESHOLD_MS = 10 * 60 * 1000;
+const SHARED_RESCUER_STALE_TIMEOUT_MS = 2 * 60 * 1000;
 
 function normalizeTimestampValue(value) {
   if (!value || typeof value !== 'string') {
@@ -363,6 +367,15 @@ function mapStatusResponse(row) {
     signalQualityLabel: summary.signalQualityLabel,
     signalReportedByNodeId: summary.signalReportedByNodeId,
     signalLastSeenAt: summary.signalLastSeenAt,
+    pendingCommandCount: Number(row.pendingCommandCount || 0),
+    latestHealth: row.healthRecordedAt ? {
+      batteryVoltage: row.batteryVoltage,
+      gpsStatus: row.gpsStatus || 'unknown',
+      cpuTemp: row.cpuTemp,
+      storageRemaining: row.storageRemaining,
+      ramUsage: row.ramUsage,
+      recordedAt: toIsoTimestamp(row.healthRecordedAt)
+    } : null,
     hasActiveDistress,
     activeDistressCount,
     activeDistress: hasActiveDistress ? {
@@ -433,7 +446,15 @@ function routeOverlayResponse(row) {
     teamLeaderName: teamLeaderName || row.teamCode || row.deploymentCode,
     distressId: row.distressId,
     distressCode: row.distressCode || '',
+    userCode: row.userCode || '',
     distressReason: row.distressReason || '',
+    civilianName: fullName(row.civilianFirstName, '', row.civilianLastName) || '',
+    civilianFirstName: row.civilianFirstName || '',
+    civilianLastName: row.civilianLastName || '',
+    civilianPhone: row.civilianPhone || '',
+    civilianBloodType: row.civilianBloodType || '',
+    civilianAge: row.civilianAge || null,
+    civilianOccupation: row.civilianOccupation || '',
     originNodeId: row.originNodeId || row.distressOriginNodeId || '',
     originNodeName: row.originNodeName || row.originNodeId || row.distressOriginNodeId || 'Unknown node',
     distressLatitude,
@@ -459,6 +480,126 @@ async function getDeviceMapRoutes() {
   return rows
     .map(routeOverlayResponse)
     .filter(Boolean);
+}
+
+function onlineDistressMapMarkerResponse(row) {
+  const latitude = row.latitude !== null && row.latitude !== undefined ? Number(row.latitude) : null;
+  const longitude = row.longitude !== null && row.longitude !== undefined ? Number(row.longitude) : null;
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  const deploymentStatus = String(row.deploymentStatus || '').toLowerCase();
+
+  return {
+    id: row.id,
+    distressCode: row.distressCode || `ODR-${String(row.id).padStart(3, '0')}`,
+    sourceLabel: 'ONLINE',
+    userId: row.userId || null,
+    userCode: row.userCode || '',
+    civilianName: fullName(row.firstName, '', row.lastName) || row.userCode || 'Unknown civilian',
+    firstName: row.firstName || '',
+    lastName: row.lastName || '',
+    phone: row.phone || '',
+    bloodType: row.bloodType || '',
+    age: row.age || null,
+    occupation: row.occupation || '',
+    reason: row.reason || '',
+    latitude,
+    longitude,
+    recordedAt: toIsoTimestamp(row.recordedAt),
+    updatedAt: toIsoTimestamp(row.updatedAt || row.recordedAt),
+    deploymentId: row.deploymentId || null,
+    deploymentCode: row.deploymentCode || '',
+    deploymentStatus: deploymentStatus || 'unassigned',
+    isDeployed: deploymentStatus === 'deployed',
+    teamCode: row.teamCode || '',
+    teamName: row.teamName || ''
+  };
+}
+
+function agencyLabel(value) {
+  switch (String(value || '').trim().toLowerCase()) {
+    case 'cdrrmo':
+      return 'CDRRMO';
+    case 'fire-department':
+      return 'Fire Department';
+    case 'police-department':
+      return 'Police Department';
+    default:
+      return value || 'Rescue Department';
+  }
+}
+
+function sharedRescuerMapMarkerResponse(row) {
+  const latitude = row.latitude !== null && row.latitude !== undefined ? Number(row.latitude) : null;
+  const longitude = row.longitude !== null && row.longitude !== undefined ? Number(row.longitude) : null;
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    rescuerCode: row.rescuerCode || '',
+    firstName: decryptText(row.firstNameEnc) || 'Rescuer',
+    lastName: decryptText(row.lastNameEnc) || '',
+    phone: decryptText(row.phoneEnc) || '',
+    department: agencyLabel(row.agency),
+    teamCode: row.teamCode || '',
+    teamName: row.teamName || '',
+    latitude,
+    longitude,
+    accuracyM: row.accuracyM !== null && row.accuracyM !== undefined ? Number(row.accuracyM) : null,
+    lastUpdated: toIsoTimestamp(row.recordedAt || row.updatedAt),
+    updatedAt: toIsoTimestamp(row.updatedAt || row.recordedAt)
+  };
+}
+
+function meshNodeLinkMapResponse(row) {
+  const sourceLatitude = Number(row.sourceLatitude);
+  const sourceLongitude = Number(row.sourceLongitude);
+  const targetLatitude = Number(row.targetLatitude);
+  const targetLongitude = Number(row.targetLongitude);
+
+  if (
+    !Number.isFinite(sourceLatitude)
+    || !Number.isFinite(sourceLongitude)
+    || !Number.isFinite(targetLatitude)
+    || !Number.isFinite(targetLongitude)
+  ) {
+    return null;
+  }
+
+  return {
+    reportingNodeId: row.reportingNodeId,
+    neighborNodeId: row.neighborNodeId,
+    sourceNodeName: row.sourceNodeName || row.reportingNodeId,
+    targetNodeName: row.targetNodeName || row.neighborNodeId,
+    rssi: row.rssi !== null && row.rssi !== undefined ? Number(row.rssi) : null,
+    lastSeenAt: toIsoTimestamp(row.lastSeenAt),
+    sourceLatitude,
+    sourceLongitude,
+    targetLatitude,
+    targetLongitude
+  };
+}
+
+async function getDeviceMapOnlineDistress() {
+  const rows = await listActiveOnlineDistressMapMarkers();
+  return rows.map(onlineDistressMapMarkerResponse).filter(Boolean);
+}
+
+async function getDeviceMapSharedRescuers() {
+  const cutoff = new Date(Date.now() - SHARED_RESCUER_STALE_TIMEOUT_MS).toISOString();
+  const rows = await listSharedRescuerMapMarkers(cutoff);
+  return rows.map(sharedRescuerMapMarkerResponse).filter(Boolean);
+}
+
+async function getDeviceMapLinks() {
+  const rows = await listMeshNodeMapLinks();
+  return rows.map(meshNodeLinkMapResponse).filter(Boolean);
 }
 
 async function getDeviceDetails(id) {
@@ -575,5 +716,8 @@ module.exports = {
   getDeviceMapRoutes,
   getDeviceDetails,
   getDeviceMessages,
-  getMeshMessageFeed
+  getMeshMessageFeed,
+  getDeviceMapOnlineDistress,
+  getDeviceMapSharedRescuers,
+  getDeviceMapLinks
 };

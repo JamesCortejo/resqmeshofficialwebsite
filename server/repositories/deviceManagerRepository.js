@@ -134,6 +134,13 @@ function listDevicesForMap() {
       mnl.rssi AS signalStrengthDbm,
       mnl.reporting_node_id AS signalReportedByNodeId,
       mnl.last_seen_at AS signalLastSeenAt,
+      hl.battery_voltage AS batteryVoltage,
+      hl.gps_status AS gpsStatus,
+      hl.cpu_temp AS cpuTemp,
+      hl.storage_remaining AS storageRemaining,
+      hl.ram_usage AS ramUsage,
+      hl.recorded_at AS healthRecordedAt,
+      COALESCE(mc.pendingCommandCount, 0) AS pendingCommandCount,
       COALESCE(md.activeDistressCount, 0) AS activeDistressCount,
       ad.distress_code AS activeDistressCode,
       ad.user_code AS activeDistressUserCode,
@@ -153,6 +160,20 @@ function listDevicesForMap() {
         ORDER BY datetime(COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at)) DESC, inner_mnl.id DESC
         LIMIT 1
       )
+    LEFT JOIN mesh_node_health_logs hl
+      ON hl.id = (
+        SELECT inner_hl.id
+        FROM mesh_node_health_logs inner_hl
+        WHERE inner_hl.node_id = sd.node_id
+        ORDER BY datetime(inner_hl.recorded_at) DESC, inner_hl.id DESC
+        LIMIT 1
+      )
+    LEFT JOIN (
+      SELECT target_node_id, COUNT(*) AS pendingCommandCount
+      FROM mesh_commands
+      WHERE status = 'pending'
+      GROUP BY target_node_id
+    ) mc ON mc.target_node_id = sd.node_id
     LEFT JOIN (
       SELECT
         origin_node_id,
@@ -198,9 +219,16 @@ function listActiveDeviceMapRoutes() {
       r.middle_name_enc AS leaderMiddleNameEnc,
       r.last_name_enc AS leaderLastNameEnc,
       m.distress_code AS distressCode,
+      m.user_code AS userCode,
       m.reason AS distressReason,
       m.latitude AS distressLatitude,
       m.longitude AS distressLongitude,
+      m.first_name AS civilianFirstName,
+      m.last_name AS civilianLastName,
+      m.phone AS civilianPhone,
+      m.blood_type AS civilianBloodType,
+      m.age AS civilianAge,
+      NULL AS civilianOccupation,
       m.origin_node_id AS distressOriginNodeId,
       n.node_name AS originNodeName,
       lc.latitude AS leaderLatitude,
@@ -241,9 +269,16 @@ function listActiveDeviceMapRoutes() {
       r.middle_name_enc AS leaderMiddleNameEnc,
       r.last_name_enc AS leaderLastNameEnc,
       o.distress_code AS distressCode,
+      o.user_code AS userCode,
       o.reason AS distressReason,
       o.latitude AS distressLatitude,
       o.longitude AS distressLongitude,
+      o.first_name AS civilianFirstName,
+      o.last_name AS civilianLastName,
+      o.phone AS civilianPhone,
+      o.blood_type AS civilianBloodType,
+      o.age AS civilianAge,
+      o.occupation AS civilianOccupation,
       NULL AS distressOriginNodeId,
       'Civilian online location' AS originNodeName,
       lc.latitude AS leaderLatitude,
@@ -267,6 +302,96 @@ function listActiveDeviceMapRoutes() {
       AND LOWER(COALESCE(o.status, 'active')) = 'active'
     ) routes
     ORDER BY COALESCE("deployedAt", "deploymentUpdatedAt") DESC, "deploymentId" DESC
+  `);
+}
+
+function listActiveOnlineDistressMapMarkers() {
+  return all(`
+    SELECT
+      o.id,
+      o.distress_code AS distressCode,
+      o.user_id AS userId,
+      o.user_code AS userCode,
+      o.first_name AS firstName,
+      o.last_name AS lastName,
+      o.phone,
+      o.blood_type AS bloodType,
+      o.age,
+      o.occupation,
+      o.reason,
+      o.latitude,
+      o.longitude,
+      o.recorded_at AS recordedAt,
+      o.updated_at AS updatedAt,
+      d.id AS deploymentId,
+      d.deployment_code AS deploymentCode,
+      d.status AS deploymentStatus,
+      t.team_code AS teamCode,
+      t.name AS teamName
+    FROM online_distress_signals o
+    LEFT JOIN distress_deployments d
+      ON d.id = (
+        SELECT inner_d.id
+        FROM distress_deployments inner_d
+        WHERE inner_d.online_distress_signal_id = o.id
+        ORDER BY datetime(COALESCE(inner_d.updated_at, inner_d.created_at)) DESC, inner_d.id DESC
+        LIMIT 1
+      )
+    LEFT JOIN rescue_teams t ON t.id = d.team_id
+    WHERE o.deleted = 0
+      AND LOWER(COALESCE(o.status, 'active')) = 'active'
+    ORDER BY datetime(COALESCE(o.updated_at, o.recorded_at)) DESC, o.id DESC
+  `);
+}
+
+function listSharedRescuerMapMarkers(cutoffTimestamp) {
+  return all(`
+    SELECT
+      r.id,
+      r.rescuer_code AS rescuerCode,
+      r.first_name_enc AS firstNameEnc,
+      r.last_name_enc AS lastNameEnc,
+      r.phone_enc AS phoneEnc,
+      r.agency,
+      t.team_code AS teamCode,
+      t.name AS teamName,
+      l.latitude,
+      l.longitude,
+      l.accuracy_m AS accuracyM,
+      l.recorded_at AS recordedAt,
+      l.updated_at AS updatedAt
+    FROM rescuer_location_sharing_settings s
+    INNER JOIN rescuers r ON r.id = s.rescuer_id
+    INNER JOIN rescuer_locations_current l ON l.rescuer_id = r.id
+    LEFT JOIN rescue_teams t ON t.id = r.team_id
+    WHERE s.sharing_enabled = TRUE
+      AND r.access_status = 'active'
+      AND l.recorded_at >= ?
+    ORDER BY datetime(l.recorded_at) DESC, r.id ASC
+  `, [cutoffTimestamp]);
+}
+
+function listMeshNodeMapLinks() {
+  return all(`
+    SELECT
+      l.reporting_node_id AS reportingNodeId,
+      l.neighbor_node_id AS neighborNodeId,
+      l.rssi,
+      l.last_seen_at AS lastSeenAt,
+      source.node_name AS sourceNodeName,
+      source.latitude AS sourceLatitude,
+      source.longitude AS sourceLongitude,
+      target.node_name AS targetNodeName,
+      target.latitude AS targetLatitude,
+      target.longitude AS targetLongitude
+    FROM mesh_node_links l
+    LEFT JOIN mesh_nodes source ON source.node_id = l.reporting_node_id
+    LEFT JOIN mesh_nodes target ON target.node_id = l.neighbor_node_id
+    WHERE source.latitude IS NOT NULL
+      AND source.longitude IS NOT NULL
+      AND target.latitude IS NOT NULL
+      AND target.longitude IS NOT NULL
+    ORDER BY datetime(COALESCE(l.last_seen_at, l.updated_at, l.created_at)) DESC, l.id DESC
   `);
 }
 
@@ -475,5 +600,8 @@ module.exports = {
   getTotalMessageCount,
   getTotalAuditCount,
   listRecentMeshMessages,
-  listMeshMessageFeed
+  listMeshMessageFeed,
+  listActiveOnlineDistressMapMarkers,
+  listSharedRescuerMapMarkers,
+  listMeshNodeMapLinks
 };

@@ -272,6 +272,9 @@
       devices: [],
       filteredDevices: [],
       routes: [],
+      onlineDistress: [],
+      sharedRescuers: [],
+      meshLinks: [],
       selectedDeviceId: null,
       selectedDeviceDetails: null,
       selectedRouteDeploymentId: null,
@@ -281,6 +284,8 @@
       markersLayer: null,
       connectionsLayer: null,
       routesLayer: null,
+      onlineDistressLayer: null,
+      sharedRescuersLayer: null,
       liveRefreshIntervalId: null,
       hasInitializedViewport: false
     };

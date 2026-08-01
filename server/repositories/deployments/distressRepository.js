@@ -132,6 +132,53 @@ function listDistressSignals() {
   `);
 }
 
+function countUnresolvedDistressSignals() {
+  return get(`
+    SELECT COUNT(*) AS count
+    FROM (
+      SELECT
+        m.status AS distress_status,
+        d.status AS deployment_status
+      FROM mesh_distress_signals m
+      LEFT JOIN distress_deployments d
+        ON d.id = (
+          SELECT dd.id
+          FROM distress_deployments dd
+          WHERE dd.mesh_distress_signal_id = m.id
+          ORDER BY
+            CASE WHEN dd.status = 'deployed' THEN 0 ELSE 1 END,
+            COALESCE(dd.updated_at, dd.created_at) DESC,
+            dd.id DESC
+          LIMIT 1
+        )
+      WHERE m.deleted = 0
+      UNION ALL
+      SELECT
+        o.status AS distress_status,
+        d.status AS deployment_status
+      FROM online_distress_signals o
+      LEFT JOIN distress_deployments d
+        ON d.id = (
+          SELECT dd.id
+          FROM distress_deployments dd
+          WHERE dd.online_distress_signal_id = o.id
+            AND dd.distress_source = 'online'
+          ORDER BY
+            CASE WHEN dd.status = 'deployed' THEN 0 ELSE 1 END,
+            COALESCE(dd.updated_at, dd.created_at) DESC,
+            dd.id DESC
+          LIMIT 1
+        )
+      WHERE o.deleted = 0
+    ) combined
+    WHERE LOWER(COALESCE(distress_status, '')) = 'active'
+      AND (
+        deployment_status IS NULL
+        OR deployment_status = 'deployed'
+      )
+  `);
+}
+
 function getDistressSignalById(id) {
   return get(`
     SELECT
@@ -385,6 +432,7 @@ function getNodeActiveDistress(nodeId) {
 
 module.exports = {
   listDistressSignals,
+  countUnresolvedDistressSignals,
   getDistressSignalById,
   getActiveDistressSignalById,
   getOnlineDistressSignalById,

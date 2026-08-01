@@ -1,5 +1,6 @@
 const {
   getDistressSignalSummaries,
+  getUnresolvedDistressSignalCount,
   getDistressSignalDetails,
   deployDistressSignal,
   cancelDeployment,
@@ -39,6 +40,19 @@ exports.listDistressSignals = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to load distress signals.');
+  }
+};
+
+exports.getActiveDistressSignalCount = async (req, res) => {
+  try {
+    const count = await getUnresolvedDistressSignalCount();
+
+    return res.json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load active distress count.');
   }
 };
 

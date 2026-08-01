@@ -22,6 +22,8 @@
     state.tileLayer.addTo(state.map);
     state.connectionsLayer = L.layerGroup().addTo(state.map);
     state.routesLayer = L.layerGroup().addTo(state.map);
+    state.onlineDistressLayer = L.layerGroup().addTo(state.map);
+    state.sharedRescuersLayer = L.layerGroup().addTo(state.map);
     state.markersLayer = L.layerGroup().addTo(state.map);
   }
 
@@ -104,6 +106,17 @@
       ? `<span class="device-map-popup-pill" data-status="revoked">${helpers.escapeHtml(device.deviceStatusLabel)}</span>`
       : '';
     const activeDistress = device.activeDistress || null;
+    const latestHealth = device.latestHealth || null;
+    const healthDetails = latestHealth ? `
+      <div class="device-map-popup-health">
+        <strong>Latest Health</strong>
+        <div class="device-map-popup-row"><span>GPS</span><strong>${helpers.escapeHtml(latestHealth.gpsStatus || 'unknown')}</strong></div>
+        <div class="device-map-popup-row"><span>CPU</span><strong>${helpers.escapeHtml(helpers.formatTemperature(latestHealth.cpuTemp))}</strong></div>
+        <div class="device-map-popup-row"><span>RAM</span><strong>${helpers.escapeHtml(helpers.formatPercent(latestHealth.ramUsage))}</strong></div>
+        <div class="device-map-popup-row"><span>Storage</span><strong>${helpers.escapeHtml(helpers.formatStorageRemaining(latestHealth.storageRemaining))}</strong></div>
+        <div class="device-map-popup-row"><span>Recorded</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(latestHealth.recordedAt))}</strong></div>
+      </div>
+    ` : '';
     const distressDetails = device.hasActiveDistress && activeDistress ? `
       <div class="device-map-popup-distress">
         <strong>Active Distress</strong>
@@ -128,9 +141,11 @@
           <div class="device-map-popup-row"><span>Last seen</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(device.lastSeenAt))}</strong></div>
           <div class="device-map-popup-row"><span>Last sync</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(device.lastSyncAt))}</strong></div>
           <div class="device-map-popup-row"><span>Users connected</span><strong>${helpers.escapeHtml(device.usersConnected)}</strong></div>
+          <div class="device-map-popup-row"><span>Pending commands</span><strong>${helpers.escapeHtml(device.pendingCommandCount || 0)}</strong></div>
           <div class="device-map-popup-row device-map-popup-row-signal"><span>Signal</span>${helpers.signalDotsMarkup(device.signalStrengthDbm, device.signalQualityLabel)}</div>
           <div class="device-map-popup-row"><span>Coordinates</span><strong>${helpers.escapeHtml(`${helpers.formatCoordinate(device.latitude)}, ${helpers.formatCoordinate(device.longitude)}`)}</strong></div>
         </div>
+        ${healthDetails}
         ${distressDetails}
       </div>
     `;
@@ -162,6 +177,70 @@
           <div class="device-map-popup-row"><span>ETA</span><strong>${helpers.escapeHtml(route.etaMinutes != null ? `${route.etaMinutes} min` : 'Not available')}</strong></div>
           <div class="device-map-popup-row"><span>Distance</span><strong>${helpers.escapeHtml(helpers.formatDistance(route.distanceM))}</strong></div>
           <div class="device-map-popup-row"><span>Updated</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(route.routeUpdatedAt))}</strong></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function distressCivilianPopupMarkup(distress, extra = {}) {
+    const deploymentText = extra.deploymentCode
+      ? `${extra.deploymentCode}${extra.teamName ? ` · ${extra.teamName}` : ''}`
+      : (extra.isDeployed ? 'Team deployed' : 'Awaiting deployment');
+
+    return `
+      <div class="device-map-popup-card device-map-distress-popup-card">
+        <div>
+          <h3>${helpers.escapeHtml(distress.distressCode || 'Distress signal')}</h3>
+          <p class="device-map-popup-subtitle">${helpers.escapeHtml(distress.sourceLabel || 'ONLINE')}</p>
+        </div>
+        <div class="device-map-popup-pills">
+          <span class="device-map-popup-pill" data-status="online">Online distress</span>
+          <span class="device-map-popup-pill" data-status="${extra.isDeployed ? 'route' : 'distressed'}">${helpers.escapeHtml(extra.isDeployed ? 'Deployed' : 'Active')}</span>
+        </div>
+        <div class="device-map-popup-distress">
+          <strong>Civilian Details</strong>
+          <div class="device-map-popup-row"><span>Name</span><strong>${helpers.escapeHtml(distress.civilianName || 'Unknown civilian')}</strong></div>
+          <div class="device-map-popup-row"><span>User code</span><strong>${helpers.escapeHtml(distress.userCode || 'Not available')}</strong></div>
+          <div class="device-map-popup-row"><span>Phone</span><strong>${helpers.escapeHtml(distress.phone || distress.civilianPhone || 'Not available')}</strong></div>
+          <div class="device-map-popup-row"><span>Reason</span><strong>${helpers.escapeHtml(helpers.formatDistressReason(distress.reason || distress.distressReason))}</strong></div>
+          <div class="device-map-popup-row"><span>Reported</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(distress.recordedAt || distress.routeUpdatedAt))}</strong></div>
+          <div class="device-map-popup-row"><span>Deployment</span><strong>${helpers.escapeHtml(deploymentText)}</strong></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function routeDistressPopupMarkup(route) {
+    return distressCivilianPopupMarkup({
+      distressCode: route.distressCode,
+      sourceLabel: route.sourceLabel || (route.distressSource === 'online' ? 'ONLINE' : 'MESH'),
+      civilianName: route.civilianName,
+      userCode: route.userCode || '',
+      civilianPhone: route.civilianPhone,
+      distressReason: route.distressReason,
+      routeUpdatedAt: route.routeUpdatedAt
+    }, {
+      isDeployed: true,
+      deploymentCode: route.deploymentCode,
+      teamName: route.teamName
+    });
+  }
+
+  function sharedRescuerPopupMarkup(rescuer) {
+    return `
+      <div class="device-map-popup-card device-map-shared-rescuer-popup-card">
+        <div>
+          <h3>${helpers.escapeHtml(rescuer.firstName || 'Rescuer')}</h3>
+          <p class="device-map-popup-subtitle">${helpers.escapeHtml(rescuer.department || 'Rescue Department')}</p>
+        </div>
+        <div class="device-map-popup-pills">
+          <span class="device-map-popup-pill" data-status="shared-rescuer">Sharing location</span>
+        </div>
+        <div class="device-map-popup-meta">
+          <div class="device-map-popup-row"><span>Phone</span><strong>${helpers.escapeHtml(rescuer.phone || 'Not available')}</strong></div>
+          <div class="device-map-popup-row"><span>Team</span><strong>${helpers.escapeHtml(rescuer.teamName || rescuer.teamCode || 'Not assigned')}</strong></div>
+          <div class="device-map-popup-row"><span>Last updated</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(rescuer.lastUpdated))}</strong></div>
+          <div class="device-map-popup-row"><span>Coordinates</span><strong>${helpers.escapeHtml(`${helpers.formatCoordinate(rescuer.latitude)}, ${helpers.formatCoordinate(rescuer.longitude)}`)}</strong></div>
         </div>
       </div>
     `;
@@ -226,6 +305,38 @@
     state.connectionsLayer.clearLayers();
 
     if (devices.length < 2) {
+      return;
+    }
+
+    const visibleIds = new Set(devices.map((device) => String(device.nodeId || device.id)));
+    const realLinks = state.meshLinks.filter((link) =>
+      visibleIds.has(String(link.reportingNodeId)) && visibleIds.has(String(link.neighborNodeId))
+    );
+
+    if (realLinks.length) {
+      realLinks.forEach((link) => {
+        L.polyline([
+          [Number(link.sourceLatitude), Number(link.sourceLongitude)],
+          [Number(link.targetLatitude), Number(link.targetLongitude)]
+        ], {
+          className: 'device-map-link',
+          color: '#e74b32',
+          weight: 3,
+          opacity: 0.56,
+          dashArray: '8 7',
+          lineCap: 'round'
+        }).bindPopup(`
+          <div class="device-map-popup-card">
+            <h3>Mesh Link</h3>
+            <div class="device-map-popup-meta">
+              <div class="device-map-popup-row"><span>From</span><strong>${helpers.escapeHtml(link.sourceNodeName || link.reportingNodeId)}</strong></div>
+              <div class="device-map-popup-row"><span>To</span><strong>${helpers.escapeHtml(link.targetNodeName || link.neighborNodeId)}</strong></div>
+              <div class="device-map-popup-row"><span>RSSI</span><strong>${helpers.escapeHtml(link.rssi != null ? `${link.rssi} dBm` : 'Not available')}</strong></div>
+              <div class="device-map-popup-row"><span>Last seen</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(link.lastSeenAt))}</strong></div>
+            </div>
+          </div>
+        `, { className: 'device-map-popup' }).addTo(state.connectionsLayer);
+      });
       return;
     }
 
@@ -395,7 +506,7 @@
               iconAnchor: [15, 15],
               popupAnchor: [0, -14]
             })
-          }).bindPopup(routePopupMarkup(route), {
+          }).bindPopup(routeDistressPopupMarkup(route), {
             className: 'device-map-popup device-map-route-popup'
           });
 
@@ -413,35 +524,106 @@
     });
   }
 
+  function renderOnlineDistressMarkers() {
+    if (!state.onlineDistressLayer) {
+      return;
+    }
+
+    state.onlineDistressLayer.clearLayers();
+
+    const routeDistressIds = new Set(
+      state.routes
+        .filter((route) => route.distressSource === 'online')
+        .map((route) => String(route.distressId))
+    );
+
+    state.onlineDistress
+      .filter((distress) => !routeDistressIds.has(String(distress.id)))
+      .forEach((distress) => {
+        const latLng = numericLatLng(distress.latitude, distress.longitude);
+        if (!latLng) return;
+
+        L.marker(latLng, {
+          zIndexOffset: 300,
+          icon: L.divIcon({
+            className: 'device-map-online-distress-marker-icon',
+            html: '<div class="device-map-online-distress-marker"></div>',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+            popupAnchor: [0, -14]
+          })
+        }).bindPopup(distressCivilianPopupMarkup(distress, {
+          isDeployed: distress.isDeployed,
+          deploymentCode: distress.deploymentCode,
+          teamName: distress.teamName
+        }), {
+          className: 'device-map-popup device-map-route-popup'
+        }).addTo(state.onlineDistressLayer);
+      });
+  }
+
+  function renderSharedRescuerMarkers() {
+    if (!state.sharedRescuersLayer) {
+      return;
+    }
+
+    state.sharedRescuersLayer.clearLayers();
+
+    state.sharedRescuers.forEach((rescuer) => {
+      const latLng = numericLatLng(rescuer.latitude, rescuer.longitude);
+      if (!latLng) return;
+
+      L.marker(latLng, {
+        zIndexOffset: 280,
+        icon: L.divIcon({
+          className: 'device-map-shared-rescuer-marker-icon',
+          html: '<div class="device-map-shared-rescuer-marker"></div>',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+          popupAnchor: [0, -14]
+        })
+      }).bindPopup(sharedRescuerPopupMarkup(rescuer), {
+        className: 'device-map-popup'
+      }).addTo(state.sharedRescuersLayer);
+    });
+  }
+
   function renderMap(options = {}) {
     const { preserveViewport = false } = options;
 
     initializeMap();
 
-    if (!state.map || !state.markersLayer || !state.connectionsLayer || !state.routesLayer) {
+    if (
+      !state.map
+      || !state.markersLayer
+      || !state.connectionsLayer
+      || !state.routesLayer
+      || !state.onlineDistressLayer
+      || !state.sharedRescuersLayer
+    ) {
       return;
     }
 
     state.connectionsLayer.clearLayers();
     state.routesLayer.clearLayers();
+    state.onlineDistressLayer.clearLayers();
+    state.sharedRescuersLayer.clearLayers();
     state.markersLayer.clearLayers();
 
     const visibleDevices = state.filteredDevices.filter(hasValidCoordinates);
     const unavailableDevices = state.filteredDevices.filter((device) => !hasValidCoordinates(device));
+    const hasOverlayContent = state.routes.length > 0 || state.onlineDistress.length > 0 || state.sharedRescuers.length > 0;
 
     renderUnavailableList(unavailableDevices);
 
-    setMapEmptyState(visibleDevices.length === 0, 'No mesh nodes with valid coordinates are available right now.');
-
-    if (!visibleDevices.length) {
-      setTimeout(() => state.map?.invalidateSize?.(), 0);
-      return;
-    }
+    setMapEmptyState(visibleDevices.length === 0 && !hasOverlayContent, 'No map markers with valid coordinates are available right now.');
 
     const bounds = [];
 
     renderConnections(visibleDevices);
     renderRoutes();
+    renderOnlineDistressMarkers();
+    renderSharedRescuerMarkers();
 
     visibleDevices.forEach((device) => {
       const marker = createMarker(device);
@@ -454,6 +636,21 @@
         bounds.push(latLng);
       });
     });
+
+    state.onlineDistress.forEach((distress) => {
+      const latLng = numericLatLng(distress.latitude, distress.longitude);
+      if (latLng) bounds.push(latLng);
+    });
+
+    state.sharedRescuers.forEach((rescuer) => {
+      const latLng = numericLatLng(rescuer.latitude, rescuer.longitude);
+      if (latLng) bounds.push(latLng);
+    });
+
+    if (!bounds.length) {
+      setTimeout(() => state.map?.invalidateSize?.(), 0);
+      return;
+    }
 
     if (preserveViewport || state.hasInitializedViewport) {
       setTimeout(() => state.map?.invalidateSize?.(), 0);
@@ -490,9 +687,18 @@
     }
 
     try {
-      const [devicesResult, routesResult] = await Promise.allSettled([
+      const [
+        devicesResult,
+        routesResult,
+        onlineDistressResult,
+        sharedRescuersResult,
+        linksResult
+      ] = await Promise.allSettled([
         helpers.requestJson('/api/admin/devices/map'),
-        helpers.requestJson('/api/admin/device-map/routes')
+        helpers.requestJson('/api/admin/device-map/routes'),
+        helpers.requestJson('/api/admin/device-map/online-distress'),
+        helpers.requestJson('/api/admin/device-map/shared-rescuers'),
+        helpers.requestJson('/api/admin/device-map/links')
       ]);
 
       if (devicesResult.status !== 'fulfilled') {
@@ -505,6 +711,24 @@
         state.routes = Array.isArray(routesResult.value.data) ? routesResult.value.data : [];
       } else if (!background || state.routes.length === 0) {
         state.routes = [];
+      }
+
+      if (onlineDistressResult.status === 'fulfilled') {
+        state.onlineDistress = Array.isArray(onlineDistressResult.value.data) ? onlineDistressResult.value.data : [];
+      } else if (!background || state.onlineDistress.length === 0) {
+        state.onlineDistress = [];
+      }
+
+      if (sharedRescuersResult.status === 'fulfilled') {
+        state.sharedRescuers = Array.isArray(sharedRescuersResult.value.data) ? sharedRescuersResult.value.data : [];
+      } else if (!background || state.sharedRescuers.length === 0) {
+        state.sharedRescuers = [];
+      }
+
+      if (linksResult.status === 'fulfilled') {
+        state.meshLinks = Array.isArray(linksResult.value.data) ? linksResult.value.data : [];
+      } else if (!background || state.meshLinks.length === 0) {
+        state.meshLinks = [];
       }
 
       ui.setFeedback('');
