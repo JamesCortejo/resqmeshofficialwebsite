@@ -140,6 +140,36 @@
   color: var(--color-primary);
 }
 
+.download-app-meta {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.download-app-meta div {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  padding: 0.95rem;
+}
+
+.download-app-meta small {
+  color: var(--color-muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+
+.download-app-meta strong {
+  color: var(--color-ink);
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
 .download-card-list {
   display: grid;
   gap: 0.75rem;
@@ -210,7 +240,8 @@
   }
 
   .download-actions,
-  .download-card-status {
+  .download-card-status,
+  .download-app-meta {
     grid-template-columns: 1fr;
   }
 

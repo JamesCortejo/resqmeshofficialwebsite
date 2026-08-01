@@ -1,6 +1,7 @@
 (function initDownloadGuard() {
   const COOLDOWN_MS = 10000;
   const TOKEN_TIMEOUT_MS = 15000;
+  const APK_FILENAME = 'ResQMesh-V1.2.apk';
   const buttons = Array.from(document.querySelectorAll('[data-secure-download]'));
   const status = document.getElementById('downloadSecurityStatus');
   let cooldownUntil = 0;
@@ -83,7 +84,7 @@
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        filename: 'resqmesh.apk',
+        filename: APK_FILENAME,
         recaptchaToken
       })
     });
