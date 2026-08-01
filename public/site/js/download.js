@@ -1,11 +1,45 @@
 (function initDownloadGuard() {
   const COOLDOWN_MS = 10000;
   const TOKEN_TIMEOUT_MS = 15000;
-  const APK_FILENAME = 'ResQMesh-V1.2.apk';
+  const APK_FILENAME = 'ResQMesh-V1.3.apk';
   const buttons = Array.from(document.querySelectorAll('[data-secure-download]'));
   const status = document.getElementById('downloadSecurityStatus');
+  const versionTarget = document.querySelector('[data-app-version]');
+  const sizeTarget = document.querySelector('[data-app-size]');
   let cooldownUntil = 0;
   let cooldownTimer = null;
+
+  async function loadAppInfo() {
+    try {
+      const response = await fetch('/api/download/app-info', {
+        headers: {
+          Accept: 'application/json'
+        }
+      });
+      const result = await response.json().catch(() => ({}));
+      const data = result && result.data ? result.data : null;
+
+      if (!response.ok || !result.success || !data) {
+        return;
+      }
+
+      if (versionTarget && data.version) {
+        versionTarget.textContent = data.version;
+      }
+
+      if (sizeTarget && data.sizeLabel) {
+        sizeTarget.textContent = data.sizeLabel;
+      }
+
+      buttons.forEach((button) => {
+        if (data.filename) {
+          button.setAttribute('href', `/downloads/${encodeURIComponent(data.filename)}`);
+        }
+      });
+    } catch {
+      // Keep the static fallback values if metadata cannot be loaded.
+    }
+  }
 
   function setStatus(message, tone = 'neutral') {
     if (!status) {
@@ -137,4 +171,6 @@
   window.ResQMeshRecaptcha?.ready?.().catch(() => {
     setStatus('Security verification could not load yet. Try again in a moment.', 'warning');
   });
+
+  void loadAppInfo();
 }());

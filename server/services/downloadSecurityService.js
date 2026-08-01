@@ -7,7 +7,7 @@ const { verifyRecaptcha } = require('./recaptchaService');
 const DOWNLOAD_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DOWNLOAD_RATE_LIMIT_MAX = 12;
 const DOWNLOAD_TOKEN_TTL_MS = 2 * 60 * 1000;
-const APK_FILENAME = 'ResQMesh-V1.2.apk';
+const APK_FILENAME = 'ResQMesh-V1.3.apk';
 const downloadBuckets = new Map();
 
 function getDownloadsRoot() {
@@ -153,6 +153,34 @@ function resolveDownloadPath(filename) {
   return targetPath;
 }
 
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return 'Unavailable';
+  }
+
+  const megabytes = bytes / (1024 * 1024);
+  return `${Math.round(megabytes)} MB`;
+}
+
+function getApkVersion(filename) {
+  const match = String(filename || '').match(/V(\d+(?:\.\d+)*)/i);
+  return match ? `V${match[1]}` : 'Current';
+}
+
+function getDownloadInfo() {
+  const filePath = path.join(getDownloadsRoot(), APK_FILENAME);
+  const exists = fs.existsSync(filePath);
+  const stats = exists ? fs.statSync(filePath) : null;
+
+  return {
+    filename: APK_FILENAME,
+    version: getApkVersion(APK_FILENAME),
+    sizeBytes: stats ? stats.size : null,
+    sizeLabel: stats ? formatFileSize(stats.size) : 'Upload pending',
+    available: exists
+  };
+}
+
 async function createProtectedDownload(body, requestMeta = {}) {
   const filename = assertAllowedFilename(body && body.filename ? body.filename : APK_FILENAME);
   const ipAddress = normalizeIp(requestMeta.ipAddress);
@@ -175,6 +203,7 @@ async function createProtectedDownload(body, requestMeta = {}) {
 module.exports = {
   APK_FILENAME,
   createProtectedDownload,
+  getDownloadInfo,
   resolveDownloadPath,
   verifyDownloadToken
 };

@@ -1,6 +1,7 @@
 const {
   APK_FILENAME,
   createProtectedDownload,
+  getDownloadInfo,
   resolveDownloadPath,
   verifyDownloadToken
 } = require('../services/downloadSecurityService');
@@ -28,6 +29,18 @@ exports.requestDownload = async (req, res) => {
   } catch (error) {
     console.error('Download authorization error:', error);
     return errorResponse(res, error, 'Unable to authorize download right now.');
+  }
+};
+
+exports.getAppInfo = (req, res) => {
+  try {
+    return res.json({
+      success: true,
+      data: getDownloadInfo()
+    });
+  } catch (error) {
+    console.error('Download metadata error:', error);
+    return errorResponse(res, error, 'Unable to load app download details.');
   }
 };
 
