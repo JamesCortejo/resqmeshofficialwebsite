@@ -4,6 +4,7 @@ const {
   createOnlineDistressSignal,
   findActiveDeploymentByOnlineDistressSignalId,
   findActiveOnlineDistressByUserId,
+  findOnlineDistressByIdForUser,
   generateOnlineDistressCode,
   listActiveOnlineDistressSignals
 } = require('../repositories/deploymentRepository');
@@ -153,6 +154,21 @@ async function cancelCivilianOnlineDistress(civilian, id) {
   const activeDistress = await findActiveOnlineDistressByUserId(civilian.id);
 
   if (!activeDistress || Number(activeDistress.id) !== distressId) {
+    const ownedDistress = await findOnlineDistressByIdForUser(distressId, civilian.id);
+    const ownedStatus = String(ownedDistress?.status || '').toLowerCase();
+    if (ownedDistress && ['canceled', 'cancelled', 'accomplished'].includes(ownedStatus)) {
+      const accomplished = ownedStatus === 'accomplished';
+      return {
+        id: distressId,
+        status: ownedDistress.status,
+        canceledAt: ownedDistress.canceledAt || null,
+        accomplishedAt: ownedDistress.accomplishedAt || null,
+        message: accomplished
+          ? 'Distress signal has already been accomplished by a rescuer.'
+          : 'Distress signal has been canceled by admin.'
+      };
+    }
+
     const error = new Error('Active online distress signal not found.');
     error.statusCode = 404;
     throw error;
@@ -162,7 +178,12 @@ async function cancelCivilianOnlineDistress(civilian, id) {
   if (activeDeployment?.id) {
     await cancelDeployment(activeDeployment.id);
     await notifyOnlineDistressSignalCanceled(normalizeOnlineDistress(activeDistress));
-    return { id: distressId, status: 'canceled', canceledAt: timestamp };
+    return {
+      id: distressId,
+      status: 'canceled',
+      canceledAt: timestamp,
+      message: 'Online distress signal canceled.'
+    };
   }
 
   const result = await cancelActiveOnlineDistressForUser(distressId, civilian.id, timestamp);
@@ -173,7 +194,12 @@ async function cancelCivilianOnlineDistress(civilian, id) {
   }
 
   await notifyOnlineDistressSignalCanceled(normalizeOnlineDistress(activeDistress));
-  return { id: distressId, status: 'canceled', canceledAt: timestamp };
+  return {
+    id: distressId,
+    status: 'canceled',
+    canceledAt: timestamp,
+    message: 'Online distress signal canceled.'
+  };
 }
 
 async function listPublicOnlineDistressSignals() {

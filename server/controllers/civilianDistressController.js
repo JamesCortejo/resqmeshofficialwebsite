@@ -49,7 +49,7 @@ exports.cancel = async (req, res) => {
     const result = await cancelCivilianOnlineDistress(req.civilian, req.params.id);
     return res.json({
       success: true,
-      message: 'Online distress signal canceled.',
+      message: result?.message || 'Online distress signal canceled.',
       data: result
     });
   } catch (error) {

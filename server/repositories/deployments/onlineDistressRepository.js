@@ -32,6 +32,37 @@ function findActiveOnlineDistressByUserId(userId) {
   `, [userId]);
 }
 
+function findOnlineDistressByIdForUser(id, userId) {
+  return get(`
+    SELECT
+      id,
+      distress_code AS distressCode,
+      user_id AS userId,
+      user_code AS userCode,
+      first_name AS firstName,
+      last_name AS lastName,
+      phone,
+      blood_type AS bloodType,
+      age,
+      occupation,
+      reason,
+      latitude,
+      longitude,
+      accuracy_m AS accuracyM,
+      recorded_at AS recordedAt,
+      status,
+      canceled_at AS canceledAt,
+      accomplished_at AS accomplishedAt,
+      updated_at AS updatedAt,
+      created_at AS createdAt
+    FROM online_distress_signals
+    WHERE id = ?
+      AND user_id = ?
+      AND deleted = 0
+    LIMIT 1
+  `, [id, userId]);
+}
+
 function createOnlineDistressSignal(distress) {
   return run(`
     INSERT INTO online_distress_signals (
@@ -130,6 +161,7 @@ function listActiveOnlineDistressSignals() {
 
 module.exports = {
   findActiveOnlineDistressByUserId,
+  findOnlineDistressByIdForUser,
   createOnlineDistressSignal,
   updateOnlineDistressStatus,
   cancelActiveOnlineDistressForUser,
