@@ -9,7 +9,8 @@ const ACTION_MIN_SCORES = {
   register: 0.3,
   contact: 0.5,
   download: 0.5,
-  admin_login: 0.5
+  admin_login: 0.5,
+  password_reset: 0.5
 };
 const PUBLIC_FAILURE_MESSAGE = 'Security verification failed. Please refresh the page and try again.';
 

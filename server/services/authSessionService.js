@@ -5,6 +5,7 @@ const {
   ADMIN_SESSION_COOKIE_NAME,
   ADMIN_SESSION_TTL_HOURS,
   DEVICE_SYNC_TOKEN_TTL_MINUTES,
+  MOBILE_APP_SESSION_TTL_HOURS,
   SAFE_HTTP_METHODS,
   SESSION_CLIENT_TYPES,
   SESSION_PRINCIPAL_TYPES
@@ -208,7 +209,10 @@ async function createDeviceSyncSession(syncDevice, req) {
 
 async function createMobileAppSession(principal, req, principalType = SESSION_PRINCIPAL_TYPES.RESCUER) {
   const issuedAt = new Date();
-  const expiresAt = addHours(issuedAt, ADMIN_SESSION_TTL_HOURS);
+  const expiresAt = addHours(
+    issuedAt,
+    config.mobileAppSession?.ttlHours || MOBILE_APP_SESSION_TTL_HOURS
+  );
   const sessionToken = crypto.randomBytes(32).toString('hex');
   const timestamp = issuedAt.toISOString();
 

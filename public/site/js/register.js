@@ -950,6 +950,10 @@ const VALENCIA_BARANGAYS = registerConfig.barangays;
                 )}
               </div>
 
+              <div className="register-account-help">
+                <a href="/forgot-password">Forgot your password? Reset it here.</a>
+              </div>
+
             </form>
           </div>
         </main>

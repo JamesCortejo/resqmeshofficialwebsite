@@ -105,6 +105,26 @@ function sendReactivationEmail(user) {
   });
 }
 
+function sendCivilianPasswordResetCodeEmail(user, code) {
+  const text = plainTextMessage([
+    `Hello ${user.fullName || user.username || 'ResQMesh user'},`,
+    '',
+    'Use this code to reset your ResQMesh civilian password:',
+    code,
+    '',
+    'This code expires in 10 minutes. If you did not request this, ignore this email.',
+    '',
+    'ResQMesh Admin'
+  ]);
+
+  return transporter.sendMail({
+    from: sender(),
+    to: user.email,
+    subject: 'ResQMesh password reset code',
+    text
+  });
+}
+
 function sendContactEmail(contact) {
   const subjectLabel = contact.subjectLabel || 'General inquiry';
   const submittedAt = contact.submittedAt || new Date().toISOString();
@@ -138,5 +158,6 @@ module.exports = {
   sendDeclineEmail,
   sendSuspensionEmail,
   sendReactivationEmail,
+  sendCivilianPasswordResetCodeEmail,
   sendContactEmail
 };

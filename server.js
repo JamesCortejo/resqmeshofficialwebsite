@@ -76,6 +76,9 @@ app.get('/download', (req, res) => {
 app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'site', 'register.html'));
 });
+app.get('/forgot-password', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'site', 'forgot-password.html'));
+});
 app.get('/resqmeshadmin', redirectAuthenticatedAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
 });

@@ -104,6 +104,34 @@ function findByLookupHashes(usernameLookupHash, emailLookupHash, idNumberLookupH
   `, [usernameLookupHash, emailLookupHash, idNumberLookupHash]);
 }
 
+function findApprovedCivilianByEmailLookupHash(emailLookupHash) {
+  return get(`
+    SELECT
+      id,
+      user_code AS userCode,
+      first_name_enc AS firstNameEnc,
+      middle_name_enc AS middleNameEnc,
+      last_name_enc AS lastNameEnc,
+      email_enc AS emailEnc,
+      email_lookup_hash AS emailLookupHash,
+      status
+    FROM users
+    WHERE email_lookup_hash = ?
+      AND status = 'approved'
+    LIMIT 1
+  `, [emailLookupHash]);
+}
+
+function updateUserPasswordHash(id, passwordHash) {
+  return run(`
+    UPDATE users
+    SET password_hash = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+      AND status = 'approved'
+  `, [passwordHash, id]);
+}
+
 function getUserSummaryById(id) {
   return get(`
     SELECT id, user_code AS userCode, status, created_at AS createdAt, updated_at AS updatedAt
@@ -173,6 +201,8 @@ module.exports = {
   generateUserCode,
   createUser,
   findByLookupHashes,
+  findApprovedCivilianByEmailLookupHash,
+  updateUserPasswordHash,
   listUserSummaries,
   findUserAuthCandidateByPhoneLookupHash,
   findUserSessionPrincipalById

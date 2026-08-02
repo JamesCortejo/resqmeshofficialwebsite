@@ -436,6 +436,17 @@
   max-width: 580px;
 }
 
+.register-account-help {
+  margin-top: 0.65rem;
+  text-align: center;
+}
+
+.register-account-help a {
+  color: var(--color-primary-strong);
+  font-weight: 900;
+  text-decoration: none;
+}
+
 @media (max-width: 768px) {
   .register-toast {
     left: 1rem;
