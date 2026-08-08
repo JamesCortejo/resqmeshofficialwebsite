@@ -94,12 +94,12 @@ exports.updateAccessStatus = async (req, res) => {
       });
     }
 
-    const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
-    const result = await setRescuerAccessStatus(id, status, req.adminUser?.id || null);
+    const result = await setRescuerAccessStatus(id, req.body || {}, req.adminUser?.id || null);
 
     return res.json({
       success: true,
       message: result.message,
+      warning: result.warning || '',
       data: result.rescuer
     });
   } catch (error) {

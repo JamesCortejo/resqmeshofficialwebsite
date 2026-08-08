@@ -118,6 +118,18 @@
     const actionButtons = document.querySelector('.account-action-buttons');
     const approveButton = document.getElementById('approveAccountButton');
     const declineButton = document.getElementById('declineAccountButton');
+    const confirmModal = document.getElementById('accountConfirmModal');
+    const confirmKicker = document.getElementById('accountConfirmKicker');
+    const confirmIcon = document.getElementById('accountConfirmIcon');
+    const confirmTitle = document.getElementById('accountConfirmTitle');
+    const confirmDescription = document.getElementById('accountConfirmDescription');
+    const confirmReasonField = document.getElementById('accountConfirmReasonField');
+    const confirmReasonLabel = document.getElementById('accountConfirmReasonLabel');
+    const confirmReasonInput = document.getElementById('accountConfirmReasonInput');
+    const confirmPasswordField = document.getElementById('accountConfirmPasswordField');
+    const confirmPasswordInput = document.getElementById('accountConfirmPasswordInput');
+    const confirmMessage = document.getElementById('accountConfirmMessage');
+    const confirmButton = document.getElementById('accountConfirmButton');
 
     let selectedAccountId = null;
     let pendingReviewAction = '';
@@ -158,10 +170,29 @@
       actionButtons.querySelectorAll('button').forEach((button) => {
         button.disabled = disabled;
       });
+
+      confirmModal?.querySelectorAll('button, textarea, input').forEach((element) => {
+        element.disabled = disabled;
+      });
     }
 
     function setActionMessage(message) {
       actionMessage.textContent = message;
+    }
+
+    function setConfirmMessage(message) {
+      if (!confirmMessage) {
+        return;
+      }
+
+      if (!message) {
+        confirmMessage.hidden = true;
+        confirmMessage.textContent = '';
+        return;
+      }
+
+      confirmMessage.hidden = false;
+      confirmMessage.textContent = message;
     }
 
     function updateModalActions(account, options) {
@@ -275,11 +306,30 @@
       actionButtons.hidden = false;
       actionMessage.textContent = '';
       setButtonsDisabled(false);
+      closeReviewConfirmation();
     }
 
-    function clearReviewConfirmation() {
+    function closeReviewConfirmation() {
+      confirmModal?.classList.remove('is-open');
+      confirmModal?.setAttribute('aria-hidden', 'true');
       pendingReviewAction = '';
-      actionMessage.textContent = '';
+      setConfirmMessage('');
+
+      if (confirmReasonInput) {
+        confirmReasonInput.value = '';
+      }
+
+      if (confirmReasonField) {
+        confirmReasonField.hidden = true;
+      }
+
+      if (confirmPasswordInput) {
+        confirmPasswordInput.value = '';
+      }
+
+      if (confirmPasswordField) {
+        confirmPasswordField.hidden = true;
+      }
     }
 
     function renderReviewConfirmation(status) {
@@ -292,6 +342,7 @@
       const isSuspension = status === 'suspended';
       const needsReason = isDecline || isSuspension;
       const isActivation = status === 'approved' && actionButtons.querySelector('[data-modal-action="approved"] span')?.textContent.includes('Activate');
+      const needsAdminPassword = isSuspension || isActivation;
       const title = isDecline
         ? 'Decline this registration?'
         : isSuspension
@@ -314,30 +365,55 @@
             ? 'Confirm Activation'
             : 'Confirm Approval';
 
-      actionMessage.innerHTML = `
-        <div class="account-review-confirmation" data-review-action="${status}">
-          <div class="account-review-copy">
-            <strong>${title}</strong>
-            <span>${description}</span>
-          </div>
-          ${needsReason ? `
-            <label class="account-decline-reason">
-              <span>${isSuspension ? 'Reason for suspension' : 'Reason for decline'}</span>
-              <textarea id="declineReasonInput" rows="3" placeholder="${isSuspension ? 'Explain why this account was suspended.' : 'Explain why this registration was declined.'}"></textarea>
-            </label>
-          ` : ''}
-          <div class="account-review-confirm-actions">
-            <button type="button" class="admin-secondary-button" data-cancel-review>Cancel</button>
-            <button type="button" class="${isDecline || isSuspension ? 'account-decline-button' : 'account-approve-button'}" data-confirm-review>
-              <i class="fa-solid ${isDecline ? 'fa-xmark' : isSuspension ? 'fa-ban' : 'fa-check'}" aria-hidden="true"></i>
-              <span>${confirmText}</span>
-            </button>
-          </div>
-        </div>
-      `;
+      if (confirmKicker) {
+        confirmKicker.textContent = isSuspension || isActivation ? 'Account access' : 'Registration review';
+      }
+
+      if (confirmIcon) {
+        confirmIcon.dataset.tone = isDecline || isSuspension ? 'danger' : 'success';
+        confirmIcon.innerHTML = `<i class="fa-solid ${isDecline ? 'fa-xmark' : isSuspension ? 'fa-ban' : 'fa-check'}" aria-hidden="true"></i>`;
+      }
+
+      if (confirmTitle) {
+        confirmTitle.textContent = title;
+      }
+
+      if (confirmDescription) {
+        confirmDescription.textContent = description;
+      }
+
+      if (confirmReasonField && confirmReasonInput && confirmReasonLabel) {
+        confirmReasonField.hidden = !needsReason;
+        confirmReasonLabel.textContent = isSuspension ? 'Reason for suspension' : 'Reason for decline';
+        confirmReasonInput.placeholder = isSuspension
+          ? 'Explain why this account was suspended.'
+          : 'Explain why this registration was declined.';
+        confirmReasonInput.value = '';
+      }
+
+      if (confirmPasswordField && confirmPasswordInput) {
+        confirmPasswordField.hidden = !needsAdminPassword;
+        confirmPasswordInput.value = '';
+      }
+
+      if (confirmButton) {
+        confirmButton.dataset.tone = isDecline || isSuspension ? 'danger' : 'success';
+        confirmButton.innerHTML = `
+          <i class="fa-solid ${isDecline ? 'fa-xmark' : isSuspension ? 'fa-ban' : 'fa-check'}" aria-hidden="true"></i>
+          <span>${confirmText}</span>
+        `;
+      }
+
+      setConfirmMessage('');
+      confirmModal?.classList.add('is-open');
+      confirmModal?.setAttribute('aria-hidden', 'false');
 
       if (needsReason) {
-        document.getElementById('declineReasonInput').focus();
+        window.setTimeout(() => confirmReasonInput?.focus(), 0);
+      } else if (needsAdminPassword) {
+        window.setTimeout(() => confirmPasswordInput?.focus(), 0);
+      } else {
+        window.setTimeout(() => confirmButton?.focus(), 0);
       }
     }
 
@@ -353,6 +429,7 @@
       modalBody.innerHTML = '<div class="accounts-status-message">Loading account details...</div>';
       actionButtons.hidden = options.actionMode === 'view';
       actionMessage.textContent = '';
+      closeReviewConfirmation();
       openShell();
 
       try {
@@ -374,28 +451,40 @@
       renderReviewConfirmation(button.dataset.modalAction);
     });
 
-    actionMessage.addEventListener('click', (event) => {
-      if (event.target.closest('[data-cancel-review]')) {
-        clearReviewConfirmation();
+    confirmModal?.addEventListener('click', (event) => {
+      if (event.target.closest('[data-close-account-confirm]')) {
+        closeReviewConfirmation();
         return;
       }
 
-      if (!event.target.closest('[data-confirm-review]') || !pendingReviewAction || !activeReviewHandler) {
+      if (!event.target.closest('#accountConfirmButton') || !pendingReviewAction || !activeReviewHandler) {
         return;
       }
 
-      const reasonInput = document.getElementById('declineReasonInput');
-      const reason = reasonInput ? reasonInput.value.trim() : '';
+      const reason = confirmReasonInput ? confirmReasonInput.value.trim() : '';
+      const adminPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
 
       if (['declined', 'suspended'].includes(pendingReviewAction) && !reason) {
-        actionMessage.querySelector('.account-review-copy span').textContent = pendingReviewAction === 'suspended'
+        setConfirmMessage(pendingReviewAction === 'suspended'
           ? 'A suspension reason is required before confirming.'
-          : 'A decline reason is required before confirming.';
-        reasonInput.focus();
+          : 'A decline reason is required before confirming.');
+        confirmReasonInput?.focus();
         return;
       }
 
-      activeReviewHandler(selectedAccountId, pendingReviewAction, reason);
+      const isActivation = pendingReviewAction === 'approved'
+        && actionButtons.querySelector('[data-modal-action="approved"] span')?.textContent.includes('Activate');
+      const needsAdminPassword = pendingReviewAction === 'suspended' || isActivation;
+
+      if (needsAdminPassword && !adminPassword.trim()) {
+        setConfirmMessage('Admin password is required before changing account access.');
+        confirmPasswordInput?.focus();
+        return;
+      }
+
+      const action = pendingReviewAction;
+      closeReviewConfirmation();
+      activeReviewHandler(selectedAccountId, action, reason, adminPassword);
     });
 
     modal.addEventListener('click', (event) => {
@@ -405,6 +494,11 @@
     });
 
     document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && confirmModal?.classList.contains('is-open')) {
+        closeReviewConfirmation();
+        return;
+      }
+
       if (event.key === 'Escape' && modal.classList.contains('is-open')) {
         close();
       }

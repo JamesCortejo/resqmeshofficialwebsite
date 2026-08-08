@@ -5,7 +5,8 @@
     filter: 'all',
     editingRoomId: null,
     archiveTargetId: null,
-    pendingLogoSrc: ''
+    pendingLogoSrc: '',
+    formSubmitting: false
   };
 
   const dom = {
@@ -13,7 +14,7 @@
     tableBody: document.getElementById('departmentChatsTableBody'),
     emptyState: document.getElementById('departmentChatsEmpty'),
     searchInput: document.getElementById('departmentChatsSearchInput'),
-    filterGroup: document.getElementById('departmentChatsFilterGroup'),
+    statusFilter: document.getElementById('departmentChatsStatusFilter'),
     openCreateButton: document.getElementById('openDepartmentChatCreateButton'),
     formModal: document.getElementById('departmentChatFormModal'),
     archiveModal: document.getElementById('departmentChatArchiveModal'),
@@ -34,6 +35,9 @@
     colorInput: document.getElementById('departmentChatColorInput'),
     readOnlyInput: document.getElementById('departmentChatReadOnlyInput'),
     submitButton: document.getElementById('departmentChatFormSubmitButton'),
+    saveConfirmModal: document.getElementById('departmentChatSaveConfirmModal'),
+    saveConfirmCopy: document.getElementById('departmentChatSaveConfirmCopy'),
+    confirmSaveButton: document.getElementById('confirmDepartmentChatSaveButton'),
     archiveCopy: document.getElementById('departmentChatArchiveCopy'),
     confirmArchiveButton: document.getElementById('confirmDepartmentChatArchiveButton')
   };
@@ -282,13 +286,6 @@
     `).join('');
   }
 
-  function syncFilterButtons() {
-    const buttons = dom.filterGroup.querySelectorAll('[data-chat-filter]');
-    buttons.forEach((button) => {
-      button.classList.toggle('is-active', button.getAttribute('data-chat-filter') === state.filter);
-    });
-  }
-
   async function loadRooms() {
     try {
       const payload = await adminFetch('/api/admin/online-chat/departments');
@@ -338,7 +335,33 @@
     dom.formModal.setAttribute('aria-hidden', 'true');
     state.editingRoomId = null;
     state.pendingLogoSrc = '';
+    closeSaveConfirm();
     setUploadProgress(null, '');
+  }
+
+  function openSaveConfirm() {
+    const roomName = dom.nameInput.value.trim();
+    const modeLabel = state.editingRoomId ? 'Save changes to' : 'Create';
+
+    if (dom.saveConfirmCopy) {
+      dom.saveConfirmCopy.textContent = `${modeLabel} ${roomName}?`;
+    }
+
+    if (dom.confirmSaveButton) {
+      dom.confirmSaveButton.textContent = state.editingRoomId ? 'Yes, Save Changes' : 'Yes, Save Room';
+    }
+
+    dom.saveConfirmModal.classList.add('is-open');
+    dom.saveConfirmModal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeSaveConfirm() {
+    if (!dom.saveConfirmModal) {
+      return;
+    }
+
+    dom.saveConfirmModal.classList.remove('is-open');
+    dom.saveConfirmModal.setAttribute('aria-hidden', 'true');
   }
 
   function openArchiveModal(room) {
@@ -379,8 +402,25 @@
       return;
     }
 
+    openSaveConfirm();
+  }
+
+  async function saveRoomAfterConfirm() {
+    if (state.formSubmitting) {
+      return;
+    }
+
+    if (!dom.nameInput.value.trim() || !dom.subtitleInput.value.trim() || !dom.rescuerAgencyInput.value) {
+      closeSaveConfirm();
+      showFeedback('Name, subtitle, and rescuer agency are required.', 'error');
+      return;
+    }
+
+    state.formSubmitting = true;
     dom.submitButton.disabled = true;
+    dom.confirmSaveButton.disabled = true;
     dom.submitButton.textContent = state.editingRoomId ? 'Saving...' : 'Creating...';
+    dom.confirmSaveButton.textContent = state.editingRoomId ? 'Saving...' : 'Creating...';
 
     try {
       const url = state.editingRoomId
@@ -419,13 +459,17 @@
       }
 
       showFeedback(payload.message || 'Department chat saved.');
+      closeSaveConfirm();
       closeFormModal();
       await loadRooms();
     } catch (error) {
       showFeedback(error.message || 'Unable to save department chat.', 'error');
     } finally {
+      state.formSubmitting = false;
       dom.submitButton.disabled = false;
+      dom.confirmSaveButton.disabled = false;
       dom.submitButton.textContent = state.editingRoomId ? 'Save Changes' : 'Save Room';
+      dom.confirmSaveButton.textContent = state.editingRoomId ? 'Yes, Save Changes' : 'Yes, Save Room';
       window.setTimeout(() => setUploadProgress(null, ''), 450);
     }
   }
@@ -457,6 +501,7 @@
   function bindEvents() {
     dom.openCreateButton.addEventListener('click', () => openFormModal('create'));
     dom.form.addEventListener('submit', handleFormSubmit);
+    dom.confirmSaveButton.addEventListener('click', saveRoomAfterConfirm);
     dom.confirmArchiveButton.addEventListener('click', handleArchiveConfirm);
 
     dom.nameInput.addEventListener('input', () => syncLogoPreview(dom.nameInput.value, state.pendingLogoSrc));
@@ -481,6 +526,10 @@
 
     document.querySelectorAll('[data-close-department-chat-form]').forEach((button) => {
       button.addEventListener('click', closeFormModal);
+    });
+
+    document.querySelectorAll('[data-close-department-chat-save-confirm]').forEach((button) => {
+      button.addEventListener('click', closeSaveConfirm);
     });
 
     document.querySelectorAll('[data-close-department-chat-archive]').forEach((button) => {
@@ -513,20 +562,12 @@
       renderTable();
     });
 
-    dom.filterGroup.addEventListener('click', (event) => {
-      const button = event.target.closest('[data-chat-filter]');
-
-      if (!button) {
-        return;
-      }
-
-      state.filter = button.getAttribute('data-chat-filter');
-      syncFilterButtons();
+    dom.statusFilter.addEventListener('change', () => {
+      state.filter = dom.statusFilter.value || 'all';
       renderTable();
     });
   }
 
   bindEvents();
-  syncFilterButtons();
   loadRooms();
 }());

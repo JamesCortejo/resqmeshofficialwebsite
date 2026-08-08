@@ -243,6 +243,14 @@
   z-index: 1200 !important;
 }
 
+.rescuer-confirm-modal,
+.rescue-team-confirm-modal,
+.distress-signal-confirm-modal,
+.department-chat-confirm-modal,
+.reports-password-modal {
+  z-index: 1600 !important;
+}
+
 .admin-review-toast {
   z-index: 1300 !important;
 }

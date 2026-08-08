@@ -398,7 +398,15 @@ async function setDeploymentStatus(id, status) {
   }
 
   const timestamp = new Date().toISOString();
-  await updateDeploymentStatus(id, status, timestamp);
+  const updateResult = await updateDeploymentStatus(id, status, timestamp);
+
+  if (!updateResult?.changes) {
+    const latestDeployment = await getDeploymentById(id);
+    const error = new Error(`Deployment is already ${latestDeployment?.status || 'closed'}.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
   const updated = await getDeploymentById(id);
 
   if (status === DEPLOYMENT_STATUSES.CANCELED) {

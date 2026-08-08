@@ -262,6 +262,39 @@
     </section>
   </div>
 
+  <div class="account-confirm-modal" id="accountConfirmModal" aria-hidden="true">
+    <div class="account-confirm-backdrop" data-close-account-confirm></div>
+    <section class="account-confirm-card" role="dialog" aria-modal="true" aria-labelledby="accountConfirmTitle">
+      <button type="button" class="account-confirm-close" aria-label="Close confirmation" data-close-account-confirm>
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <span class="account-confirm-kicker" id="accountConfirmKicker">Account action</span>
+      <div class="account-confirm-icon" id="accountConfirmIcon">
+        <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+      </div>
+      <div class="account-confirm-copy">
+        <h3 id="accountConfirmTitle">Confirm account action</h3>
+        <p id="accountConfirmDescription">Review this account action before continuing.</p>
+      </div>
+      <label class="account-confirm-reason" id="accountConfirmReasonField" hidden>
+        <span id="accountConfirmReasonLabel">Reason</span>
+        <textarea id="accountConfirmReasonInput" rows="3" placeholder="Enter reason"></textarea>
+      </label>
+      <label class="account-confirm-password" id="accountConfirmPasswordField" hidden>
+        <span>Admin password</span>
+        <input type="password" id="accountConfirmPasswordInput" autocomplete="current-password" placeholder="Enter your admin password">
+      </label>
+      <div class="account-confirm-message" id="accountConfirmMessage" role="status" hidden></div>
+      <div class="account-confirm-actions">
+        <button type="button" class="admin-secondary-button" data-close-account-confirm>Cancel</button>
+        <button type="button" class="account-confirm-primary-button" id="accountConfirmButton">
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
+          <span>Confirm</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
   <div class="admin-review-toast" id="adminReviewToast" role="status" aria-live="polite" aria-hidden="true">
     <span class="admin-review-toast-icon" id="adminReviewToastIcon">
       <i class="fa-solid fa-check" aria-hidden="true"></i>

@@ -74,6 +74,7 @@ function findRescuerAuthCandidateByCode(rescuerCode) {
       r.access_status AS accessStatus,
       r.archived_at AS archivedAt,
       r.team_id AS teamId,
+      r.previous_team_id AS previousTeamId,
       r.created_at AS createdAt,
       r.updated_at AS updatedAt,
       t.team_code AS teamCode,
@@ -101,6 +102,7 @@ function findRescuerSessionPrincipalById(id) {
       r.access_status AS accessStatus,
       r.archived_at AS archivedAt,
       r.team_id AS teamId,
+      r.previous_team_id AS previousTeamId,
       r.created_at AS createdAt,
       r.updated_at AS updatedAt,
       t.team_code AS teamCode,
@@ -128,6 +130,7 @@ function getRescuerById(id) {
       r.access_status AS accessStatus,
       r.archived_at AS archivedAt,
       r.team_id AS teamId,
+      r.previous_team_id AS previousTeamId,
       r.created_at AS createdAt,
       r.updated_at AS updatedAt,
       t.team_code AS teamCode,
@@ -155,6 +158,7 @@ function listRescuers() {
       r.access_status AS accessStatus,
       r.archived_at AS archivedAt,
       r.team_id AS teamId,
+      r.previous_team_id AS previousTeamId,
       r.created_at AS createdAt,
       r.updated_at AS updatedAt,
       t.team_code AS teamCode,
@@ -166,15 +170,108 @@ function listRescuers() {
   `);
 }
 
-function updateRescuerAccessStatus(id, accessStatus, archivedAt, expectedCurrentStatus) {
-  return run(`
-    UPDATE rescuers
-    SET
-      access_status = ?,
-      archived_at = ?,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ? AND access_status = ?
-  `, [accessStatus, archivedAt, id, expectedCurrentStatus]);
+async function archiveRescuerAccess(id, archivedAt, expectedCurrentStatus) {
+  return transaction(async (trx) => {
+    const current = await trx.get(`
+      SELECT
+        id,
+        team_id AS "teamId"
+      FROM rescuers
+      WHERE id = ? AND access_status = ?
+      FOR UPDATE
+    `, [id, expectedCurrentStatus]);
+
+    if (!current) {
+      return { changes: 0, previousTeamId: null };
+    }
+
+    const previousTeamId = current.teamId || null;
+    const result = await trx.run(`
+      UPDATE rescuers
+      SET
+        access_status = 'archived',
+        archived_at = ?,
+        status = 'unavailable',
+        previous_team_id = COALESCE(team_id, previous_team_id),
+        team_id = NULL,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND access_status = ?
+    `, [archivedAt, id, expectedCurrentStatus]);
+
+    return {
+      changes: result.changes,
+      previousTeamId
+    };
+  });
+}
+
+async function activateRescuerAccess(id, expectedCurrentStatus, maxTeamMembers = 5) {
+  return transaction(async (trx) => {
+    const current = await trx.get(`
+      SELECT
+        id,
+        previous_team_id AS "previousTeamId"
+      FROM rescuers
+      WHERE id = ? AND access_status = ?
+      FOR UPDATE
+    `, [id, expectedCurrentStatus]);
+
+    if (!current) {
+      return {
+        changes: 0,
+        previousTeamId: null,
+        restoredTeamId: null,
+        restoreSkipped: false
+      };
+    }
+
+    let restoredTeamId = null;
+    let restoreSkipped = false;
+
+    if (current.previousTeamId) {
+      const teamCount = await trx.get(`
+        SELECT COUNT(*) AS count
+        FROM rescuers
+        WHERE team_id = ? AND access_status = 'active'
+      `, [current.previousTeamId]);
+
+      if (Number(teamCount?.count || 0) < maxTeamMembers) {
+        restoredTeamId = current.previousTeamId;
+      } else {
+        restoreSkipped = true;
+      }
+    }
+
+    const result = restoredTeamId
+      ? await trx.run(`
+        UPDATE rescuers
+        SET
+          access_status = 'active',
+          archived_at = NULL,
+          status = 'available',
+          team_id = ?,
+          previous_team_id = NULL,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND access_status = ?
+      `, [restoredTeamId, id, expectedCurrentStatus])
+      : await trx.run(`
+        UPDATE rescuers
+        SET
+          access_status = 'active',
+          archived_at = NULL,
+          status = 'available',
+          team_id = NULL,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND access_status = ?
+      `, [id, expectedCurrentStatus]);
+
+    return {
+      changes: result.changes,
+      previousTeamId: current.previousTeamId || null,
+      restoredTeamId,
+      restoreSkipped
+    };
+  });
 }
 
 function updateRescuerStatus(id, status, expectedCurrentStatus) {
@@ -207,6 +304,7 @@ function listRescueTeams() {
       created_at AS createdAt,
       updated_at AS updatedAt
     FROM rescue_teams
+    WHERE status = 'active'
     ORDER BY name ASC, id ASC
   `);
 }
@@ -234,7 +332,8 @@ module.exports = {
   findRescuerSessionPrincipalById,
   getRescuerById,
   listRescuers,
-  updateRescuerAccessStatus,
+  archiveRescuerAccess,
+  activateRescuerAccess,
   updateRescuerStatus,
   updateRescuerPassword,
   listRescueTeams,

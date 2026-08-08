@@ -12,9 +12,13 @@ function hashPassword(password) {
 }
 
 function verifyPassword(password, storedHash) {
+  if (!storedHash || typeof storedHash !== 'string') {
+    return false;
+  }
+
   const [scheme, digest, iterations, saltBase64, hashBase64] = storedHash.split(':');
 
-  if (scheme !== 'pbkdf2') {
+  if (scheme !== 'pbkdf2' || !digest || !iterations || !saltBase64 || !hashBase64) {
     return false;
   }
 

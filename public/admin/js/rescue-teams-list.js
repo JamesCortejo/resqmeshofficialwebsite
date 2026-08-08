@@ -56,7 +56,7 @@
             ? 'Loading rescue teams...'
             : state.teams.length === 0
               ? 'No rescue teams added yet.'
-              : 'No rescue teams match the current search.';
+              : 'No rescue teams match the current filters.';
 
           if (dom.rescueTeamsPagination) {
             dom.rescueTeamsPagination.hidden = true;
@@ -89,8 +89,18 @@
 
       function applySearchFilter() {
         const query = dom.rescueTeamsSearchInput ? dom.rescueTeamsSearchInput.value.trim().toLowerCase() : '';
+        const statusFilter = dom.rescueTeamsStatusFilter
+          ? String(dom.rescueTeamsStatusFilter.value || 'all').toLowerCase()
+          : 'all';
 
         state.filteredTeams = state.teams.filter((team) => {
+          const statusMatches = statusFilter === 'all'
+            || String(team.status || '').toLowerCase() === statusFilter;
+
+          if (!statusMatches) {
+            return false;
+          }
+
           if (!query) {
             return true;
           }
@@ -138,6 +148,13 @@
 
       if (dom.rescueTeamsSearchInput) {
         dom.rescueTeamsSearchInput.addEventListener('input', () => {
+          currentPage = 1;
+          applySearchFilter();
+        });
+      }
+
+      if (dom.rescueTeamsStatusFilter) {
+        dom.rescueTeamsStatusFilter.addEventListener('change', () => {
           currentPage = 1;
           applySearchFilter();
         });

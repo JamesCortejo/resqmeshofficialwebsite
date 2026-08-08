@@ -437,6 +437,7 @@ async function initializeDatabase() {
       access_status TEXT NOT NULL DEFAULT 'active' CHECK (access_status IN ('active', 'archived')),
       archived_at TIMESTAMPTZ,
       team_id INTEGER REFERENCES rescue_teams(id),
+      previous_team_id INTEGER REFERENCES rescue_teams(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -942,6 +943,15 @@ async function initializeDatabase() {
       CHECK (reader_type IN ('civilian', 'admin', 'rescuer'));
     ALTER TABLE online_chat_moderation_events
       ADD COLUMN IF NOT EXISTS rescuer_id INTEGER REFERENCES rescuers(id) ON DELETE SET NULL;
+    ALTER TABLE rescuers
+      ADD COLUMN IF NOT EXISTS previous_team_id INTEGER REFERENCES rescue_teams(id) ON DELETE SET NULL;
+    UPDATE rescuers
+    SET
+      previous_team_id = COALESCE(previous_team_id, team_id),
+      team_id = NULL,
+      status = 'unavailable',
+      updated_at = CURRENT_TIMESTAMP
+    WHERE access_status = 'archived' AND team_id IS NOT NULL;
 
     CREATE INDEX IF NOT EXISTS idx_users_status ON users (status);
     CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);
@@ -949,6 +959,7 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_rescuers_access_status ON rescuers (access_status);
     CREATE INDEX IF NOT EXISTS idx_rescuers_created_at ON rescuers (created_at);
     CREATE INDEX IF NOT EXISTS idx_rescuers_team_id ON rescuers (team_id);
+    CREATE INDEX IF NOT EXISTS idx_rescuers_previous_team_id ON rescuers (previous_team_id);
     CREATE INDEX IF NOT EXISTS idx_rescue_teams_status ON rescue_teams (status);
     CREATE INDEX IF NOT EXISTS idx_rescue_teams_name ON rescue_teams (name);
     CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications (created_at);

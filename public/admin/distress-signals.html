@@ -138,13 +138,16 @@
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
             <input type="search" id="distressSignalsSearchInput" placeholder="Search distress code, civilian, reason, location, or team">
           </label>
-          <div class="distress-signals-filters" id="distressSignalsFilterGroup">
-            <button type="button" class="admin-secondary-button distress-signals-filter-button is-active" data-distress-filter="all">All distress</button>
-            <button type="button" class="admin-secondary-button distress-signals-filter-button" data-distress-filter="unassigned">Unassigned</button>
-            <button type="button" class="admin-secondary-button distress-signals-filter-button" data-distress-filter="deployed">Deployed</button>
-            <button type="button" class="admin-secondary-button distress-signals-filter-button" data-distress-filter="canceled">Canceled</button>
-            <button type="button" class="admin-secondary-button distress-signals-filter-button" data-distress-filter="accomplished">Accomplished</button>
-          </div>
+          <label class="distress-signals-status-filter" for="distressSignalsStatusFilter">
+            <span>Status</span>
+            <select id="distressSignalsStatusFilter">
+              <option value="all">All</option>
+              <option value="unassigned">Unassigned</option>
+              <option value="deployed">Deployed</option>
+              <option value="canceled">Canceled</option>
+              <option value="accomplished">Accomplished</option>
+            </select>
+          </label>
         </div>
 
         <div class="distress-signals-feedback" id="distressSignalsFeedback" role="status" hidden></div>
@@ -208,6 +211,48 @@
           <button type="button" class="distress-signal-primary-button" id="deployDistressTeamButton">Deploy Team</button>
         </div>
       </footer>
+    </section>
+  </div>
+
+  <div class="distress-signal-confirm-modal" id="distressSignalDeployConfirmModal" aria-hidden="true">
+    <div class="distress-signal-confirm-backdrop" data-close-deploy-confirm></div>
+    <section class="distress-signal-confirm-card" role="dialog" aria-modal="true" aria-labelledby="distressSignalDeployConfirmTitle">
+      <button type="button" class="distress-signal-confirm-close" aria-label="Cancel deployment confirmation" data-close-deploy-confirm>
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <span class="distress-signal-confirm-icon">
+        <i class="fa-solid fa-truck-medical" aria-hidden="true"></i>
+      </span>
+      <div class="distress-signal-confirm-copy">
+        <span>Confirm Deployment</span>
+        <h3 id="distressSignalDeployConfirmTitle">Deploy rescue team?</h3>
+        <p id="distressSignalDeployConfirmMessage">Confirm this rescue team assignment before dispatching responders.</p>
+      </div>
+      <div class="distress-signal-confirm-actions">
+        <button type="button" class="distress-signal-confirm-cancel" data-close-deploy-confirm>Cancel</button>
+        <button type="button" class="distress-signal-confirm-submit" id="confirmDeployDistressTeamButton">Yes, Deploy Team</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="distress-signal-confirm-modal" id="distressSignalCancelConfirmModal" aria-hidden="true">
+    <div class="distress-signal-confirm-backdrop" data-close-cancel-confirm></div>
+    <section class="distress-signal-confirm-card" role="dialog" aria-modal="true" aria-labelledby="distressSignalCancelConfirmTitle">
+      <button type="button" class="distress-signal-confirm-close" aria-label="Cancel deployment cancel confirmation" data-close-cancel-confirm>
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <span class="distress-signal-confirm-icon" data-tone="danger">
+        <i class="fa-solid fa-ban" aria-hidden="true"></i>
+      </span>
+      <div class="distress-signal-confirm-copy">
+        <span>Confirm Cancel</span>
+        <h3 id="distressSignalCancelConfirmTitle">Cancel deployment?</h3>
+        <p id="distressSignalCancelConfirmMessage">This will cancel the active rescue deployment for this emergency.</p>
+      </div>
+      <div class="distress-signal-confirm-actions">
+        <button type="button" class="distress-signal-confirm-cancel" data-close-cancel-confirm>Keep Deployment</button>
+        <button type="button" class="distress-signal-confirm-submit" id="confirmCancelDeploymentButton">Yes, Cancel Deployment</button>
+      </div>
     </section>
   </div>
 

@@ -108,6 +108,31 @@ function listDeploymentMembers(deploymentId) {
 
 async function createDeployment(deployment, members) {
   return transaction(async (trx) => {
+    const existingActiveDeployment = await trx.get(`
+      SELECT id
+      FROM distress_deployments
+      WHERE status = 'deployed'
+        AND distress_source = ?
+        AND (
+          (? = 'online' AND online_distress_signal_id = ?)
+          OR
+          (? = 'mesh' AND mesh_distress_signal_id = ?)
+        )
+      LIMIT 1
+    `, [
+      deployment.distressSource || 'mesh',
+      deployment.distressSource || 'mesh',
+      deployment.onlineDistressSignalId ?? null,
+      deployment.distressSource || 'mesh',
+      deployment.meshDistressSignalId ?? null
+    ]);
+
+    if (existingActiveDeployment) {
+      const error = new Error('This distress signal already has an active deployed team.');
+      error.statusCode = 409;
+      throw error;
+    }
+
     const teamUpdate = await trx.run(`
       UPDATE rescue_teams
       SET
@@ -199,7 +224,12 @@ async function updateDeploymentStatus(id, status, timestamp) {
         accomplished_at = CASE WHEN ? = 'accomplished' THEN ? ELSE accomplished_at END,
         updated_at = ?
       WHERE id = ?
+        AND status = 'deployed'
     `, [status, status, timestamp, status, timestamp, timestamp, id]);
+
+    if (!result.changes) {
+      return result;
+    }
 
     const deployment = await trx.get(`
       SELECT team_id AS teamId

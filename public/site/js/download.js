@@ -1,7 +1,7 @@
 (function initDownloadGuard() {
   const COOLDOWN_MS = 10000;
   const TOKEN_TIMEOUT_MS = 15000;
-  const APK_FILENAME = 'ResQMesh-V1.3.apk';
+  const APK_FILENAME = 'ResQMesh-V1.4.apk';
   const buttons = Array.from(document.querySelectorAll('[data-secure-download]'));
   const status = document.getElementById('downloadSecurityStatus');
   const versionTarget = document.querySelector('[data-app-version]');

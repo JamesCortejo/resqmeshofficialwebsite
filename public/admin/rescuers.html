@@ -128,10 +128,15 @@
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
             <input type="search" id="rescuersSearchInput" placeholder="Search rescuer, phone, team, or status">
           </label>
-          <button type="button" class="admin-secondary-button rescuers-status-filter-button" id="toggleRescuerStatusFilterButton" data-access-filter="active">
-            <i class="fa-solid fa-user-check" aria-hidden="true"></i>
-            <span id="rescuerStatusFilterLabel">Active rescuers</span>
-          </button>
+          <label class="rescuers-status-filter" for="rescuersStatusFilter">
+            <span>Status</span>
+            <select id="rescuersStatusFilter">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="dispatched">Dispatched</option>
+              <option value="archived">Archived</option>
+            </select>
+          </label>
         </div>
 
         <div class="rescuers-feedback" id="rescuersFeedback" role="status" hidden></div>
@@ -220,7 +225,6 @@
               <span>Status</span>
               <select id="rescuerStatusSelect" name="status" required>
                 <option value="available" selected>Available</option>
-                <option value="dispatched">Dispatched</option>
                 <option value="unavailable">Unavailable</option>
               </select>
             </label>
@@ -240,7 +244,7 @@
             </label>
             <label class="rescuer-field">
               <span>Confirm password</span>
-              <input type="password" id="rescuerConfirmPasswordInput" name="confirmPassword" placeholder="Confirm password" required>
+              <input type="password" id="rescuerCreateConfirmPasswordInput" name="confirmPassword" placeholder="Confirm password" required>
             </label>
           </div>
         </form>
@@ -282,6 +286,37 @@
             <span>Archive Rescuer</span>
           </button>
         </div>
+      </footer>
+    </section>
+  </div>
+
+  <div class="rescuer-confirm-modal" id="rescuerConfirmModal" aria-hidden="true">
+    <div class="rescuer-confirm-backdrop" data-close-rescuer-confirm></div>
+    <section class="rescuer-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="rescuerConfirmTitle">
+      <header class="rescuer-confirm-header">
+        <div>
+          <span class="rescuer-confirm-kicker" id="rescuerConfirmKicker">Confirmation</span>
+          <h2 id="rescuerConfirmTitle">Confirm action</h2>
+        </div>
+        <button type="button" class="rescuer-confirm-close" aria-label="Close confirmation dialog" data-close-rescuer-confirm>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+      <div class="rescuer-confirm-body">
+        <p class="rescuer-confirm-copy" id="rescuerConfirmCopy">Review this action before continuing.</p>
+        <div class="rescuer-confirm-summary" id="rescuerConfirmSummary" hidden></div>
+        <label class="rescuer-field rescuer-confirm-password-field" id="rescuerConfirmPasswordField" hidden>
+          <span>Admin password</span>
+          <input type="password" id="rescuerConfirmPasswordInput" autocomplete="current-password" placeholder="Enter current admin password">
+        </label>
+        <div class="rescuer-confirm-message" id="rescuerConfirmMessage" role="status" hidden></div>
+      </div>
+      <footer class="rescuer-confirm-actions">
+        <button type="button" class="rescuer-confirm-cancel" data-close-rescuer-confirm>Cancel</button>
+        <button type="button" class="rescuer-confirm-submit" id="rescuerConfirmButton">
+          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+          <span>Confirm</span>
+        </button>
       </footer>
     </section>
   </div>

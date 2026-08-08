@@ -78,7 +78,9 @@
 
 .devices-toolbar {
   display: grid;
-  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 230px);
+  align-items: stretch;
+  gap: 0.85rem;
 }
 
 .devices-search {
@@ -110,6 +112,40 @@
 }
 
 .devices-search:focus-within {
+  border-color: rgba(231, 75, 50, 0.46);
+  box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
+}
+
+.devices-status-filter {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  padding: 0 0.85rem;
+}
+
+.devices-status-filter span {
+  color: var(--admin-muted);
+  font: 900 0.76rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.devices-status-filter select {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--admin-ink);
+  font: 800 0.92rem 'Inter', system-ui, -apple-system, sans-serif;
+  outline: none;
+  padding: 0.75rem 0;
+}
+
+.devices-status-filter:focus-within {
   border-color: rgba(231, 75, 50, 0.46);
   box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
 }
@@ -159,13 +195,6 @@
 .admin-secondary-button:disabled {
   cursor: wait;
   opacity: 0.65;
-}
-
-.admin-secondary-button.devices-filter-button.is-active {
-  background: var(--admin-soft);
-  border-color: rgba(231, 75, 50, 0.35);
-  color: var(--admin-primary-hover);
-  box-shadow: 0 10px 20px rgba(231, 75, 50, 0.1);
 }
 
 .devices-feedback {
@@ -811,9 +840,8 @@
 }
 
 @media (max-width: 720px) {
-  .devices-status-filters {
-    overflow-x: auto;
-    padding-bottom: 0.2rem;
+  .devices-toolbar {
+    grid-template-columns: 1fr;
   }
 
   .devices-pagination {

@@ -135,18 +135,11 @@
         }
       }
 
-      function updateFilterButtons() {
-        if (!dom.devicesStatusFilters) {
-          return;
-        }
-
-        dom.devicesStatusFilters.querySelectorAll('[data-device-filter]').forEach((button) => {
-          button.classList.toggle('is-active', button.dataset.deviceFilter === state.statusFilter);
-        });
-      }
-
       function applyFilters() {
         const query = dom.devicesSearchInput ? dom.devicesSearchInput.value.trim().toLowerCase() : '';
+        state.statusFilter = dom.devicesStatusFilter
+          ? String(dom.devicesStatusFilter.value || 'all')
+          : state.statusFilter;
 
         state.filteredDevices = state.devices.filter((device) => {
           if (state.statusFilter !== 'all' && device.connectivityStatus !== state.statusFilter) {
@@ -225,16 +218,15 @@
         });
       }
 
-      if (dom.devicesStatusFilters) {
-        dom.devicesStatusFilters.addEventListener('click', (event) => {
-          const button = event.target.closest('[data-device-filter]');
-          if (!button || !constants.FILTER_OPTIONS.includes(button.dataset.deviceFilter)) {
+      if (dom.devicesStatusFilter) {
+        dom.devicesStatusFilter.addEventListener('change', () => {
+          const nextFilter = dom.devicesStatusFilter.value;
+          if (!constants.FILTER_OPTIONS.includes(nextFilter)) {
             return;
           }
 
-          state.statusFilter = button.dataset.deviceFilter;
+          state.statusFilter = nextFilter;
           currentPage = 1;
-          updateFilterButtons();
           applyFilters();
         });
       }

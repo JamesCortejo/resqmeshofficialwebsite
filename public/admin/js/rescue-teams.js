@@ -7,7 +7,11 @@
 
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      if (context.dom.rescueTeamViewModal?.classList.contains('is-open')) {
+      if (context.dom.rescueTeamSaveConfirmModal?.classList.contains('is-open')) {
+        context.view?.closeSaveConfirm?.();
+      } else if (context.dom.rescueTeamCreateConfirmModal?.classList.contains('is-open')) {
+        context.create?.closeCreateConfirm?.();
+      } else if (context.dom.rescueTeamViewModal?.classList.contains('is-open')) {
         context.ui.closeViewModal();
       } else if (context.dom.rescueTeamModal?.classList.contains('is-open')) {
         context.ui.closeCreateModal();

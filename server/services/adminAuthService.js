@@ -41,11 +41,17 @@ module.exports = {
   toAdminSessionPayload,
   verifyAdminPassword: async function verifyAdminPassword(adminUserId, password) {
     const normalizedPassword = String(password || '');
+    const normalizedAdminUserId = Number.parseInt(String(adminUserId || ''), 10);
+
+    if (!Number.isInteger(normalizedAdminUserId) || normalizedAdminUserId <= 0) {
+      return false;
+    }
+
     if (!normalizedPassword) {
       return false;
     }
 
-    const admin = await findAdminCredentialById(adminUserId);
+    const admin = await findAdminCredentialById(normalizedAdminUserId);
     if (!admin || admin.status !== USER_STATUSES.ADMIN) {
       return false;
     }

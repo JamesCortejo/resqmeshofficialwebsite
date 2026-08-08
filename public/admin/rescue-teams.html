@@ -123,10 +123,21 @@
           </button>
         </div>
 
-        <label class="rescue-teams-search" for="rescueTeamsSearchInput">
-          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-          <input type="search" id="rescueTeamsSearchInput" placeholder="Search team code, name, agency, or status">
-        </label>
+        <div class="rescue-teams-controls">
+          <label class="rescue-teams-search" for="rescueTeamsSearchInput">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="rescueTeamsSearchInput" placeholder="Search team code, name, agency, or status">
+          </label>
+          <label class="rescue-teams-status-filter" for="rescueTeamsStatusFilter">
+            <span>Status</span>
+            <select id="rescueTeamsStatusFilter">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="dispatched">Dispatched</option>
+            </select>
+          </label>
+        </div>
 
         <div class="rescue-teams-feedback" id="rescueTeamsFeedback" role="status" hidden></div>
 
@@ -200,7 +211,6 @@
               <select id="rescueTeamStatusSelect" name="status" required>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
-                <option value="dispatched">Dispatched</option>
               </select>
             </label>
           </div>
@@ -238,6 +248,27 @@
     </section>
   </div>
 
+  <div class="rescue-team-confirm-modal" id="rescueTeamCreateConfirmModal" aria-hidden="true">
+    <div class="rescue-team-confirm-backdrop" data-close-rescue-team-confirm></div>
+    <section class="rescue-team-confirm-card" role="dialog" aria-modal="true" aria-labelledby="rescueTeamCreateConfirmTitle">
+      <button type="button" class="rescue-team-confirm-close" aria-label="Cancel rescue team confirmation" data-close-rescue-team-confirm>
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <span class="rescue-team-confirm-icon">
+        <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+      </span>
+      <div class="rescue-team-confirm-copy">
+        <span>Confirm Team</span>
+        <h3 id="rescueTeamCreateConfirmTitle">Add rescue team?</h3>
+        <p id="rescueTeamCreateConfirmMessage">Confirm this rescue team before saving it to the system.</p>
+      </div>
+      <div class="rescue-team-confirm-actions">
+        <button type="button" class="rescue-team-confirm-cancel" data-close-rescue-team-confirm>Cancel</button>
+        <button type="button" class="rescue-team-confirm-submit" id="confirmCreateRescueTeamButton">Yes, Add Team</button>
+      </div>
+    </section>
+  </div>
+
   <div class="rescue-team-view-modal" id="rescueTeamViewModal" aria-hidden="true">
     <div class="rescue-team-view-modal-backdrop" data-close-rescue-team-view-modal></div>
     <section class="rescue-team-view-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescueTeamViewModalTitle">
@@ -265,6 +296,27 @@
           </button>
         </div>
       </footer>
+    </section>
+  </div>
+
+  <div class="rescue-team-confirm-modal" id="rescueTeamSaveConfirmModal" aria-hidden="true">
+    <div class="rescue-team-confirm-backdrop" data-close-rescue-team-save-confirm></div>
+    <section class="rescue-team-confirm-card" role="dialog" aria-modal="true" aria-labelledby="rescueTeamSaveConfirmTitle">
+      <button type="button" class="rescue-team-confirm-close" aria-label="Cancel save confirmation" data-close-rescue-team-save-confirm>
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <span class="rescue-team-confirm-icon">
+        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+      </span>
+      <div class="rescue-team-confirm-copy">
+        <span>Confirm Changes</span>
+        <h3 id="rescueTeamSaveConfirmTitle">Save team changes?</h3>
+        <p id="rescueTeamSaveConfirmMessage">Review the team details before saving.</p>
+      </div>
+      <div class="rescue-team-confirm-actions">
+        <button type="button" class="rescue-team-confirm-cancel" data-close-rescue-team-save-confirm>Cancel</button>
+        <button type="button" class="rescue-team-confirm-submit" id="confirmSaveRescueTeamButton">Yes, Save Changes</button>
+      </div>
     </section>
   </div>
 

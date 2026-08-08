@@ -14,6 +14,7 @@ const {
   notifyAccountSuspended,
   notifyAccountActivated
 } = require('./notificationService');
+const { verifyAdminPassword } = require('./adminAuthService');
 const {
   listPendingAccounts,
   listActiveAccounts,
@@ -309,10 +310,23 @@ async function updateAccountReviewStatus(id, status, reason = '', actorAdminUser
   throw error;
 }
 
-async function updateAccountAccessReviewStatus(id, status, reason = '', actorAdminUserId = null) {
+async function updateAccountAccessReviewStatus(id, status, reason = '', actorAdminUserId = null, adminPassword = '') {
   if (![USER_STATUSES.APPROVED, USER_STATUSES.SUSPENDED].includes(status)) {
     const error = new Error('Status must be approved or suspended.');
     error.statusCode = 400;
+    throw error;
+  }
+
+  if (!String(adminPassword || '').trim()) {
+    const error = new Error('Confirm your admin password before changing account access.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const passwordIsValid = await verifyAdminPassword(actorAdminUserId, adminPassword);
+  if (!passwordIsValid) {
+    const error = new Error('Admin password confirmation failed.');
+    error.statusCode = 403;
     throw error;
   }
 

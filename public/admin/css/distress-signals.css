@@ -51,14 +51,13 @@
 }
 
 .distress-signals-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 260px);
+  align-items: stretch;
+  gap: 0.85rem;
 }
 
 .distress-signals-search {
-  flex: 1 1 340px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -87,6 +86,40 @@
 }
 
 .distress-signals-search:focus-within {
+  border-color: rgba(231, 75, 50, 0.46);
+  box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
+}
+
+.distress-signals-status-filter {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  padding: 0 0.85rem;
+}
+
+.distress-signals-status-filter span {
+  color: var(--admin-muted);
+  font: 900 0.76rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.distress-signals-status-filter select {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--admin-ink);
+  font: 800 0.92rem 'Inter', system-ui, -apple-system, sans-serif;
+  outline: none;
+  padding: 0.75rem 0;
+}
+
+.distress-signals-status-filter:focus-within {
   border-color: rgba(231, 75, 50, 0.46);
   box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
 }
@@ -768,6 +801,159 @@
   font: 700 0.8rem/1.4 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+#distressSignalStatusBlock {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+#distressSignalStatusBlock h3 {
+  margin: 0;
+}
+
+#distressSignalStatusBlock > p:first-of-type {
+  margin: 0;
+}
+
+#distressSignalStatusBlock .distress-signals-muted-text {
+  display: grid;
+  gap: 0.18rem;
+  min-height: 46px;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(220, 227, 234, 0.8);
+  border-radius: var(--admin-radius-md);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--admin-ink);
+  font: 800 0.9rem/1.35 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.distress-signal-deployment-card > div:not(#distressSignalStatusBlock) {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.distress-signal-deployment-card > div:not(#distressSignalStatusBlock) > h3 {
+  margin: 0;
+}
+
+.distress-signal-assigned-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.distress-signal-assigned-summary > div {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 62px;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(220, 227, 234, 0.9);
+  border-radius: var(--admin-radius-md);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.distress-signal-assigned-summary span {
+  color: var(--admin-muted);
+  font: 900 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.distress-signal-assigned-summary strong {
+  color: var(--admin-ink);
+  font: 900 0.98rem/1.25 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.distress-signal-team-search-note {
+  display: none;
+}
+
+.distress-signal-team-option {
+  border: 1px solid rgba(220, 227, 234, 0.92);
+  border-radius: var(--admin-radius-lg);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.distress-signal-team-option:has(.distress-signal-team-button.is-selected) {
+  border-color: rgba(231, 75, 50, 0.42);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 242, 238, 0.98));
+}
+
+.distress-signal-team-option .distress-signal-team-header {
+  align-items: center;
+}
+
+.distress-signal-team-option .distress-signal-team-meta {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.distress-signal-team-option .distress-signal-team-roster,
+.distress-signal-team-option .distress-signal-team-footnote {
+  display: none;
+}
+
+.distress-signal-team-footer {
+  justify-content: flex-end;
+}
+
+.distress-signal-team-button {
+  align-items: center;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: 900 0.82rem 'Inter', system-ui, -apple-system, sans-serif;
+  gap: 0.4rem;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0.55rem 0.9rem;
+}
+
+.distress-signal-team-button:hover:not(:disabled) {
+  border-color: rgba(231, 75, 50, 0.4);
+  color: var(--admin-primary-hover);
+}
+
+.distress-signal-team-button.is-selected {
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: #ffffff;
+}
+
+.distress-signal-team-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+#distressSignalLeaderGrid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  max-height: 11rem;
+}
+
+#distressSignalLeaderGrid .distress-signal-team-button {
+  border-radius: var(--admin-radius-md);
+  justify-content: flex-start;
+  min-height: 48px;
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  width: 100%;
+}
+
+#distressSignalLeaderGrid .distress-signal-team-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .distress-signal-secondary-button,
 .distress-signal-primary-button,
 .distress-signal-close-button {
@@ -809,6 +995,132 @@
 
 .distress-signal-action-message[data-tone="error"] {
   color: #9f1f1f;
+}
+
+.distress-signal-confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.distress-signal-confirm-modal.is-open {
+  display: flex;
+}
+
+.distress-signal-confirm-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: rgba(15, 23, 42, 0.34);
+  backdrop-filter: blur(8px);
+}
+
+.distress-signal-confirm-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1rem;
+  width: min(430px, calc(100vw - 2rem));
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: calc(var(--admin-radius-lg) + 4px);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 247, 244, 0.98));
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
+  padding: 1.35rem;
+}
+
+.distress-signal-confirm-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 1px solid rgba(220, 227, 234, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--admin-muted);
+  cursor: pointer;
+}
+
+.distress-signal-confirm-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  background: rgba(231, 75, 50, 0.1);
+  color: var(--admin-primary);
+  font-size: 1.2rem;
+}
+
+.distress-signal-confirm-icon[data-tone="danger"] {
+  background: rgba(159, 31, 31, 0.1);
+  color: #9f1f1f;
+}
+
+.distress-signal-confirm-copy {
+  display: grid;
+  gap: 0.35rem;
+  padding-right: 2.4rem;
+}
+
+.distress-signal-confirm-copy span {
+  color: var(--admin-primary);
+  font: 900 0.78rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.distress-signal-confirm-copy h3 {
+  margin: 0;
+  color: var(--admin-ink);
+  font: 900 1.45rem/1.15 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.distress-signal-confirm-copy p {
+  margin: 0;
+  color: var(--admin-muted);
+  font: 750 0.96rem/1.45 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.distress-signal-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 0.75rem;
+}
+
+.distress-signal-confirm-cancel,
+.distress-signal-confirm-submit {
+  min-height: 44px;
+  border-radius: var(--admin-radius-md);
+  font: 900 0.92rem 'Inter', system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+}
+
+.distress-signal-confirm-cancel {
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  background: #ffffff;
+  color: var(--admin-muted);
+}
+
+.distress-signal-confirm-submit {
+  border: 1px solid rgba(231, 75, 50, 0.22);
+  background: linear-gradient(135deg, var(--admin-primary), #f15d3a);
+  color: #ffffff;
+  box-shadow: 0 18px 32px rgba(231, 75, 50, 0.18);
+}
+
+.distress-signal-confirm-submit:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .admin-review-toast {
@@ -902,6 +1214,7 @@ body.distress-signal-modal-open {
   }
 
   .distress-signals-toolbar {
+    grid-template-columns: 1fr;
     align-items: stretch;
   }
 

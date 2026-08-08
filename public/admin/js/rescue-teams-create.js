@@ -144,6 +144,56 @@
         };
       }
 
+      function validatePayload(payload) {
+        if (!payload.name) {
+          ui.setCreateActionMessage('Rescue team name is required.', 'error');
+          return false;
+        }
+
+        if (!payload.agency) {
+          ui.setCreateActionMessage('Agency is required.', 'error');
+          return false;
+        }
+
+        if (!payload.status) {
+          ui.setCreateActionMessage('Team status is required.', 'error');
+          return false;
+        }
+
+        if (payload.rescuerIds.length > constants.MAX_MEMBERS) {
+          ui.setCreateActionMessage(`Only ${constants.MAX_MEMBERS} rescuers can be assigned to a team.`, 'error');
+          return false;
+        }
+
+        return true;
+      }
+
+      function closeCreateConfirm() {
+        if (!dom.rescueTeamCreateConfirmModal) {
+          return;
+        }
+
+        dom.rescueTeamCreateConfirmModal.classList.remove('is-open');
+        dom.rescueTeamCreateConfirmModal.setAttribute('aria-hidden', 'true');
+      }
+
+      function openCreateConfirm(payload) {
+        if (dom.rescueTeamCreateConfirmMessage) {
+          const agency = helpers.getAgencyDisplay(payload.agency);
+          const memberLabel = payload.rescuerIds.length === 1 ? '1 rescuer' : `${payload.rescuerIds.length} rescuers`;
+          dom.rescueTeamCreateConfirmMessage.textContent = `Add ${payload.name} under ${agency} with ${memberLabel}?`;
+        }
+
+        if (dom.rescueTeamCreateConfirmModal) {
+          dom.rescueTeamCreateConfirmModal.classList.add('is-open');
+          dom.rescueTeamCreateConfirmModal.setAttribute('aria-hidden', 'false');
+        }
+
+        window.requestAnimationFrame(() => {
+          dom.confirmCreateRescueTeamButton?.focus();
+        });
+      }
+
       async function openCreateModal() {
         try {
           await loadAssignableRescuers();
@@ -179,32 +229,8 @@
         renderPicker();
       }
 
-      async function handleSubmit(event) {
-        event.preventDefault();
-
+      async function saveRescueTeam(payload) {
         if (!dom.rescueTeamForm || state.submitting) {
-          return;
-        }
-
-        const payload = readFormPayload();
-
-        if (!payload.name) {
-          ui.setCreateActionMessage('Rescue team name is required.', 'error');
-          return;
-        }
-
-        if (!payload.agency) {
-          ui.setCreateActionMessage('Agency is required.', 'error');
-          return;
-        }
-
-        if (!payload.status) {
-          ui.setCreateActionMessage('Team status is required.', 'error');
-          return;
-        }
-
-        if (payload.rescuerIds.length > constants.MAX_MEMBERS) {
-          ui.setCreateActionMessage(`Only ${constants.MAX_MEMBERS} rescuers can be assigned to a team.`, 'error');
           return;
         }
 
@@ -236,15 +262,53 @@
         }
       }
 
+      function handleSubmit(event) {
+        event.preventDefault();
+
+        if (!dom.rescueTeamForm || state.submitting) {
+          return;
+        }
+
+        const payload = readFormPayload();
+
+        if (!validatePayload(payload)) {
+          return;
+        }
+
+        openCreateConfirm(payload);
+      }
+
       if (dom.openAddRescueTeamButton) {
         dom.openAddRescueTeamButton.addEventListener('click', openCreateModal);
       }
 
       if (dom.rescueTeamModal) {
         dom.rescueTeamModal.querySelectorAll('[data-close-rescue-team-modal]').forEach((button) => {
-          button.addEventListener('click', ui.closeCreateModal);
+          button.addEventListener('click', () => {
+            closeCreateConfirm();
+            ui.closeCreateModal();
+          });
         });
       }
+
+      dom.rescueTeamCreateConfirmModal?.addEventListener('click', (event) => {
+        if (event.target.closest('[data-close-rescue-team-confirm]')) {
+          closeCreateConfirm();
+          return;
+        }
+
+        if (event.target.closest('#confirmCreateRescueTeamButton')) {
+          const payload = readFormPayload();
+
+          if (!validatePayload(payload)) {
+            closeCreateConfirm();
+            return;
+          }
+
+          closeCreateConfirm();
+          saveRescueTeam(payload);
+        }
+      });
 
       if (dom.rescueTeamRescuerSearchInput) {
         dom.rescueTeamRescuerSearchInput.addEventListener('input', renderSearchResults);
@@ -283,7 +347,8 @@
       context.create = {
         renderPicker,
         resetForm,
-        loadAssignableRescuers
+        loadAssignableRescuers,
+        closeCreateConfirm
       };
 
       return context.create;

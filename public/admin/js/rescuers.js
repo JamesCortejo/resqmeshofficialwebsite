@@ -7,7 +7,9 @@
 
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      if (context.dom.rescuerViewModal?.classList.contains('is-open')) {
+      if (context.dom.rescuerConfirmModal?.classList.contains('is-open')) {
+        context.ui.closeRescuerConfirmModal();
+      } else if (context.dom.rescuerViewModal?.classList.contains('is-open')) {
         context.ui.closeRescuerViewModal();
       } else if (context.dom.rescuerModal?.classList.contains('is-open')) {
         context.ui.closeRescuerModal();

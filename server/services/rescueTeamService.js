@@ -27,6 +27,7 @@ const {
 
 const ALLOWED_TEAM_STATUSES = new Set(Object.values(RESCUE_TEAM_STATUSES));
 const ALLOWED_TEAM_AGENCIES = new Set(Object.values(RESCUE_TEAM_AGENCIES));
+const DISPATCHED_STATUS = 'dispatched';
 
 function normalizeRequiredString(value) {
   return String(value || '').trim();
@@ -138,6 +139,33 @@ function idsChanged(previousIds, nextIds) {
   return previous.some((value, index) => value !== next[index]);
 }
 
+function assertDispatchedTeamUpdateAllowed(existing, currentMemberIds, validated) {
+  if (String(existing.status || '').toLowerCase() !== DISPATCHED_STATUS) {
+    return;
+  }
+
+  const statusChanged = String(validated.status || '').toLowerCase() !== DISPATCHED_STATUS;
+  const rosterChanged = idsChanged(currentMemberIds, validated.rescuerIds);
+
+  if (!statusChanged && !rosterChanged) {
+    return;
+  }
+
+  const error = new Error('Dispatched teams cannot change status or roster until the active response is closed.');
+  error.statusCode = 409;
+  throw error;
+}
+
+function assertManualDispatchedStatusBlocked(status) {
+  if (String(status || '').toLowerCase() !== DISPATCHED_STATUS) {
+    return;
+  }
+
+  const error = new Error('Dispatched status is controlled by deployment activity and cannot be selected manually.');
+  error.statusCode = 400;
+  throw error;
+}
+
 async function validateTeamPayload(payload, existingTeamId = null) {
   const missing = missingFields(payload);
 
@@ -194,9 +222,15 @@ async function validateTeamPayload(payload, existingTeamId = null) {
   selectedRescuers.forEach((rescuer) => {
     const allowedBecauseAlreadyOnTeam = existingTeamId && rescuer.teamId === existingTeamId;
 
-    if (rescuer.accessStatus !== 'active' && !allowedBecauseAlreadyOnTeam) {
+    if (rescuer.accessStatus !== 'active') {
       const error = new Error(`Rescuer ${rescuer.rescuerCode} is not active and cannot be assigned to a team.`);
       error.statusCode = 400;
+      throw error;
+    }
+
+    if (String(rescuer.status || '').toLowerCase() === 'dispatched' && !allowedBecauseAlreadyOnTeam) {
+      const error = new Error(`Rescuer ${rescuer.rescuerCode} is currently dispatched and cannot be moved between teams.`);
+      error.statusCode = 409;
       throw error;
     }
 
@@ -229,6 +263,8 @@ async function fetchTeamDetail(id) {
 
 async function createRescueTeamProfile(payload) {
   const validated = await validateTeamPayload(payload);
+  assertManualDispatchedStatusBlocked(validated.status);
+
   const teamCode = await generateRescueTeamCode();
   const result = await createRescueTeam({
     teamCode,
@@ -268,6 +304,12 @@ async function updateRescueTeamProfile(id, payload) {
   const currentMembers = await getRescueTeamMembers(id);
   const currentMemberIds = currentMembers.map((member) => member.id);
   const validated = await validateTeamPayload(payload, id);
+
+  if (String(existing.status || '').toLowerCase() !== DISPATCHED_STATUS) {
+    assertManualDispatchedStatusBlocked(validated.status);
+  }
+
+  assertDispatchedTeamUpdateAllowed(existing, currentMemberIds, validated);
 
   await updateRescueTeam(id, {
     name: validated.name,

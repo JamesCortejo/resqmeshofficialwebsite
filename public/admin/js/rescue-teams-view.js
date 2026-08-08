@@ -4,6 +4,21 @@
       const { dom, state, constants, helpers, ui, toast } = context;
       let selectedRescuerIds = [];
 
+      function isDispatchedTeam(details = state.selectedTeamDetails) {
+        return String(details?.status || '').toLowerCase() === 'dispatched';
+      }
+
+      function rosterChanged(nextIds) {
+        const previous = (state.selectedTeamDetails?.members || [])
+          .map((rescuer) => Number.parseInt(String(rescuer.id), 10))
+          .filter(Number.isInteger)
+          .sort((left, right) => left - right);
+        const next = [...nextIds].sort((left, right) => left - right);
+
+        return previous.length !== next.length
+          || previous.some((value, index) => value !== next[index]);
+      }
+
       function buildRosterPool(details) {
         const byId = new Map();
 
@@ -39,12 +54,13 @@
 
       function selectedRescuerCard(rescuer, currentTeamId) {
         const isCurrentTeam = rescuer.team?.id === currentTeamId;
+        const isLocked = isDispatchedTeam();
         let note = isCurrentTeam
           ? 'Currently assigned to this team.'
           : 'Currently unassigned.';
 
-        if (rescuer.accessStatus === 'archived' && isCurrentTeam) {
-          note = 'Archived rescuer kept on this team; remove them here if needed.';
+        if (isLocked) {
+          note = 'Roster locked while this team is dispatched.';
         }
 
         return `
@@ -54,14 +70,16 @@
               <span>${helpers.escapeHtml(`${rescuer.rescuerCode} - ${helpers.getAgencyDisplay(rescuer.agency)}`)}</span>
               <span>${helpers.escapeHtml(note)}</span>
             </div>
-            <button
-              type="button"
-              class="rescue-team-selected-remove"
-              data-remove-view-selected-rescuer-id="${helpers.escapeHtml(rescuer.id)}"
-              aria-label="Remove ${helpers.escapeHtml(rescuer.fullName)}"
-            >
-              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-            </button>
+            ${isLocked ? '' : `
+              <button
+                type="button"
+                class="rescue-team-selected-remove"
+                data-remove-view-selected-rescuer-id="${helpers.escapeHtml(rescuer.id)}"
+                aria-label="Remove ${helpers.escapeHtml(rescuer.fullName)}"
+              >
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+              </button>
+            `}
           </article>
         `;
       }
@@ -69,14 +87,15 @@
       function searchResultCard(rescuer, currentTeamId) {
         const isSelected = selectedRescuerIds.includes(rescuer.id);
         const isAtCapacity = selectedRescuerIds.length >= constants.MAX_MEMBERS;
-        const disabled = isSelected || isAtCapacity;
+        const isLocked = isDispatchedTeam();
+        const disabled = isLocked || isSelected || isAtCapacity;
         const isCurrentTeam = rescuer.team?.id === currentTeamId;
         let note = isCurrentTeam
           ? 'Already part of this team.'
           : 'Unassigned and ready to add.';
 
-        if (rescuer.accessStatus === 'archived' && isCurrentTeam) {
-          note = 'Archived rescuer can stay visible here until removed.';
+        if (isLocked) {
+          note = 'Team is dispatched; roster changes are locked.';
         }
 
         return `
@@ -93,7 +112,7 @@
               ${disabled ? 'disabled' : ''}
             >
               <i class="fa-solid fa-plus" aria-hidden="true"></i>
-              <span>${isSelected ? 'Selected' : 'Add'}</span>
+              <span>${isLocked ? 'Locked' : isSelected ? 'Selected' : 'Add'}</span>
             </button>
           </article>
         `;
@@ -156,6 +175,23 @@
         renderSearchResults();
       }
 
+      function applyDispatchedLockState() {
+        if (!dom.rescueTeamViewModalBody || !isDispatchedTeam()) {
+          return;
+        }
+
+        const statusSelect = dom.rescueTeamViewModalBody.querySelector('#rescueTeamEditStatusSelect');
+        const searchInput = dom.rescueTeamViewModalBody.querySelector('#rescueTeamEditRescuerSearchInput');
+
+        if (statusSelect) {
+          statusSelect.disabled = true;
+        }
+
+        if (searchInput) {
+          searchInput.disabled = true;
+        }
+      }
+
       function renderDetails(details) {
         if (!dom.rescueTeamViewModalBody || !dom.rescueTeamViewModalCode) {
           return;
@@ -163,6 +199,10 @@
 
         state.selectedTeamDetails = details;
         selectedRescuerIds = (details.members || []).map((rescuer) => rescuer.id);
+        const isLocked = isDispatchedTeam(details);
+        const statusOptions = isLocked
+          ? [{ value: 'dispatched', label: 'Dispatched' }]
+          : constants.STATUS_OPTIONS;
 
         dom.rescueTeamViewModalCode.textContent = `${details.teamCode} - ${helpers.getStatusDisplay(details.status)}`;
         dom.rescueTeamViewModalBody.innerHTML = `
@@ -190,13 +230,14 @@
                 </label>
                 <label class="rescue-team-field">
                   <span>Team status</span>
-                  <select id="rescueTeamEditStatusSelect">
-                    ${constants.STATUS_OPTIONS.map((option) => `
+                  <select id="rescueTeamEditStatusSelect" ${isLocked ? 'disabled' : ''}>
+                    ${statusOptions.map((option) => `
                       <option value="${helpers.escapeHtml(option.value)}"${option.value === details.status ? ' selected' : ''}>
                         ${helpers.escapeHtml(option.label)}
                       </option>
                     `).join('')}
                   </select>
+                  ${isLocked ? '<em class="rescue-team-lock-note">Status is locked while the team is dispatched.</em>' : ''}
                 </label>
               </div>
             </section>
@@ -205,14 +246,14 @@
               <div class="rescue-team-roster-header">
                 <div>
                   <h3>Team roster</h3>
-                  <p>Search active rescuers and add them to this team. Existing archived members can still be removed here.</p>
+                  <p>${isLocked ? 'Roster is locked while this team is dispatched.' : 'Search active rescuers and add them to this team.'}</p>
                 </div>
                 <span class="rescue-team-roster-count" id="rescueTeamEditRosterCount">Selected ${selectedRescuerIds.length}/${constants.MAX_MEMBERS}</span>
               </div>
               <div class="rescue-team-picker">
                 <label class="rescue-team-picker-search" for="rescueTeamEditRescuerSearchInput">
                   <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                  <input type="search" id="rescueTeamEditRescuerSearchInput" placeholder="Search rescuer name, code, agency, or current team">
+                  <input type="search" id="rescueTeamEditRescuerSearchInput" placeholder="Search rescuer name, code, agency, or current team" ${isLocked ? 'disabled' : ''}>
                 </label>
                 <div class="rescue-team-picker-results" id="rescueTeamEditRosterResults"></div>
                 <div class="rescue-team-selected">
@@ -260,6 +301,11 @@
       }
 
       function addRescuer(id) {
+        if (isDispatchedTeam()) {
+          ui.setViewActionMessage('Roster changes are locked while this team is dispatched.', 'error');
+          return;
+        }
+
         const parsedId = Number.parseInt(String(id), 10);
         if (!Number.isInteger(parsedId) || selectedRescuerIds.includes(parsedId)) {
           return;
@@ -277,6 +323,11 @@
       }
 
       function removeRescuer(id) {
+        if (isDispatchedTeam()) {
+          ui.setViewActionMessage('Roster changes are locked while this team is dispatched.', 'error');
+          return;
+        }
+
         const parsedId = Number.parseInt(String(id), 10);
         selectedRescuerIds = selectedRescuerIds.filter((rescuerId) => rescuerId !== parsedId);
         ui.setViewActionMessage('Rescuer removed from the team roster.', 'info');
@@ -316,33 +367,76 @@
         }
       }
 
+      function validatePayload(payload) {
+        if (!payload || !payload.name) {
+          return 'Rescue team name is required.';
+        }
+
+        if (!payload.agency) {
+          return 'Agency is required.';
+        }
+
+        if (!payload.status) {
+          return 'Team status is required.';
+        }
+
+        if (payload.rescuerIds.length > constants.MAX_MEMBERS) {
+          return `Only ${constants.MAX_MEMBERS} rescuers can be assigned to a team.`;
+        }
+
+        if (isDispatchedTeam()) {
+          const statusChanged = payload.status !== state.selectedTeamDetails.status;
+          if (statusChanged || rosterChanged(payload.rescuerIds)) {
+            return 'Dispatched teams cannot change status or roster until the active response is closed.';
+          }
+        }
+
+        return '';
+      }
+
+      function openSaveConfirm() {
+        if (!state.selectedTeamId || state.viewSubmitting) {
+          return;
+        }
+
+        const payload = readPayload();
+        const validationMessage = validatePayload(payload);
+
+        if (validationMessage) {
+          ui.setViewActionMessage(validationMessage, 'error');
+          return;
+        }
+
+        if (dom.rescueTeamSaveConfirmMessage) {
+          dom.rescueTeamSaveConfirmMessage.textContent = `Save changes to ${payload.name}?`;
+        }
+
+        dom.rescueTeamSaveConfirmModal?.classList.add('is-open');
+        dom.rescueTeamSaveConfirmModal?.setAttribute('aria-hidden', 'false');
+        ui.setBodyLock();
+      }
+
+      function closeSaveConfirm() {
+        dom.rescueTeamSaveConfirmModal?.classList.remove('is-open');
+        dom.rescueTeamSaveConfirmModal?.setAttribute('aria-hidden', 'true');
+        ui.setBodyLock();
+      }
+
       async function saveChanges() {
         if (!state.selectedTeamId || state.viewSubmitting) {
           return;
         }
 
         const payload = readPayload();
+        const validationMessage = validatePayload(payload);
 
-        if (!payload || !payload.name) {
-          ui.setViewActionMessage('Rescue team name is required.', 'error');
+        if (validationMessage) {
+          closeSaveConfirm();
+          ui.setViewActionMessage(validationMessage, 'error');
           return;
         }
 
-        if (!payload.agency) {
-          ui.setViewActionMessage('Agency is required.', 'error');
-          return;
-        }
-
-        if (!payload.status) {
-          ui.setViewActionMessage('Team status is required.', 'error');
-          return;
-        }
-
-        if (payload.rescuerIds.length > constants.MAX_MEMBERS) {
-          ui.setViewActionMessage(`Only ${constants.MAX_MEMBERS} rescuers can be assigned to a team.`, 'error');
-          return;
-        }
-
+        closeSaveConfirm();
         ui.setViewSubmitState(true);
         ui.setViewActionMessage('Saving rescue team changes...', 'info');
 
@@ -357,9 +451,8 @@
             context.data.loadAssignableRescuers(),
             context.list.loadTeams({ resetPage: false, silent: true })
           ]);
-          renderDetails(response.data);
           await helpers.refreshAdminNotifications();
-          ui.setViewActionMessage('Changes saved successfully.', 'info');
+          ui.closeViewModal();
         } catch (error) {
           if (error.routeMissing || error.statusCode >= 500) {
             ui.setViewActionMessage('', 'muted');
@@ -369,12 +462,22 @@
           }
         } finally {
           ui.setViewSubmitState(false);
+          applyDispatchedLockState();
         }
       }
 
       if (dom.rescueTeamViewModal) {
         dom.rescueTeamViewModal.querySelectorAll('[data-close-rescue-team-view-modal]').forEach((button) => {
-          button.addEventListener('click', ui.closeViewModal);
+          button.addEventListener('click', () => {
+            closeSaveConfirm();
+            ui.closeViewModal();
+          });
+        });
+      }
+
+      if (dom.rescueTeamSaveConfirmModal) {
+        dom.rescueTeamSaveConfirmModal.querySelectorAll('[data-close-rescue-team-save-confirm]').forEach((button) => {
+          button.addEventListener('click', closeSaveConfirm);
         });
       }
 
@@ -400,11 +503,16 @@
       }
 
       if (dom.saveRescueTeamChangesButton) {
-        dom.saveRescueTeamChangesButton.addEventListener('click', saveChanges);
+        dom.saveRescueTeamChangesButton.addEventListener('click', openSaveConfirm);
+      }
+
+      if (dom.confirmSaveRescueTeamButton) {
+        dom.confirmSaveRescueTeamButton.addEventListener('click', saveChanges);
       }
 
       context.view = {
-        openDetails
+        openDetails,
+        closeSaveConfirm
       };
 
       return context.view;

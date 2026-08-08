@@ -1,7 +1,6 @@
 (function createRescuersSharedModule() {
   const STATUS_OPTIONS = [
     { value: 'available', label: 'Available' },
-    { value: 'dispatched', label: 'Dispatched' },
     { value: 'unavailable', label: 'Unavailable' }
   ];
 
@@ -186,13 +185,21 @@
       rescuerTeamSelect: document.getElementById('rescuerTeamSelect'),
       rescuerActionMessage: document.getElementById('rescuerActionMessage'),
       rescuerSubmitButton: document.getElementById('rescuerSubmitButton'),
-      toggleRescuerStatusFilterButton: document.getElementById('toggleRescuerStatusFilterButton'),
-      rescuerStatusFilterLabel: document.getElementById('rescuerStatusFilterLabel'),
+      rescuersStatusFilter: document.getElementById('rescuersStatusFilter'),
       rescuerViewModalCode: document.getElementById('rescuerViewModalCode'),
       rescuerViewModalBody: document.getElementById('rescuerViewModalBody'),
       rescuerViewActionMessage: document.getElementById('rescuerViewActionMessage'),
       rescuerViewActionButtons: document.getElementById('rescuerViewActionButtons'),
       rescuerViewPrimaryActionButton: document.getElementById('rescuerViewPrimaryActionButton'),
+      rescuerConfirmModal: document.getElementById('rescuerConfirmModal'),
+      rescuerConfirmKicker: document.getElementById('rescuerConfirmKicker'),
+      rescuerConfirmTitle: document.getElementById('rescuerConfirmTitle'),
+      rescuerConfirmCopy: document.getElementById('rescuerConfirmCopy'),
+      rescuerConfirmSummary: document.getElementById('rescuerConfirmSummary'),
+      rescuerConfirmPasswordField: document.getElementById('rescuerConfirmPasswordField'),
+      rescuerConfirmPasswordInput: document.getElementById('rescuerConfirmPasswordInput'),
+      rescuerConfirmMessage: document.getElementById('rescuerConfirmMessage'),
+      rescuerConfirmButton: document.getElementById('rescuerConfirmButton'),
       adminReviewToast: document.getElementById('adminReviewToast'),
       adminReviewToastIcon: document.getElementById('adminReviewToastIcon'),
       adminReviewToastMessage: document.getElementById('adminReviewToastMessage')
@@ -204,17 +211,20 @@
       teams: [],
       loading: false,
       submitting: false,
-      accessFilter: 'active',
+      accessFilter: 'all',
       selectedRescuerId: null,
       selectedRescuerDetails: null,
       modalPendingAction: '',
-      modalSubmitting: false
+      modalSubmitting: false,
+      confirmState: null
     };
 
     const toast = createToast(dom);
 
     function setBodyLock() {
-      const isLocked = dom.rescuerModal?.classList.contains('is-open') || dom.rescuerViewModal?.classList.contains('is-open');
+      const isLocked = dom.rescuerModal?.classList.contains('is-open')
+        || dom.rescuerViewModal?.classList.contains('is-open')
+        || dom.rescuerConfirmModal?.classList.contains('is-open');
       document.body.classList.toggle('rescuer-modal-open', Boolean(isLocked));
     }
 
@@ -279,6 +289,29 @@
           element.disabled = disabled;
         });
       }
+
+      if (dom.rescuerConfirmModal) {
+        dom.rescuerConfirmModal.querySelectorAll('button, input').forEach((element) => {
+          element.disabled = disabled;
+        });
+      }
+    }
+
+    function setConfirmMessage(message, tone = 'error') {
+      if (!dom.rescuerConfirmMessage) {
+        return;
+      }
+
+      if (!message) {
+        dom.rescuerConfirmMessage.hidden = true;
+        dom.rescuerConfirmMessage.textContent = '';
+        dom.rescuerConfirmMessage.removeAttribute('data-tone');
+        return;
+      }
+
+      dom.rescuerConfirmMessage.hidden = false;
+      dom.rescuerConfirmMessage.textContent = message;
+      dom.rescuerConfirmMessage.setAttribute('data-tone', tone);
     }
 
     function openRescuerModal() {
@@ -321,7 +354,46 @@
       state.selectedRescuerId = null;
       state.selectedRescuerDetails = null;
       state.modalPendingAction = '';
+      state.confirmState = null;
       setViewActionMessage('');
+      closeRescuerConfirmModal();
+      setBodyLock();
+    }
+
+    function openRescuerConfirmModal() {
+      if (!dom.rescuerConfirmModal) {
+        return;
+      }
+
+      dom.rescuerConfirmModal.classList.add('is-open');
+      dom.rescuerConfirmModal.setAttribute('aria-hidden', 'false');
+      setBodyLock();
+    }
+
+    function closeRescuerConfirmModal() {
+      if (!dom.rescuerConfirmModal) {
+        return;
+      }
+
+      dom.rescuerConfirmModal.classList.remove('is-open');
+      dom.rescuerConfirmModal.setAttribute('aria-hidden', 'true');
+      state.confirmState = null;
+
+      if (dom.rescuerConfirmPasswordInput) {
+        dom.rescuerConfirmPasswordInput.value = '';
+      }
+
+      if (dom.rescuerConfirmSummary) {
+        dom.rescuerConfirmSummary.hidden = true;
+        dom.rescuerConfirmSummary.innerHTML = '';
+      }
+
+      if (dom.rescuerConfirmPasswordField) {
+        dom.rescuerConfirmPasswordField.hidden = true;
+        dom.rescuerConfirmPasswordField.style.display = 'none';
+      }
+
+      setConfirmMessage('');
       setBodyLock();
     }
 
@@ -363,10 +435,13 @@
         setSubmitState,
         setViewActionMessage,
         setViewActionState,
+        setConfirmMessage,
         openRescuerModal,
         closeRescuerModal,
         openRescuerViewModal,
         closeRescuerViewModal,
+        openRescuerConfirmModal,
+        closeRescuerConfirmModal,
         updateRescuerState
       },
       toast,

@@ -137,11 +137,14 @@
               <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
               <input type="search" id="devicesSearchInput" placeholder="Search node id, node name, or status">
             </label>
-            <div class="devices-status-filters" id="devicesStatusFilters">
-              <button type="button" class="admin-secondary-button devices-filter-button is-active" data-device-filter="all">All devices</button>
-              <button type="button" class="admin-secondary-button devices-filter-button" data-device-filter="online">Online</button>
-              <button type="button" class="admin-secondary-button devices-filter-button" data-device-filter="offline">Offline</button>
-            </div>
+            <label class="devices-status-filter" for="devicesStatusFilter">
+              <span>Status</span>
+              <select id="devicesStatusFilter">
+                <option value="all">All</option>
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
+              </select>
+            </label>
           </div>
 
           <div class="devices-feedback" id="devicesFeedback" role="status" hidden></div>

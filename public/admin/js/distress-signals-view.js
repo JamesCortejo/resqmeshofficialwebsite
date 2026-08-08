@@ -31,6 +31,91 @@
         return getFilteredTeams().concat(getSelectedSignalDetails()?.availableTeams || []).find((team) => team.id === state.selectedTeamId) || null;
       }
 
+      function selectedLeader() {
+        const team = selectedTeam();
+        return (team?.members || []).find((member) => member.id === state.selectedLeaderId) || null;
+      }
+
+      function closeDeployConfirm() {
+        if (!dom.distressSignalDeployConfirmModal) {
+          return;
+        }
+
+        dom.distressSignalDeployConfirmModal.classList.remove('is-open');
+        dom.distressSignalDeployConfirmModal.setAttribute('aria-hidden', 'true');
+      }
+
+      function closeCancelConfirm() {
+        if (!dom.distressSignalCancelConfirmModal) {
+          return;
+        }
+
+        dom.distressSignalCancelConfirmModal.classList.remove('is-open');
+        dom.distressSignalCancelConfirmModal.setAttribute('aria-hidden', 'true');
+      }
+
+      function openDeployConfirm() {
+        const details = getSelectedSignalDetails();
+        const team = selectedTeam();
+        const leader = selectedLeader();
+        const deploymentStatus = getDeploymentStatus(details);
+
+        if (isReadOnlyEmergency(details)) {
+          ui.setActionMessage('Finished emergencies are view-only.', 'warning');
+          ui.toast.show('This emergency can no longer be deployed.', 'warning');
+          return;
+        }
+
+        if (deploymentStatus === 'deployed') {
+          ui.setActionMessage('This emergency already has an active deployed team.', 'warning');
+          ui.toast.show('Team assignment is already deployed.', 'warning');
+          return;
+        }
+
+        if (!details || !team || !leader) {
+          ui.setActionMessage('Select both a rescue team and a team leader before deploying.', 'warning');
+          ui.toast.show('Select a rescue team and leader first.', 'warning');
+          return;
+        }
+
+        if (dom.distressSignalDeployConfirmMessage) {
+          dom.distressSignalDeployConfirmMessage.textContent = `Deploy ${team.name} with ${leader.fullName} as team leader?`;
+        }
+
+        if (dom.distressSignalDeployConfirmModal) {
+          dom.distressSignalDeployConfirmModal.classList.add('is-open');
+          dom.distressSignalDeployConfirmModal.setAttribute('aria-hidden', 'false');
+        }
+
+        window.requestAnimationFrame(() => {
+          dom.confirmDeployDistressTeamButton?.focus();
+        });
+      }
+
+      function openCancelConfirm() {
+        const details = getSelectedSignalDetails();
+        const deploymentId = details?.deployment?.id;
+
+        if (!deploymentId || details?.accessState !== 'deployed') {
+          ui.setActionMessage('Only active deployed distress signals can be canceled.', 'warning');
+          ui.toast.show('No deployed distress signal to cancel.', 'warning');
+          return;
+        }
+
+        if (dom.distressSignalCancelConfirmMessage) {
+          dom.distressSignalCancelConfirmMessage.textContent = `Cancel deployment for ${details.distressCode || 'this emergency'}?`;
+        }
+
+        if (dom.distressSignalCancelConfirmModal) {
+          dom.distressSignalCancelConfirmModal.classList.add('is-open');
+          dom.distressSignalCancelConfirmModal.setAttribute('aria-hidden', 'false');
+        }
+
+        window.requestAnimationFrame(() => {
+          dom.confirmCancelDeploymentButton?.focus();
+        });
+      }
+
       function getDeploymentStatus(details = getSelectedSignalDetails()) {
         return details?.deployment?.status || details?.accessState || 'unassigned';
       }
@@ -286,7 +371,7 @@
               <div class="distress-signal-team-header">
                 <div>
                   <div class="distress-signal-team-title">${helpers.escapeHtml(team.name)}</div>
-                  <div class="distress-signal-team-meta">${helpers.escapeHtml(team.teamCode)} • ${helpers.escapeHtml(team.agency)} • ${helpers.escapeHtml(helpers.getTeamStatusDisplay(team.status))}</div>
+                  <div class="distress-signal-team-meta">${helpers.escapeHtml(team.teamCode)} - ${helpers.escapeHtml(team.agency)} - ${helpers.escapeHtml(helpers.getTeamStatusDisplay(team.status))}</div>
                 </div>
                 <span class="distress-signals-assignment-pill" data-state="${helpers.escapeHtml(team.assignable ? 'deployed' : 'canceled')}">${helpers.escapeHtml(team.memberCount)}/${helpers.escapeHtml(team.capacity)}</span>
               </div>
@@ -352,14 +437,9 @@
         const teamName = details.team?.name || 'No rescue team selected yet.';
         const leaderDisplay = details.deployment?.teamLeaderName || 'Not assigned';
         const readOnly = isReadOnlyEmergency(details);
-        const deploymentControls = readOnly ? `
-              <div>
-                <h3>Final Deployment Record</h3>
-                <div class="distress-signal-status-message">
-                  This emergency is already ${helpers.escapeHtml(details.assignmentLabel.toLowerCase())}. Deployment controls are no longer available.
-                </div>
-              </div>
-            ` : `
+        const deploymentStatus = getDeploymentStatus(details);
+        const deploymentControls = readOnly || deploymentStatus === 'deployed' ? ''
+          : `
               <div>
                 <h3>Available Rescue Teams</h3>
                 <label class="distress-signal-team-search" for="distressSignalTeamSearchInput">
@@ -469,6 +549,33 @@
         }
       }
 
+      function captureAssignmentScroll() {
+        const teamGrid = dom.distressSignalModal?.querySelector('#distressSignalTeamGrid');
+        const leaderGrid = dom.distressSignalModal?.querySelector('#distressSignalLeaderGrid');
+
+        return {
+          teamScrollTop: teamGrid ? teamGrid.scrollTop : 0,
+          leaderScrollTop: leaderGrid ? leaderGrid.scrollTop : 0
+        };
+      }
+
+      function restoreAssignmentScroll(snapshot) {
+        if (!snapshot) {
+          return;
+        }
+
+        const teamGrid = dom.distressSignalModal?.querySelector('#distressSignalTeamGrid');
+        const leaderGrid = dom.distressSignalModal?.querySelector('#distressSignalLeaderGrid');
+
+        if (teamGrid) {
+          teamGrid.scrollTop = snapshot.teamScrollTop || 0;
+        }
+
+        if (leaderGrid) {
+          leaderGrid.scrollTop = snapshot.leaderScrollTop || 0;
+        }
+      }
+
       async function openDetails(signalId) {
         stopLiveTiming();
         state.selectedSignalId = String(signalId);
@@ -530,9 +637,10 @@
           });
 
           state.selectedSignalDetails = payload.data;
-          renderSignal(payload.data);
           ui.setActionMessage(payload.message || 'Deployment created successfully.', 'success');
           ui.toast.show(payload.message || 'Deployment created successfully.', 'success');
+          stopLiveTiming();
+          ui.closeModal();
           await context.list.loadSignals();
           window.ResQMeshAdminNotifications?.refresh?.();
         } catch (error) {
@@ -578,19 +686,21 @@
 
       dom.distressSignalModal.addEventListener('click', (event) => {
         if (event.target.closest('[data-close-distress-signal-modal]')) {
+          closeDeployConfirm();
+          closeCancelConfirm();
           stopLiveTiming();
           ui.closeModal();
           return;
         }
 
         if (event.target.closest('[data-cancel-deployment]')) {
-          cancelDeployment();
+          openCancelConfirm();
           return;
         }
 
         const teamButton = event.target.closest('[data-select-distress-team]');
         if (teamButton) {
-          if (isReadOnlyEmergency()) {
+          if (isReadOnlyEmergency() || getDeploymentStatus() === 'deployed') {
             return;
           }
 
@@ -598,7 +708,9 @@
           state.selectedLeaderId = null;
 
           if (state.selectedSignalDetails) {
+            const scrollSnapshot = captureAssignmentScroll();
             renderSignal(state.selectedSignalDetails);
+            restoreAssignmentScroll(scrollSnapshot);
             ui.setActionMessage('Rescue team selected. Choose the team leader next.', 'muted');
           }
           return;
@@ -606,20 +718,46 @@
 
         const leaderButton = event.target.closest('[data-select-team-leader]');
         if (leaderButton) {
-          if (isReadOnlyEmergency()) {
+          if (isReadOnlyEmergency() || getDeploymentStatus() === 'deployed') {
             return;
           }
 
           state.selectedLeaderId = Number(leaderButton.dataset.selectTeamLeader);
 
           if (state.selectedSignalDetails) {
+            const scrollSnapshot = captureAssignmentScroll();
             renderSignal(state.selectedSignalDetails);
+            restoreAssignmentScroll(scrollSnapshot);
             ui.setActionMessage('Team leader selected. You can now deploy right away.', 'muted');
           }
         }
       });
 
-      dom.deployDistressTeamButton.addEventListener('click', deployTeam);
+      dom.deployDistressTeamButton.addEventListener('click', openDeployConfirm);
+
+      dom.distressSignalDeployConfirmModal?.addEventListener('click', (event) => {
+        if (event.target.closest('[data-close-deploy-confirm]')) {
+          closeDeployConfirm();
+          return;
+        }
+
+        if (event.target.closest('#confirmDeployDistressTeamButton')) {
+          closeDeployConfirm();
+          deployTeam();
+        }
+      });
+
+      dom.distressSignalCancelConfirmModal?.addEventListener('click', (event) => {
+        if (event.target.closest('[data-close-cancel-confirm]')) {
+          closeCancelConfirm();
+          return;
+        }
+
+        if (event.target.closest('#confirmCancelDeploymentButton')) {
+          closeCancelConfirm();
+          cancelDeployment();
+        }
+      });
 
       dom.distressSignalModal.addEventListener('input', (event) => {
         const input = event.target.closest('#distressSignalTeamSearchInput');

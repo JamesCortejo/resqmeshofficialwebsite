@@ -6,22 +6,20 @@
       const { dom, state, helpers, ui } = context;
       let currentPage = 1;
 
-      function updateStatusFilterButton() {
-        if (!dom.toggleRescuerStatusFilterButton || !dom.rescuerStatusFilterLabel) {
-          return;
-        }
-
-        const showingArchived = state.accessFilter === 'archived';
-        dom.toggleRescuerStatusFilterButton.dataset.accessFilter = state.accessFilter;
-        dom.rescuerStatusFilterLabel.textContent = showingArchived ? 'Archived rescuers' : 'Active rescuers';
-        const icon = dom.toggleRescuerStatusFilterButton.querySelector('i');
-        if (icon) {
-          icon.className = showingArchived ? 'fa-solid fa-user-slash' : 'fa-solid fa-user-check';
-        }
-      }
-
       function paginationLabel() {
-        return state.accessFilter === 'archived' ? 'archived rescuers' : 'active rescuers';
+        if (state.accessFilter === 'archived') {
+          return 'archived rescuers';
+        }
+
+        if (state.accessFilter === 'active') {
+          return 'active rescuers';
+        }
+
+        if (state.accessFilter === 'dispatched') {
+          return 'dispatched rescuers';
+        }
+
+        return 'rescuers';
       }
 
       function renderRescuerRows(pageRescuers) {
@@ -30,7 +28,12 @@
         }
 
         dom.rescuersListEmpty.hidden = true;
-        dom.rescuersTableBody.innerHTML = pageRescuers.map((rescuer) => `
+        dom.rescuersTableBody.innerHTML = pageRescuers.map((rescuer) => {
+          const isArchived = String(rescuer.accessStatus || '').toLowerCase() === 'archived';
+          const visibleStatus = isArchived ? 'archived' : rescuer.status;
+          const visibleStatusLabel = isArchived ? 'Archived' : helpers.getStatusDisplay(rescuer.status);
+
+          return `
           <tr>
             <td data-label="ID">${helpers.escapeHtml(rescuer.rescuerCode)}</td>
             <td data-label="Rescuer">
@@ -43,8 +46,8 @@
             </td>
             <td data-label="Team">${helpers.escapeHtml(rescuer.team?.name || 'Unassigned')}</td>
             <td data-label="Status">
-              <span class="rescuers-status-pill" data-status="${helpers.escapeHtml(rescuer.status)}">
-                ${helpers.escapeHtml(helpers.getStatusDisplay(rescuer.status))}
+              <span class="rescuers-status-pill" data-status="${helpers.escapeHtml(visibleStatus)}">
+                ${helpers.escapeHtml(visibleStatusLabel)}
               </span>
             </td>
             <td data-label="Action" class="rescuers-action-cell">
@@ -54,7 +57,8 @@
               </button>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       }
 
       function render() {
@@ -75,10 +79,8 @@
           dom.rescuersListEmpty.textContent = state.loading
             ? 'Loading rescuers...'
             : state.rescuers.length === 0
-              ? state.accessFilter === 'archived'
-                ? 'No archived rescuers yet.'
-                : 'No rescuers added yet.'
-              : 'No rescuers match the current search.';
+              ? 'No rescuers added yet.'
+              : 'No rescuers match the current filters.';
 
           if (dom.rescuersPagination) {
             dom.rescuersPagination.hidden = true;
@@ -111,9 +113,23 @@
 
       function applySearchFilter() {
         const query = dom.rescuersSearchInput ? dom.rescuersSearchInput.value.trim().toLowerCase() : '';
+        state.accessFilter = dom.rescuersStatusFilter
+          ? String(dom.rescuersStatusFilter.value || 'all')
+          : state.accessFilter;
 
         state.filteredRescuers = state.rescuers.filter((rescuer) => {
-          if (rescuer.accessStatus !== state.accessFilter) {
+          const accessStatus = String(rescuer.accessStatus || '').toLowerCase();
+          const operationalStatus = String(rescuer.status || '').toLowerCase();
+
+          if (state.accessFilter === 'active' && accessStatus !== 'active') {
+            return false;
+          }
+
+          if (state.accessFilter === 'archived' && accessStatus !== 'archived') {
+            return false;
+          }
+
+          if (state.accessFilter === 'dispatched' && !(accessStatus === 'active' && operationalStatus === 'dispatched')) {
             return false;
           }
 
@@ -165,11 +181,10 @@
         });
       }
 
-      if (dom.toggleRescuerStatusFilterButton) {
-        dom.toggleRescuerStatusFilterButton.addEventListener('click', () => {
-          state.accessFilter = state.accessFilter === 'active' ? 'archived' : 'active';
+      if (dom.rescuersStatusFilter) {
+        dom.rescuersStatusFilter.addEventListener('change', () => {
+          state.accessFilter = dom.rescuersStatusFilter.value || 'all';
           currentPage = 1;
-          updateStatusFilterButton();
           applySearchFilter();
         });
       }
@@ -199,14 +214,11 @@
         });
       }
 
-      updateStatusFilterButton();
-
       context.list = {
         loadRescuers,
         renderRescuerRows,
         render,
-        applySearchFilter,
-        updateStatusFilterButton
+        applySearchFilter
       };
 
       return context.list;

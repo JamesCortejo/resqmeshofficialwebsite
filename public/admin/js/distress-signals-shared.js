@@ -185,7 +185,7 @@
   function createContext() {
     const dom = {
       distressSignalsSearchInput: document.getElementById('distressSignalsSearchInput'),
-      distressSignalsFilterGroup: document.getElementById('distressSignalsFilterGroup'),
+      distressSignalsStatusFilter: document.getElementById('distressSignalsStatusFilter'),
       distressSignalsFeedback: document.getElementById('distressSignalsFeedback'),
       distressSignalsTableBody: document.getElementById('distressSignalsTableBody'),
       distressSignalsListEmpty: document.getElementById('distressSignalsListEmpty'),
@@ -201,6 +201,12 @@
       distressSignalModalBody: document.getElementById('distressSignalModalBody'),
       distressSignalActionMessage: document.getElementById('distressSignalActionMessage'),
       deployDistressTeamButton: document.getElementById('deployDistressTeamButton'),
+      distressSignalDeployConfirmModal: document.getElementById('distressSignalDeployConfirmModal'),
+      distressSignalDeployConfirmMessage: document.getElementById('distressSignalDeployConfirmMessage'),
+      confirmDeployDistressTeamButton: document.getElementById('confirmDeployDistressTeamButton'),
+      distressSignalCancelConfirmModal: document.getElementById('distressSignalCancelConfirmModal'),
+      distressSignalCancelConfirmMessage: document.getElementById('distressSignalCancelConfirmMessage'),
+      confirmCancelDeploymentButton: document.getElementById('confirmCancelDeploymentButton'),
       adminReviewToast: document.getElementById('adminReviewToast'),
       adminReviewToastIcon: document.getElementById('adminReviewToastIcon'),
       adminReviewToastMessage: document.getElementById('adminReviewToastMessage')
@@ -264,6 +270,14 @@
 
       if (dom.deployDistressTeamButton) {
         dom.deployDistressTeamButton.disabled = isSubmitting;
+      }
+
+      if (dom.confirmDeployDistressTeamButton) {
+        dom.confirmDeployDistressTeamButton.disabled = isSubmitting;
+      }
+
+      if (dom.confirmCancelDeploymentButton) {
+        dom.confirmCancelDeploymentButton.disabled = isSubmitting;
       }
 
       if (dom.distressSignalModalBody) {

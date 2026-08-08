@@ -1,5 +1,6 @@
 const { encryptText, decryptText, lookupHash } = require('./encryptionService');
 const { hashPassword } = require('./passwordService');
+const { verifyAdminPassword } = require('./adminAuthService');
 const {
   notifyRescuerCreated,
   notifyRescuerAccessChanged,
@@ -18,7 +19,8 @@ const {
   findRescuerByPhoneLookupHash,
   getRescuerById,
   listRescuers,
-  updateRescuerAccessStatus,
+  archiveRescuerAccess,
+  activateRescuerAccess,
   updateRescuerStatus,
   updateRescuerPassword,
   listRescueTeams,
@@ -34,6 +36,10 @@ const {
 const ALLOWED_STATUSES = new Set(Object.values(RESCUER_STATUSES));
 const ALLOWED_AGENCIES = new Set(Object.values(RESCUER_AGENCIES));
 const ALLOWED_ACCESS_STATUSES = new Set(Object.values(RESCUER_ACCESS_STATUSES));
+const MANUAL_RESCUER_STATUSES = new Set([
+  RESCUER_STATUSES.AVAILABLE,
+  RESCUER_STATUSES.UNAVAILABLE
+]);
 
 function missingFields(body) {
   return REQUIRED_RESCUER_FIELDS.filter((field) => {
@@ -109,6 +115,7 @@ function rescuerResponse(row) {
     accessStatus: row.accessStatus || RESCUER_ACCESS_STATUSES.ACTIVE,
     accessStatusLabel: accessStatusLabel(row.accessStatus),
     archivedAt: row.archivedAt || null,
+    previousTeamId: row.previousTeamId || null,
     team: teamResponse(row),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
@@ -243,7 +250,7 @@ async function createRescuerProfile(payload, actorAdminUserId = null) {
     throw error;
   }
 
-  if (!ALLOWED_STATUSES.has(status)) {
+  if (!MANUAL_RESCUER_STATUSES.has(status)) {
     const error = new Error('Unsupported rescuer status.');
     error.statusCode = 400;
     throw error;
@@ -270,6 +277,12 @@ async function createRescuerProfile(payload, actorAdminUserId = null) {
     const team = await getRescueTeamById(parsedTeamId);
     if (!team) {
       const error = new Error('Selected rescue team does not exist.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (String(team.status || '').toLowerCase() !== 'active') {
+      const error = new Error('Selected rescue team is not currently available for assignment.');
       error.statusCode = 400;
       throw error;
     }
@@ -327,11 +340,27 @@ async function getRescuerDetails(id) {
 }
 
 async function setRescuerAccessStatus(id, nextStatus, actorAdminUserId = null) {
-  const normalizedStatus = String(nextStatus || '').trim().toLowerCase();
+  const payload = typeof nextStatus === 'object' && nextStatus !== null ? nextStatus : { status: nextStatus };
+  const adminPassword = String(payload.adminPassword || '');
+  const requestedStatus = payload.status;
+  const normalizedStatus = String(requestedStatus || '').trim().toLowerCase();
 
   if (!ALLOWED_ACCESS_STATUSES.has(normalizedStatus)) {
     const error = new Error('Status must be active or archived.');
     error.statusCode = 400;
+    throw error;
+  }
+
+  if (!adminPassword) {
+    const error = new Error('Confirm your admin password before changing rescuer access.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const passwordIsValid = await verifyAdminPassword(actorAdminUserId, adminPassword);
+  if (!passwordIsValid) {
+    const error = new Error('Admin password confirmation failed.');
+    error.statusCode = 403;
     throw error;
   }
 
@@ -344,6 +373,7 @@ async function setRescuerAccessStatus(id, nextStatus, actorAdminUserId = null) {
   }
 
   const currentStatus = existing.accessStatus || RESCUER_ACCESS_STATUSES.ACTIVE;
+  const currentOperationalStatus = String(existing.status || '').trim().toLowerCase();
 
   if (currentStatus === normalizedStatus) {
     const error = new Error(
@@ -355,11 +385,15 @@ async function setRescuerAccessStatus(id, nextStatus, actorAdminUserId = null) {
     throw error;
   }
 
-  const archivedAt = normalizedStatus === RESCUER_ACCESS_STATUSES.ARCHIVED
-    ? new Date().toISOString()
-    : null;
+  if (normalizedStatus === RESCUER_ACCESS_STATUSES.ARCHIVED && currentOperationalStatus === RESCUER_STATUSES.DISPATCHED) {
+    const error = new Error('Archive is unavailable while this rescuer is dispatched.');
+    error.statusCode = 409;
+    throw error;
+  }
 
-  const result = await updateRescuerAccessStatus(id, normalizedStatus, archivedAt, currentStatus);
+  const result = normalizedStatus === RESCUER_ACCESS_STATUSES.ARCHIVED
+    ? await archiveRescuerAccess(id, new Date().toISOString(), currentStatus)
+    : await activateRescuerAccess(id, currentStatus, 5);
 
   if (result.changes === 0) {
     const error = new Error('Rescuer access status could not be updated.');
@@ -375,15 +409,23 @@ async function setRescuerAccessStatus(id, nextStatus, actorAdminUserId = null) {
     actorAdminUserId,
     {
       previousAccessStatus: currentStatus,
-      nextAccessStatus: normalizedStatus
+      nextAccessStatus: normalizedStatus,
+      previousTeamId: result.previousTeamId || null,
+      restoredTeamId: result.restoredTeamId || null,
+      teamRestoreSkipped: Boolean(result.restoreSkipped)
     }
   );
   notifyRescuerAccessChanged(response, normalizedStatus);
 
+  const activationRestoreWarning = normalizedStatus === RESCUER_ACCESS_STATUSES.ACTIVE && result.restoreSkipped
+    ? 'Previous team is already full, so assign this rescuer to a team manually.'
+    : '';
+
   return {
     message: normalizedStatus === RESCUER_ACCESS_STATUSES.ARCHIVED
       ? `Rescuer ${response.rescuerCode} archived successfully.`
-      : `Rescuer ${response.rescuerCode} activated successfully.`,
+      : `Rescuer ${response.rescuerCode} activated successfully.${activationRestoreWarning ? ` ${activationRestoreWarning}` : ''}`,
+    warning: activationRestoreWarning,
     rescuer: response
   };
 }
@@ -391,7 +433,7 @@ async function setRescuerAccessStatus(id, nextStatus, actorAdminUserId = null) {
 async function updateRescuerOperationalStatus(id, nextStatus) {
   const normalizedStatus = String(nextStatus || '').trim().toLowerCase();
 
-  if (!ALLOWED_STATUSES.has(normalizedStatus)) {
+  if (!MANUAL_RESCUER_STATUSES.has(normalizedStatus)) {
     const error = new Error('Unsupported rescuer status.');
     error.statusCode = 400;
     throw error;
@@ -406,6 +448,19 @@ async function updateRescuerOperationalStatus(id, nextStatus) {
   }
 
   const currentStatus = existing.status;
+  const currentAccessStatus = existing.accessStatus || RESCUER_ACCESS_STATUSES.ACTIVE;
+
+  if (currentAccessStatus === RESCUER_ACCESS_STATUSES.ARCHIVED) {
+    const error = new Error('Activate this rescuer before changing operational status.');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  if (String(currentStatus || '').trim().toLowerCase() === RESCUER_STATUSES.DISPATCHED) {
+    const error = new Error('Operational status is locked while this rescuer is dispatched.');
+    error.statusCode = 409;
+    throw error;
+  }
 
   if (currentStatus === normalizedStatus) {
     const updated = rescuerDetailResponse(existing);
@@ -439,6 +494,33 @@ async function resetRescuerPassword(id, payload, actorAdminUserId = null) {
   if (!existing) {
     const error = new Error('Rescuer not found.');
     error.statusCode = 404;
+    throw error;
+  }
+
+  if ((existing.accessStatus || RESCUER_ACCESS_STATUSES.ACTIVE) === RESCUER_ACCESS_STATUSES.ARCHIVED) {
+    const error = new Error('Activate this rescuer before resetting the password.');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  if (String(existing.status || '').trim().toLowerCase() === RESCUER_STATUSES.DISPATCHED) {
+    const error = new Error('Password reset is locked while this rescuer is dispatched.');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const adminPassword = String(payload.adminPassword || '');
+
+  if (!adminPassword) {
+    const error = new Error('Confirm your admin password before resetting the password.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const passwordIsValid = await verifyAdminPassword(actorAdminUserId, adminPassword);
+  if (!passwordIsValid) {
+    const error = new Error('Admin password confirmation failed.');
+    error.statusCode = 403;
     throw error;
   }
 

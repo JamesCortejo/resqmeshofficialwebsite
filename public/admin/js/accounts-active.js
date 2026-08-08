@@ -48,7 +48,7 @@
         }
       });
 
-      async function updateAccessStatus(accountId, status, reason = '') {
+      async function updateAccessStatus(accountId, status, reason = '', adminPassword = '') {
         context.modal.setButtonsDisabled(true);
         context.modal.setActionMessage(status === 'suspended' ? 'Suspending account...' : 'Activating account...');
 
@@ -56,7 +56,7 @@
           const payload = await shared.fetchJson(`/api/admin/accounts/${accountId}/access-status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status, reason })
+            body: JSON.stringify({ status, reason, adminPassword })
           });
 
           const warning = payload.warning || '';

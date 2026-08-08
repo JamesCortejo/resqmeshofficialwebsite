@@ -7,8 +7,7 @@
   ];
   const STATUS_OPTIONS = [
     { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'dispatched', label: 'Dispatched' }
+    { value: 'inactive', label: 'Inactive' }
   ];
 
   function escapeHtml(value) {
@@ -168,6 +167,7 @@
     const dom = {
       openAddRescueTeamButton: document.getElementById('openAddRescueTeamButton'),
       rescueTeamsSearchInput: document.getElementById('rescueTeamsSearchInput'),
+      rescueTeamsStatusFilter: document.getElementById('rescueTeamsStatusFilter'),
       rescueTeamsFeedback: document.getElementById('rescueTeamsFeedback'),
       rescueTeamsTableBody: document.getElementById('rescueTeamsTableBody'),
       rescueTeamsListEmpty: document.getElementById('rescueTeamsListEmpty'),
@@ -183,11 +183,17 @@
       rescueTeamRosterCount: document.getElementById('rescueTeamRosterCount'),
       rescueTeamActionMessage: document.getElementById('rescueTeamActionMessage'),
       rescueTeamSubmitButton: document.getElementById('rescueTeamSubmitButton'),
+      rescueTeamCreateConfirmModal: document.getElementById('rescueTeamCreateConfirmModal'),
+      rescueTeamCreateConfirmMessage: document.getElementById('rescueTeamCreateConfirmMessage'),
+      confirmCreateRescueTeamButton: document.getElementById('confirmCreateRescueTeamButton'),
       rescueTeamViewModal: document.getElementById('rescueTeamViewModal'),
       rescueTeamViewModalCode: document.getElementById('rescueTeamViewModalCode'),
       rescueTeamViewModalBody: document.getElementById('rescueTeamViewModalBody'),
       rescueTeamViewActionMessage: document.getElementById('rescueTeamViewActionMessage'),
       saveRescueTeamChangesButton: document.getElementById('saveRescueTeamChangesButton'),
+      rescueTeamSaveConfirmModal: document.getElementById('rescueTeamSaveConfirmModal'),
+      rescueTeamSaveConfirmMessage: document.getElementById('rescueTeamSaveConfirmMessage'),
+      confirmSaveRescueTeamButton: document.getElementById('confirmSaveRescueTeamButton'),
       adminReviewToast: document.getElementById('adminReviewToast'),
       adminReviewToastIcon: document.getElementById('adminReviewToastIcon'),
       adminReviewToastMessage: document.getElementById('adminReviewToastMessage')
@@ -208,7 +214,9 @@
 
     function setBodyLock() {
       const isLocked = dom.rescueTeamModal?.classList.contains('is-open')
-        || dom.rescueTeamViewModal?.classList.contains('is-open');
+        || dom.rescueTeamCreateConfirmModal?.classList.contains('is-open')
+        || dom.rescueTeamViewModal?.classList.contains('is-open')
+        || dom.rescueTeamSaveConfirmModal?.classList.contains('is-open');
       document.body.classList.toggle('rescue-team-modal-open', Boolean(isLocked));
     }
 
@@ -246,6 +254,10 @@
         dom.rescueTeamSubmitButton.textContent = isSubmitting ? 'Saving...' : 'Add Rescue Team';
       }
 
+      if (dom.confirmCreateRescueTeamButton) {
+        dom.confirmCreateRescueTeamButton.disabled = isSubmitting;
+      }
+
       if (dom.rescueTeamForm) {
         Array.from(dom.rescueTeamForm.elements).forEach((field) => {
           field.disabled = isSubmitting;
@@ -267,6 +279,10 @@
 
       if (dom.saveRescueTeamChangesButton) {
         dom.saveRescueTeamChangesButton.disabled = isSubmitting;
+      }
+
+      if (dom.confirmSaveRescueTeamButton) {
+        dom.confirmSaveRescueTeamButton.disabled = isSubmitting;
       }
 
       if (dom.rescueTeamViewModalBody) {

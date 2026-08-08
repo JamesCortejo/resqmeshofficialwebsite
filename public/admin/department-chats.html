@@ -128,12 +128,15 @@
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
             <input type="search" id="departmentChatsSearchInput" placeholder="Search room name, subtitle, status, or color tag">
           </label>
-          <div class="department-chats-filters" id="departmentChatsFilterGroup">
-            <button type="button" class="department-chats-filter-button is-active" data-chat-filter="all">All</button>
-            <button type="button" class="department-chats-filter-button" data-chat-filter="active">Active</button>
-            <button type="button" class="department-chats-filter-button" data-chat-filter="inactive">Inactive</button>
-            <button type="button" class="department-chats-filter-button" data-chat-filter="archived">Archived</button>
-          </div>
+          <label class="department-chats-status-filter" for="departmentChatsStatusFilter">
+            <span>Status</span>
+            <select id="departmentChatsStatusFilter">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="archived">Archived</option>
+            </select>
+          </label>
         </div>
 
         <div class="department-chats-feedback" id="departmentChatsFeedback" role="status" hidden></div>
@@ -265,6 +268,27 @@
         <button type="button" class="department-chat-secondary-button" data-close-department-chat-archive>Keep Room</button>
         <button type="button" class="department-chat-primary-button" id="confirmDepartmentChatArchiveButton">Archive Room</button>
       </footer>
+    </section>
+  </div>
+
+  <div class="department-chat-confirm-modal" id="departmentChatSaveConfirmModal" aria-hidden="true">
+    <div class="department-chat-confirm-backdrop" data-close-department-chat-save-confirm></div>
+    <section class="department-chat-confirm-card" role="dialog" aria-modal="true" aria-labelledby="departmentChatSaveConfirmTitle">
+      <button type="button" class="department-chat-confirm-close" aria-label="Cancel save confirmation" data-close-department-chat-save-confirm>
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <span class="department-chat-confirm-icon">
+        <i class="fa-solid fa-message" aria-hidden="true"></i>
+      </span>
+      <div class="department-chat-confirm-copy">
+        <span>Confirm Room</span>
+        <h3 id="departmentChatSaveConfirmTitle">Save department chat?</h3>
+        <p id="departmentChatSaveConfirmCopy">Confirm this room before saving it to the system.</p>
+      </div>
+      <div class="department-chat-confirm-actions">
+        <button type="button" class="department-chat-confirm-cancel" data-close-department-chat-save-confirm>Cancel</button>
+        <button type="button" class="department-chat-confirm-submit" id="confirmDepartmentChatSaveButton">Yes, Save Room</button>
+      </div>
     </section>
   </div>
 

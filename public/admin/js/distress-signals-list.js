@@ -87,12 +87,6 @@
         dom.distressSignalsPagination.hidden = false;
       }
 
-      function updateFilterButtons() {
-        dom.distressSignalsFilterGroup.querySelectorAll('[data-distress-filter]').forEach((button) => {
-          button.classList.toggle('is-active', button.dataset.distressFilter === state.filter);
-        });
-      }
-
       function applyFilters() {
         const query = dom.distressSignalsSearchInput.value.trim().toLowerCase();
 
@@ -141,16 +135,15 @@
         applyFilters();
       });
 
-      dom.distressSignalsFilterGroup.addEventListener('click', (event) => {
-        const button = event.target.closest('[data-distress-filter]');
+      dom.distressSignalsStatusFilter.addEventListener('change', () => {
+        const nextFilter = dom.distressSignalsStatusFilter.value;
 
-        if (!button || !constants.FILTER_OPTIONS.includes(button.dataset.distressFilter)) {
+        if (!constants.FILTER_OPTIONS.includes(nextFilter)) {
           return;
         }
 
-        state.filter = button.dataset.distressFilter;
+        state.filter = nextFilter;
         currentPage = 1;
-        updateFilterButtons();
         applyFilters();
       });
 
@@ -173,8 +166,6 @@
         currentPage += 1;
         render();
       });
-
-      updateFilterButtons();
 
       context.list = {
         applyFilters,

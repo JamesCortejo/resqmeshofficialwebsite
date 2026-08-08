@@ -93,7 +93,7 @@ function getRescueTeamSummaryById(id) {
       t.updated_at AS updatedAt,
       COUNT(r.id) AS memberCount
     FROM rescue_teams t
-    LEFT JOIN rescuers r ON r.team_id = t.id
+    LEFT JOIN rescuers r ON r.team_id = t.id AND r.access_status = 'active'
     WHERE t.id = ?
     GROUP BY t.id, t.team_code, t.name, t.agency, t.status, t.created_at, t.updated_at
     LIMIT 1
@@ -112,7 +112,7 @@ function listRescueTeams() {
       t.updated_at AS updatedAt,
       COUNT(r.id) AS memberCount
     FROM rescue_teams t
-    LEFT JOIN rescuers r ON r.team_id = t.id
+    LEFT JOIN rescuers r ON r.team_id = t.id AND r.access_status = 'active'
     GROUP BY t.id, t.team_code, t.name, t.agency, t.status, t.created_at, t.updated_at
     ORDER BY t.created_at DESC, t.id DESC
   `);
@@ -138,7 +138,7 @@ function getRescueTeamMembers(teamId) {
       t.status AS teamStatus
     FROM rescuers r
     LEFT JOIN rescue_teams t ON t.id = r.team_id
-    WHERE r.team_id = ?
+    WHERE r.team_id = ? AND r.access_status = 'active'
     ORDER BY r.created_at ASC, r.id ASC
   `, [teamId]);
 }
@@ -228,7 +228,9 @@ function assignRescuersToTeam(teamId, rescuerIds) {
     SET
       team_id = ?,
       updated_at = CURRENT_TIMESTAMP
-    WHERE id IN (${placeholders})
+    WHERE access_status = 'active'
+      AND status <> 'dispatched'
+      AND id IN (${placeholders})
   `, [teamId, ...rescuerIds]);
 }
 
@@ -236,7 +238,7 @@ function countRescuersForTeam(teamId) {
   return get(`
     SELECT COUNT(*) AS count
     FROM rescuers
-    WHERE team_id = ?
+    WHERE team_id = ? AND access_status = 'active'
   `, [teamId]);
 }
 

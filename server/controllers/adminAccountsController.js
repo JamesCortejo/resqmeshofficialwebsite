@@ -149,7 +149,23 @@ exports.updateAccessStatus = async (req, res) => {
 
     const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
     const reason = req.body && req.body.reason ? String(req.body.reason) : '';
-    const account = await updateAccountAccessReviewStatus(id, status, reason, req.adminUser?.id || null);
+    const adminPassword = req.body && req.body.adminPassword ? String(req.body.adminPassword) : '';
+
+    if (!req.adminUser?.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Admin authentication required.'
+      });
+    }
+
+    if (!adminPassword.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Confirm your admin password before changing account access.'
+      });
+    }
+
+    const account = await updateAccountAccessReviewStatus(id, status, reason, req.adminUser?.id || null, adminPassword);
     const action = account.status === 'suspended' ? 'suspended' : 'activated';
 
     return res.json({

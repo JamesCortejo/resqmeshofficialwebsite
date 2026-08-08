@@ -230,7 +230,7 @@
   function createContext() {
     const dom = {
       devicesSearchInput: document.getElementById('devicesSearchInput'),
-      devicesStatusFilters: document.getElementById('devicesStatusFilters'),
+      devicesStatusFilter: document.getElementById('devicesStatusFilter'),
       devicesFeedback: document.getElementById('devicesFeedback'),
       devicesGrid: document.getElementById('devicesGrid'),
       devicesListEmpty: document.getElementById('devicesListEmpty'),
