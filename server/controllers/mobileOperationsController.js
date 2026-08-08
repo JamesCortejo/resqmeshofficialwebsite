@@ -12,7 +12,8 @@ const {
   getOnlineDistressMarkers,
   getRescuerLocationSharingStatus,
   setRescuerLocationSharing,
-  getPublicSharedRescuers
+  getPublicSharedRescuers,
+  getSharedRescuerRouteForCivilian
 } = require('../services/mobileOperationsService');
 
 function parseId(value) {
@@ -193,6 +194,18 @@ exports.getDistressEta = async (req, res) => {
     return res.json({ eta_minutes: etaMinutes });
   } catch (error) {
     return errorResponse(res, error, 'Unable to load distress ETA.');
+  }
+};
+
+exports.getSharedRescuerRouteForCivilian = async (req, res) => {
+  try {
+    const data = await getSharedRescuerRouteForCivilian(req.civilian, req.body || {});
+    return res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load directions to rescuer.');
   }
 };
 

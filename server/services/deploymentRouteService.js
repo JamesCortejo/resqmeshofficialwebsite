@@ -299,7 +299,20 @@ function buildLiveRouteResponse(assignment, location, snapshot) {
   };
 }
 
+async function buildTransientRoute(origin, destination) {
+  const route = await fetchOpenRouteServiceRoute(origin, destination);
+
+  return {
+    distance_m: route.distanceM,
+    duration_s: route.durationS,
+    eta_minutes: route.etaMinutes,
+    provider: route.provider,
+    coordinates: parseCoordinates(route.geometryJson)
+  };
+}
+
 module.exports = {
+  buildTransientRoute,
   buildLiveRouteResponse,
   ensureDeploymentRouteSnapshot,
   parseCoordinates

@@ -20,6 +20,7 @@ const {
 const { accomplishDeployment } = require('./distressDeploymentService');
 const { listPublicOnlineDistressSignals } = require('./civilianDistressService');
 const {
+  buildTransientRoute,
   buildLiveRouteResponse,
   ensureDeploymentRouteSnapshot
 } = require('./deploymentRouteService');
@@ -28,6 +29,9 @@ const { decryptText } = require('./encryptionService');
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 const STALE_THRESHOLD_MS = 10 * 60 * 1000;
 const SHARED_RESCUER_STALE_TIMEOUT_MS = 2 * 60 * 1000;
+const SHARED_RESCUER_ROUTE_RATE_WINDOW_MS = 60 * 1000;
+const SHARED_RESCUER_ROUTE_RATE_MAX = 20;
+const sharedRescuerRouteBuckets = new Map();
 
 function ensurePositiveInteger(value) {
   const parsed = Number.parseInt(String(value || ''), 10);
@@ -43,6 +47,26 @@ function ensureCoordinate(value, label) {
     throw error;
   }
 
+  return parsed;
+}
+
+function ensureLatitude(value, label) {
+  const parsed = ensureCoordinate(value, label);
+  if (parsed < -90 || parsed > 90) {
+    const error = new Error(`${label} must be between -90 and 90.`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return parsed;
+}
+
+function ensureLongitude(value, label) {
+  const parsed = ensureCoordinate(value, label);
+  if (parsed < -180 || parsed > 180) {
+    const error = new Error(`${label} must be between -180 and 180.`);
+    error.statusCode = 400;
+    throw error;
+  }
   return parsed;
 }
 
@@ -180,6 +204,28 @@ function getAgencyLabel(agency) {
     default:
       return 'Rescue Department';
   }
+}
+
+function assertSharedRescuerRouteRateLimit(civilianId) {
+  const key = String(civilianId || 'unknown');
+  const now = Date.now();
+  const existing = sharedRescuerRouteBuckets.get(key);
+
+  if (existing && now - existing.windowStartedAt < SHARED_RESCUER_ROUTE_RATE_WINDOW_MS) {
+    if (existing.count >= SHARED_RESCUER_ROUTE_RATE_MAX) {
+      const error = new Error('Too many directions requests. Please wait a moment and try again.');
+      error.statusCode = 429;
+      throw error;
+    }
+
+    existing.count += 1;
+    return;
+  }
+
+  sharedRescuerRouteBuckets.set(key, {
+    count: 1,
+    windowStartedAt: now
+  });
 }
 
 async function getRescuerLocationSharingStatus(rescuer) {
@@ -439,6 +485,59 @@ async function getPublicSharedRescuers() {
   }));
 }
 
+async function getSharedRescuerRouteForCivilian(civilian, payload) {
+  assertSharedRescuerRouteRateLimit(civilian?.id);
+
+  const rescuerId = ensurePositiveInteger(payload?.rescuerId);
+  if (!rescuerId) {
+    const error = new Error('Invalid rescuer id.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const originLatitude = ensureLatitude(payload?.originLatitude, 'Origin latitude');
+  const originLongitude = ensureLongitude(payload?.originLongitude, 'Origin longitude');
+  const sharedRescuers = await getPublicSharedRescuers();
+  const target = sharedRescuers.find((rescuer) => Number(rescuer.id) === rescuerId);
+
+  if (!target) {
+    const error = new Error('This rescuer location is no longer available.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const targetLatitude = ensureLatitude(target.latitude, 'Target latitude');
+  const targetLongitude = ensureLongitude(target.longitude, 'Target longitude');
+
+  const route = await buildTransientRoute(
+    {
+      latitude: originLatitude,
+      longitude: originLongitude
+    },
+    {
+      latitude: targetLatitude,
+      longitude: targetLongitude
+    }
+  );
+
+  return {
+    rescuer: {
+      id: target.id,
+      firstName: target.firstName,
+      phone: target.phone,
+      department: target.department,
+      latitude: targetLatitude,
+      longitude: targetLongitude,
+      lastUpdated: target.lastUpdated,
+    },
+    origin: {
+      latitude: originLatitude,
+      longitude: originLongitude
+    },
+    route
+  };
+}
+
 async function getNodeDistress(nodeId) {
   const distress = await getNodeActiveDistress(nodeId);
 
@@ -480,5 +579,6 @@ module.exports = {
   getRescuerLocationSharingStatus,
   setRescuerLocationSharing,
   disableRescuerLocationSharing,
-  getPublicSharedRescuers
+  getPublicSharedRescuers,
+  getSharedRescuerRouteForCivilian
 };
