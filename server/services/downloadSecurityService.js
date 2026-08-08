@@ -7,7 +7,7 @@ const { verifyRecaptcha } = require('./recaptchaService');
 const DOWNLOAD_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DOWNLOAD_RATE_LIMIT_MAX = 12;
 const DOWNLOAD_TOKEN_TTL_MS = 2 * 60 * 1000;
-const APK_FILENAME = 'ResQMesh-V1.4.apk';
+const APK_FILENAME = 'ResQMesh-V1.5.apk';
 const downloadBuckets = new Map();
 
 function getDownloadsRoot() {
