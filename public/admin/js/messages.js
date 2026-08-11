@@ -18,7 +18,9 @@
     hasOlderMessages: false,
     pollTimer: null,
     refreshToken: 0,
-    lastNotificationSignature: ''
+    lastNotificationSignature: '',
+    activeVoiceMessageId: null,
+    activeVoiceAudio: null
   };
 
   const dom = {
@@ -195,6 +197,56 @@
       body: JSON.stringify({})
     });
     return payload.data?.messages || [];
+  }
+
+  async function fetchVoiceClip(messageId) {
+    const payload = await adminFetch(`/api/admin/online-chat/messages/${messageId}/voice`);
+    return payload.data || null;
+  }
+
+  async function playVoiceClip(messageId, button) {
+    if (state.activeVoiceMessageId === messageId && state.activeVoiceAudio) {
+      state.activeVoiceAudio.pause();
+      state.activeVoiceAudio.currentTime = 0;
+      state.activeVoiceMessageId = null;
+      state.activeVoiceAudio = null;
+      button.innerHTML = '<i class="fa-solid fa-play" aria-hidden="true"></i><span>Play voice</span>';
+      return;
+    }
+
+    if (state.activeVoiceAudio) {
+      state.activeVoiceAudio.pause();
+      state.activeVoiceAudio.currentTime = 0;
+      document.querySelectorAll('[data-voice-message-id]').forEach((item) => {
+        item.innerHTML = '<i class="fa-solid fa-play" aria-hidden="true"></i><span>Play voice</span>';
+      });
+    }
+
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Loading</span>';
+
+    try {
+      const clip = await fetchVoiceClip(messageId);
+      if (!clip?.content) {
+        throw new Error('Voice clip unavailable.');
+      }
+
+      const audio = new Audio(`data:${clip.mimeType || 'audio/mp4'};base64,${clip.content}`);
+      state.activeVoiceAudio = audio;
+      state.activeVoiceMessageId = messageId;
+      button.innerHTML = '<i class="fa-solid fa-pause" aria-hidden="true"></i><span>Playing</span>';
+      audio.addEventListener('ended', () => {
+        state.activeVoiceMessageId = null;
+        state.activeVoiceAudio = null;
+        button.innerHTML = '<i class="fa-solid fa-play" aria-hidden="true"></i><span>Play voice</span>';
+      }, { once: true });
+      await audio.play();
+    } catch (error) {
+      console.error(error);
+      button.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>Unavailable</span>';
+    } finally {
+      button.disabled = false;
+    }
   }
 
   function mergeMessages(currentMessages, incomingMessages) {
@@ -448,12 +500,24 @@
           : message.senderType === 'rescuer'
             ? 'Rescuer'
             : (message.senderDisplayName || 'Civilian');
+      const isVoice = message.messageType === 'voice';
+      const bodyMarkup = isVoice
+        ? `
+          <button type="button" class="messages-voice-button" data-voice-message-id="${message.id}">
+            <i class="fa-solid fa-play" aria-hidden="true"></i>
+            <span>Play voice</span>
+          </button>
+          <small class="messages-voice-meta">
+            ${message.voiceClip?.durationSeconds ? `${Number(message.voiceClip.durationSeconds)}s` : 'Voice message'}
+          </small>
+        `
+        : `<p>${escapeHtml(message.body)}</p>`;
 
       return `
         ${separator}
         <article class="messages-bubble ${outgoing ? 'is-outgoing' : 'is-incoming'}">
-          <span class="messages-bubble-author">${authorLabel}</span>
-          <p>${escapeHtml(message.body)}</p>
+          <span class="messages-bubble-author">${escapeHtml(authorLabel)}</span>
+          ${bodyMarkup}
           <time>${escapeHtml(formatTime(message.createdAt))}</time>
         </article>
       `;
@@ -747,6 +811,15 @@
       if (dom.timeline.scrollTop <= 80) {
         void loadOlderMessages();
       }
+    });
+
+    dom.timeline.addEventListener('click', (event) => {
+      const voiceButton = event.target.closest('[data-voice-message-id]');
+      if (!voiceButton) {
+        return;
+      }
+
+      void playVoiceClip(Number(voiceButton.dataset.voiceMessageId), voiceButton);
     });
 
     window.addEventListener('resqmesh:admin-notifications-refreshed', (event) => {

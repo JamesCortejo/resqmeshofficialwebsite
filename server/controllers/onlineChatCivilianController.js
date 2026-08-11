@@ -5,7 +5,9 @@ const {
   markRead,
   markGlobalAnnouncementsRead,
   openCivilianConversation,
-  sendCivilianMessage
+  sendCivilianMessage,
+  sendCivilianVoiceMessage,
+  getOnlineVoiceClip
 } = require('../services/onlineChatService');
 
 function parseId(value) {
@@ -139,6 +141,54 @@ exports.sendMessage = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to send message.');
+  }
+};
+
+exports.sendVoiceMessage = async (req, res) => {
+  try {
+    const conversationId = parseId(req.params.id);
+
+    if (!conversationId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid conversation id.'
+      });
+    }
+
+    const message = await sendCivilianVoiceMessage(conversationId, req.civilian.id, req.body || {});
+
+    return res.status(201).json({
+      success: true,
+      message: 'Voice message sent.',
+      data: message
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to send voice message.');
+  }
+};
+
+exports.getVoiceClip = async (req, res) => {
+  try {
+    const messageId = parseId(req.params.id);
+
+    if (!messageId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid message id.'
+      });
+    }
+
+    const clip = await getOnlineVoiceClip(messageId, {
+      type: 'civilian',
+      id: req.civilian.id
+    });
+
+    return res.json({
+      success: true,
+      data: clip
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load voice clip.');
   }
 };
 

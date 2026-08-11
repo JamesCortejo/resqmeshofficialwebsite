@@ -267,6 +267,33 @@ async function getOrCreateConversation(departmentId, civilianUserId) {
   });
 }
 
+function selectMessageColumns(prefix = 'm') {
+  return `
+    ${prefix}.id,
+    ${prefix}.conversation_id AS "conversationId",
+    ${prefix}.department_id AS "departmentId",
+    ${prefix}.civilian_user_id AS "civilianUserId",
+    ${prefix}.sender_type AS "senderType",
+    ${prefix}.sender_id AS "senderId",
+    ${prefix}.message_type AS "messageType",
+    ${prefix}.body,
+    ${prefix}.deleted,
+    ${prefix}.created_at AS "createdAt",
+    ${prefix}.updated_at AS "updatedAt",
+    vc.id AS "voiceClipId",
+    vc.mime_type AS "voiceMimeType",
+    vc.duration_seconds AS "voiceDurationSeconds",
+    vc.size_bytes AS "voiceSizeBytes"
+  `;
+}
+
+function selectMessageColumnsWithFile(prefix = 'm') {
+  return `
+    ${selectMessageColumns(prefix)},
+    vc.file_path AS "voiceFilePath"
+  `;
+}
+
 function insertMessage(message) {
   return transaction(async (trx) => {
     const inserted = await trx.run(`
@@ -276,10 +303,11 @@ function insertMessage(message) {
         civilian_user_id,
         sender_type,
         sender_id,
+        message_type,
         body,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING id
     `, [
       message.conversationId,
@@ -287,8 +315,29 @@ function insertMessage(message) {
       message.civilianUserId,
       message.senderType,
       message.senderId,
+      message.messageType || 'text',
       message.body
     ]);
+
+    if (message.voiceClip) {
+      await trx.run(`
+        INSERT INTO online_chat_message_voice_clips (
+          message_id,
+          file_path,
+          mime_type,
+          duration_seconds,
+          size_bytes,
+          created_at,
+          updated_at
+        ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `, [
+        inserted.lastID,
+        message.voiceClip.filePath,
+        message.voiceClip.mimeType,
+        message.voiceClip.durationSeconds,
+        message.voiceClip.sizeBytes
+      ]);
+    }
 
     await trx.run(`
       UPDATE online_chat_conversations
@@ -301,18 +350,10 @@ function insertMessage(message) {
 
     return trx.get(`
       SELECT
-        id,
-        conversation_id AS conversationId,
-        department_id AS departmentId,
-        civilian_user_id AS civilianUserId,
-        sender_type AS senderType,
-        sender_id AS senderId,
-        body,
-        deleted,
-        created_at AS createdAt,
-        updated_at AS updatedAt
-      FROM online_chat_messages
-      WHERE id = ?
+        ${selectMessageColumns('m')}
+      FROM online_chat_messages m
+      LEFT JOIN online_chat_message_voice_clips vc ON vc.message_id = m.id
+      WHERE m.id = ?
       LIMIT 1
     `, [inserted.lastID]);
   });
@@ -323,10 +364,10 @@ function listMessages(conversationId, { beforeId = null, afterId = null, limit =
   let rangeClause = '';
 
   if (afterId) {
-    rangeClause = 'AND id > ?';
+    rangeClause = 'AND m.id > ?';
     params.push(afterId);
   } else if (beforeId) {
-    rangeClause = 'AND id < ?';
+    rangeClause = 'AND m.id < ?';
     params.push(beforeId);
   }
 
@@ -336,23 +377,32 @@ function listMessages(conversationId, { beforeId = null, afterId = null, limit =
     SELECT *
     FROM (
       SELECT
-        id,
-        conversation_id AS conversationId,
-        department_id AS departmentId,
-        civilian_user_id AS civilianUserId,
-        sender_type AS senderType,
-        sender_id AS senderId,
-        body,
-        deleted,
-        created_at AS createdAt,
-        updated_at AS updatedAt
-      FROM online_chat_messages
-      WHERE conversation_id = ? AND deleted = 0 ${rangeClause}
-      ORDER BY id ${afterId ? 'ASC' : 'DESC'}
+        ${selectMessageColumns('m')}
+      FROM online_chat_messages m
+      LEFT JOIN online_chat_message_voice_clips vc ON vc.message_id = m.id
+      WHERE m.conversation_id = ? AND m.deleted = 0 ${rangeClause}
+      ORDER BY m.id ${afterId ? 'ASC' : 'DESC'}
       LIMIT ?
     ) recent
     ORDER BY id ASC
   `, params);
+}
+
+function getMessageByIdWithVoice(id) {
+  return get(`
+    SELECT
+      ${selectMessageColumnsWithFile('m')},
+      d.slug AS "departmentSlug",
+      d.name AS "departmentName",
+      d.status AS "departmentStatus",
+      d.rescuer_agency AS "departmentRescuerAgency",
+      d.read_only AS "departmentReadOnly"
+    FROM online_chat_messages m
+    JOIN online_chat_departments d ON d.id = m.department_id
+    LEFT JOIN online_chat_message_voice_clips vc ON vc.message_id = m.id
+    WHERE m.id = ? AND m.deleted = 0
+    LIMIT 1
+  `, [id]);
 }
 
 function listGlobalMessages(departmentId, { beforeId = null, afterId = null, limit = 50 } = {}) {
@@ -893,6 +943,7 @@ module.exports = {
   getDepartmentBySlug,
   getActiveDepartmentByRescuerAgency,
   getGlobalMessageById,
+  getMessageByIdWithVoice,
   getRescuerDepartmentUnreadSummary,
   getRescuerGlobalUnreadSummary,
   getRescuerSenderGuard,

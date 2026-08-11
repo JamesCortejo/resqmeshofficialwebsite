@@ -5,6 +5,7 @@ const {
   getAdminDepartments,
   getConversationMessages,
   getGlobalMessages,
+  getOnlineVoiceClip,
   markRead,
   markGlobalAnnouncementsRead,
   sendAdminMessage,
@@ -206,6 +207,31 @@ exports.sendMessage = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to send message.');
+  }
+};
+
+exports.getVoiceClip = async (req, res) => {
+  try {
+    const messageId = parseId(req.params.id);
+
+    if (!messageId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid message id.'
+      });
+    }
+
+    const clip = await getOnlineVoiceClip(messageId, {
+      type: 'admin',
+      id: req.adminUser.id
+    });
+
+    return res.json({
+      success: true,
+      data: clip
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load voice clip.');
   }
 };
 

@@ -27,6 +27,7 @@ const {
   getDepartmentById,
   getDepartmentBySlug,
   getGlobalMessageById,
+  getMessageByIdWithVoice,
   getOrCreateConversation,
   getRescuerDepartmentUnreadSummary,
   getRescuerGlobalUnreadSummary,
@@ -44,11 +45,15 @@ const {
 
 const ICON_UPLOAD_DIR = path.join(config.appRoot, 'public', 'uploads', 'department-chat-icons');
 const ICON_PUBLIC_BASE = '/uploads/department-chat-icons';
+const VOICE_UPLOAD_DIR = path.join(config.appRoot, 'storage', 'online-chat-voice');
 const MAX_MESSAGE_LENGTH = 1000;
 const MAX_ICON_SIZE_BYTES = 1024 * 1024;
+const MAX_ONLINE_VOICE_SECONDS = 40;
+const MAX_ONLINE_VOICE_SIZE_BYTES = 2 * 1024 * 1024;
 const STATUS_VALUES = new Set(['active', 'inactive', 'archived']);
 const COLOR_VALUES = new Set(['red', 'blue', 'amber', 'orange', 'slate']);
 const RESCUER_AGENCY_VALUES = new Set(['cdrrmo', 'fire-department', 'police-department']);
+const ONLINE_VOICE_MIME_TYPES = new Set(['audio/mp4', 'audio/m4a', 'audio/x-m4a', 'audio/aac']);
 const SYSTEM_GLOBAL_DEPARTMENT = Object.freeze({
   slug: 'global-announcements',
   name: 'Global Announcements',
@@ -195,6 +200,7 @@ function formatDepartment(row, unreadCount = 0) {
 
 function formatMessage(row) {
   const senderType = row.senderType;
+  const messageType = row.messageType || 'text';
   const senderDisplayName = senderType === 'civilian'
     ? 'Civilian'
     : senderType === 'admin'
@@ -212,7 +218,16 @@ function formatMessage(row) {
     senderId: row.senderId,
     senderDisplayName,
     senderRoleLabel: senderDisplayName,
-    body: row.body,
+    messageType,
+    body: row.body || (messageType === 'voice' ? 'Voice message' : ''),
+    voiceClip: row.voiceClipId
+      ? {
+          id: row.voiceClipId,
+          durationSeconds: Number(row.voiceDurationSeconds || 0),
+          sizeBytes: Number(row.voiceSizeBytes || 0),
+          mimeType: row.voiceMimeType || null,
+        }
+      : null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
   };
@@ -347,6 +362,65 @@ async function saveDepartmentIcon(file) {
     iconPath,
     iconUrl: `${ICON_PUBLIC_BASE}/${filename}`
   };
+}
+
+function normalizeVoiceMimeType(value) {
+  const normalized = normalizeString(value || 'audio/mp4', 80).toLowerCase();
+  return ONLINE_VOICE_MIME_TYPES.has(normalized) ? normalized : null;
+}
+
+function decodeVoiceBase64(value) {
+  const raw = String(value || '').trim();
+  const content = raw.includes(',') ? raw.split(',').pop() : raw;
+
+  if (!content || !/^[A-Za-z0-9+/=\r\n]+$/.test(content)) {
+    throw appError('Voice clip content is invalid.');
+  }
+
+  return Buffer.from(content.replace(/\s+/g, ''), 'base64');
+}
+
+async function saveOnlineVoiceClip(payload = {}) {
+  const mimeType = normalizeVoiceMimeType(payload.mimeType);
+  const durationSeconds = Math.ceil(Number(payload.durationSeconds || payload.duration || 0));
+
+  if (!mimeType) {
+    throw appError('Unsupported voice clip format.');
+  }
+
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 1 || durationSeconds > MAX_ONLINE_VOICE_SECONDS) {
+    throw appError(`Voice clips must be ${MAX_ONLINE_VOICE_SECONDS} seconds or shorter.`);
+  }
+
+  const buffer = decodeVoiceBase64(payload.content || payload.base64Audio || payload.audio);
+
+  if (buffer.length <= 0 || buffer.length > MAX_ONLINE_VOICE_SIZE_BYTES) {
+    throw appError('Voice clip file is too large.');
+  }
+
+  await fs.mkdir(VOICE_UPLOAD_DIR, { recursive: true });
+  const filename = `${Date.now()}-${crypto.randomBytes(10).toString('hex')}.m4a`;
+  const filePath = path.join(VOICE_UPLOAD_DIR, filename);
+  await fs.writeFile(filePath, buffer);
+
+  return {
+    filePath,
+    mimeType,
+    durationSeconds,
+    sizeBytes: buffer.length
+  };
+}
+
+async function removeFileIfWritten(filePath) {
+  if (!filePath) {
+    return;
+  }
+
+  try {
+    await fs.unlink(filePath);
+  } catch (error) {
+    // Best-effort cleanup only; the DB transaction remains the source of truth.
+  }
 }
 
 async function getAdminDepartments(adminUserId, options = {}) {
@@ -605,6 +679,126 @@ async function getConversationMessages(conversationId, actor, options = {}) {
   };
 }
 
+function formatDepartmentFromConversation(conversation) {
+  return formatDepartment({
+    id: conversation.departmentId,
+    slug: conversation.departmentSlug,
+    name: conversation.departmentName,
+    subtitle: conversation.departmentSubtitle,
+    status: conversation.departmentStatus,
+    colorTag: conversation.departmentColorTag,
+    rescuerAgency: conversation.departmentRescuerAgency,
+    iconUrl: conversation.departmentIconUrl,
+    sortOrder: conversation.departmentSortOrder,
+    readOnly: conversation.departmentReadOnly,
+    archivedAt: conversation.departmentArchivedAt,
+    createdAt: conversation.departmentCreatedAt,
+    updatedAt: conversation.departmentUpdatedAt
+  });
+}
+
+function assertVoiceConversationAccess(conversation, actor) {
+  if (!conversation) {
+    throw appError('Conversation not found.', 404);
+  }
+
+  if (Number(conversation.departmentReadOnly) === 1 || isSystemGlobalDepartment({ slug: conversation.departmentSlug })) {
+    throw appError('Voice messages are not available in this room.', 403);
+  }
+
+  if (actor.type === 'civilian' && conversation.civilianUserId !== actor.id) {
+    throw appError('Conversation not found.', 404);
+  }
+
+  if (actor.type === 'rescuer') {
+    const departmentAgency = resolveRescuerAgency(
+      conversation.departmentRescuerAgency,
+      conversation.departmentSlug,
+      conversation.departmentName
+    );
+    if (conversation.departmentStatus !== 'active' || departmentAgency !== actor.agency) {
+      throw appError('Conversation not found.', 404);
+    }
+  }
+}
+
+async function sendOnlineVoiceMessage(conversationId, actor, payload) {
+  const conversation = await getConversationById(conversationId);
+  assertVoiceConversationAccess(conversation, actor);
+
+  const voiceClip = await saveOnlineVoiceClip(payload);
+
+  try {
+    const message = await insertMessage({
+      conversationId,
+      departmentId: conversation.departmentId,
+      civilianUserId: conversation.civilianUserId,
+      senderType: actor.type,
+      senderId: actor.id,
+      messageType: 'voice',
+      body: 'Voice message',
+      voiceClip
+    });
+
+    await markConversationRead(conversationId, actor.type, actor.id);
+
+    if (actor.type === 'civilian') {
+      await notifyOnlineChatMessageReceived({
+        conversationId,
+        department: {
+          id: conversation.departmentId,
+          name: conversation.departmentName
+        },
+        civilian: formatCivilian(conversation),
+        message
+      });
+    }
+
+    const formattedMessage = formatMessage(message);
+    const formattedConversation = formatConversation(conversation);
+    const formattedDepartment = formatDepartmentFromConversation(conversation);
+
+    await pushOnlineChatMessageNotification({
+      conversation: formattedConversation,
+      department: formattedDepartment,
+      civilian: formattedConversation.civilian,
+      message: formattedMessage,
+    });
+
+    return formattedMessage;
+  } catch (error) {
+    await removeFileIfWritten(voiceClip.filePath);
+    throw error;
+  }
+}
+
+async function getOnlineVoiceClip(messageId, actor) {
+  const row = await getMessageByIdWithVoice(messageId);
+
+  if (!row || row.messageType !== 'voice' || !row.voiceClipId || !row.voiceFilePath) {
+    throw appError('Voice clip not found.', 404);
+  }
+
+  assertVoiceConversationAccess(row, actor.type === 'admin'
+    ? { type: 'admin', id: actor.id }
+    : actor);
+
+  const content = await fs.readFile(row.voiceFilePath, 'base64').catch(() => null);
+
+  if (!content) {
+    throw appError('Voice clip file is unavailable.', 404);
+  }
+
+  return {
+    id: row.voiceClipId,
+    messageId: row.id,
+    mimeType: row.voiceMimeType,
+    durationSeconds: Number(row.voiceDurationSeconds || 0),
+    sizeBytes: Number(row.voiceSizeBytes || 0),
+    content
+  };
+}
+
 async function sendAdminMessage(conversationId, adminUserId, bodyValue) {
   const conversation = await getConversationById(conversationId);
 
@@ -795,6 +989,21 @@ async function sendRescuerMessage(conversationId, rescuer, bodyValue) {
   return formattedMessage;
 }
 
+async function sendCivilianVoiceMessage(conversationId, civilianUserId, payload) {
+  return sendOnlineVoiceMessage(conversationId, {
+    type: 'civilian',
+    id: civilianUserId
+  }, payload);
+}
+
+async function sendRescuerVoiceMessage(conversationId, rescuer, payload) {
+  return sendOnlineVoiceMessage(conversationId, {
+    type: 'rescuer',
+    id: rescuer.id,
+    agency: rescuer.agency
+  }, payload);
+}
+
 async function sendGlobalAnnouncement(adminUserId, bodyValue) {
   const department = await ensureSystemGlobalDepartment();
   const body = normalizeString(bodyValue, MAX_MESSAGE_LENGTH);
@@ -860,6 +1069,7 @@ module.exports = {
   getAdminConversations,
   getAdminDepartments,
   getCivilianDepartments,
+  getOnlineVoiceClip,
   getRescuerConversations,
   getRescuerDepartments,
   getConversationMessages,
@@ -870,6 +1080,8 @@ module.exports = {
   sendAdminMessage,
   sendGlobalAnnouncement,
   sendCivilianMessage,
+  sendCivilianVoiceMessage,
   sendRescuerMessage,
+  sendRescuerVoiceMessage,
   updateDepartmentChat
 };

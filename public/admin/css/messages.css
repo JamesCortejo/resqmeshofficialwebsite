@@ -511,6 +511,32 @@
   white-space: pre-wrap;
 }
 
+.messages-voice-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: max-content;
+  border: 1px solid rgba(231, 75, 50, 0.2);
+  border-radius: 999px;
+  background: rgba(231, 75, 50, 0.08);
+  color: var(--admin-primary-hover);
+  cursor: pointer;
+  font: 900 0.82rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 0.65rem 0.85rem;
+}
+
+.messages-voice-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.messages-voice-meta {
+  color: var(--admin-muted);
+  font: 800 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  text-transform: uppercase;
+}
+
 .messages-composer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

@@ -35,15 +35,19 @@ router.post('/api/civilian/navigation/shared-rescuer-route', requireCivilianSess
 router.get('/api/civilian/online-chat/departments', requireCivilianSession, onlineChatCivilianController.listDepartments);
 router.post('/api/civilian/online-chat/departments/:departmentId/conversation', requireCivilianSession, onlineChatCivilianController.openConversation);
 router.get('/api/civilian/online-chat/global/messages', requireCivilianSession, onlineChatCivilianController.listGlobalMessages);
+router.get('/api/civilian/online-chat/messages/:id/voice', requireCivilianSession, onlineChatCivilianController.getVoiceClip);
 router.get('/api/civilian/online-chat/conversations/:id/messages', requireCivilianSession, onlineChatCivilianController.listMessages);
 router.post('/api/civilian/online-chat/conversations/:id/messages', requireCivilianSession, onlineChatCivilianController.sendMessage);
+router.post('/api/civilian/online-chat/conversations/:id/voice', requireCivilianSession, onlineChatCivilianController.sendVoiceMessage);
 router.post('/api/civilian/online-chat/global/read', requireCivilianSession, onlineChatCivilianController.markGlobalRead);
 router.post('/api/civilian/online-chat/conversations/:id/read', requireCivilianSession, onlineChatCivilianController.markRead);
 router.get('/api/rescuer/online-chat/departments', requireRescuerSession, onlineChatRescuerController.listDepartments);
 router.get('/api/rescuer/online-chat/conversations', requireRescuerSession, onlineChatRescuerController.listConversations);
 router.get('/api/rescuer/online-chat/global/messages', requireRescuerSession, onlineChatRescuerController.listGlobalMessages);
+router.get('/api/rescuer/online-chat/messages/:id/voice', requireRescuerSession, onlineChatRescuerController.getVoiceClip);
 router.get('/api/rescuer/online-chat/conversations/:id/messages', requireRescuerSession, onlineChatRescuerController.listMessages);
 router.post('/api/rescuer/online-chat/conversations/:id/messages', requireRescuerSession, onlineChatRescuerController.sendMessage);
+router.post('/api/rescuer/online-chat/conversations/:id/voice', requireRescuerSession, onlineChatRescuerController.sendVoiceMessage);
 router.post('/api/rescuer/online-chat/global/read', requireRescuerSession, onlineChatRescuerController.markGlobalRead);
 router.post('/api/rescuer/online-chat/conversations/:id/read', requireRescuerSession, onlineChatRescuerController.markRead);
 
