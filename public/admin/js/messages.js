@@ -20,7 +20,11 @@
     refreshToken: 0,
     lastNotificationSignature: '',
     activeVoiceMessageId: null,
-    activeVoiceAudio: null
+    activeVoiceAudio: null,
+    voiceLoadingMessageId: null,
+    voiceErrorMessageId: null,
+    voicePositionSeconds: 0,
+    voiceDurationSeconds: 0
   };
 
   const dom = {
@@ -93,6 +97,78 @@
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  function formatVoiceTime(secondsValue) {
+    const seconds = Math.max(0, Math.floor(Number(secondsValue || 0)));
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
+  }
+
+  function getVoiceDurationForMessage(messageId) {
+    const message = state.messages.find((item) => Number(item.id) === Number(messageId));
+    return Number(message?.voiceClip?.durationSeconds || 0);
+  }
+
+  function syncVoiceControls() {
+    document.querySelectorAll('[data-voice-control-id]').forEach((control) => {
+      const messageId = Number(control.getAttribute('data-voice-control-id'));
+      const isLoading = state.voiceLoadingMessageId === messageId;
+      const isPlaying = state.activeVoiceMessageId === messageId && Boolean(state.activeVoiceAudio);
+      const isError = state.voiceErrorMessageId === messageId;
+      const duration = isPlaying
+        ? state.voiceDurationSeconds || getVoiceDurationForMessage(messageId)
+        : getVoiceDurationForMessage(messageId);
+      const position = isPlaying ? state.voicePositionSeconds : 0;
+      const progress = duration > 0 ? Math.min((position / duration) * 100, 100) : 0;
+      const icon = control.querySelector('[data-voice-icon]');
+      const status = control.querySelector('[data-voice-status]');
+      const time = control.querySelector('[data-voice-time]');
+      const fill = control.querySelector('[data-voice-progress]');
+
+      control.classList.toggle('is-loading', isLoading);
+      control.classList.toggle('is-playing', isPlaying);
+      control.classList.toggle('is-error', isError);
+
+      if (icon) {
+        icon.className = isLoading
+          ? 'fa-solid fa-spinner fa-spin'
+          : isError
+            ? 'fa-solid fa-triangle-exclamation'
+            : isPlaying
+              ? 'fa-solid fa-pause'
+              : 'fa-solid fa-play';
+      }
+
+      if (status) {
+        status.textContent = isLoading
+          ? 'Loading'
+          : isError
+            ? 'Unavailable'
+            : isPlaying
+              ? 'Playing'
+              : 'Voice message';
+      }
+
+      if (time) {
+        time.textContent = duration > 0
+          ? `${formatVoiceTime(position)} / ${formatVoiceTime(duration)}`
+          : '0:00';
+      }
+
+      if (fill) {
+        fill.style.width = `${Math.max(isPlaying ? 4 : 0, progress)}%`;
+      }
+    });
+  }
+
+  function resetVoicePlaybackState() {
+    state.activeVoiceMessageId = null;
+    state.activeVoiceAudio = null;
+    state.voiceLoadingMessageId = null;
+    state.voicePositionSeconds = 0;
+    state.voiceDurationSeconds = 0;
   }
 
   function getSelectedDepartment() {
@@ -204,26 +280,24 @@
     return payload.data || null;
   }
 
-  async function playVoiceClip(messageId, button) {
+  async function playVoiceClip(messageId) {
     if (state.activeVoiceMessageId === messageId && state.activeVoiceAudio) {
       state.activeVoiceAudio.pause();
       state.activeVoiceAudio.currentTime = 0;
-      state.activeVoiceMessageId = null;
-      state.activeVoiceAudio = null;
-      button.innerHTML = '<i class="fa-solid fa-play" aria-hidden="true"></i><span>Play voice</span>';
+      resetVoicePlaybackState();
+      syncVoiceControls();
       return;
     }
 
     if (state.activeVoiceAudio) {
       state.activeVoiceAudio.pause();
       state.activeVoiceAudio.currentTime = 0;
-      document.querySelectorAll('[data-voice-message-id]').forEach((item) => {
-        item.innerHTML = '<i class="fa-solid fa-play" aria-hidden="true"></i><span>Play voice</span>';
-      });
     }
 
-    button.disabled = true;
-    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Loading</span>';
+    resetVoicePlaybackState();
+    state.voiceLoadingMessageId = messageId;
+    state.voiceErrorMessageId = null;
+    syncVoiceControls();
 
     try {
       const clip = await fetchVoiceClip(messageId);
@@ -234,18 +308,39 @@
       const audio = new Audio(`data:${clip.mimeType || 'audio/mp4'};base64,${clip.content}`);
       state.activeVoiceAudio = audio;
       state.activeVoiceMessageId = messageId;
-      button.innerHTML = '<i class="fa-solid fa-pause" aria-hidden="true"></i><span>Playing</span>';
+      state.voiceLoadingMessageId = null;
+      state.voiceDurationSeconds = Number(clip.durationSeconds || 0);
+
+      audio.addEventListener('loadedmetadata', () => {
+        state.voiceDurationSeconds = Number.isFinite(audio.duration)
+          ? audio.duration
+          : Number(clip.durationSeconds || 0);
+        syncVoiceControls();
+      });
+      audio.addEventListener('timeupdate', () => {
+        state.voicePositionSeconds = audio.currentTime || 0;
+        state.voiceDurationSeconds = Number.isFinite(audio.duration)
+          ? audio.duration
+          : state.voiceDurationSeconds;
+        syncVoiceControls();
+      });
+      audio.addEventListener('pause', () => {
+        if (state.activeVoiceMessageId === messageId && !audio.ended) {
+          resetVoicePlaybackState();
+          syncVoiceControls();
+        }
+      });
       audio.addEventListener('ended', () => {
-        state.activeVoiceMessageId = null;
-        state.activeVoiceAudio = null;
-        button.innerHTML = '<i class="fa-solid fa-play" aria-hidden="true"></i><span>Play voice</span>';
+        resetVoicePlaybackState();
+        syncVoiceControls();
       }, { once: true });
       await audio.play();
+      syncVoiceControls();
     } catch (error) {
       console.error(error);
-      button.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>Unavailable</span>';
-    } finally {
-      button.disabled = false;
+      resetVoicePlaybackState();
+      state.voiceErrorMessageId = messageId;
+      syncVoiceControls();
     }
   }
 
@@ -501,15 +596,23 @@
             ? 'Rescuer'
             : (message.senderDisplayName || 'Civilian');
       const isVoice = message.messageType === 'voice';
+      const voiceDuration = Number(message.voiceClip?.durationSeconds || 0);
       const bodyMarkup = isVoice
         ? `
-          <button type="button" class="messages-voice-button" data-voice-message-id="${message.id}">
-            <i class="fa-solid fa-play" aria-hidden="true"></i>
-            <span>Play voice</span>
+          <button type="button" class="messages-voice-control" data-voice-control-id="${message.id}">
+            <span class="messages-voice-play">
+              <i class="fa-solid fa-play" data-voice-icon aria-hidden="true"></i>
+            </span>
+            <span class="messages-voice-main">
+              <span class="messages-voice-topline">
+                <strong data-voice-status>Voice message</strong>
+                <small data-voice-time>${voiceDuration > 0 ? `0:00 / ${formatVoiceTime(voiceDuration)}` : '0:00'}</small>
+              </span>
+              <span class="messages-voice-track" aria-hidden="true">
+                <span class="messages-voice-fill" data-voice-progress style="width: 0%"></span>
+              </span>
+            </span>
           </button>
-          <small class="messages-voice-meta">
-            ${message.voiceClip?.durationSeconds ? `${Number(message.voiceClip.durationSeconds)}s` : 'Voice message'}
-          </small>
         `
         : `<p>${escapeHtml(message.body)}</p>`;
 
@@ -528,6 +631,8 @@
     } else if (scrollToBottom) {
       dom.timeline.scrollTop = dom.timeline.scrollHeight;
     }
+
+    syncVoiceControls();
   }
 
   function syncComposer() {
@@ -814,12 +919,12 @@
     });
 
     dom.timeline.addEventListener('click', (event) => {
-      const voiceButton = event.target.closest('[data-voice-message-id]');
-      if (!voiceButton) {
+      const voiceControl = event.target.closest('[data-voice-control-id]');
+      if (!voiceControl) {
         return;
       }
 
-      void playVoiceClip(Number(voiceButton.dataset.voiceMessageId), voiceButton);
+      void playVoiceClip(Number(voiceControl.dataset.voiceControlId));
     });
 
     window.addEventListener('resqmesh:admin-notifications-refreshed', (event) => {

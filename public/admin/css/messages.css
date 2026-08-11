@@ -511,30 +511,94 @@
   white-space: pre-wrap;
 }
 
-.messages-voice-button {
+.messages-voice-control {
+  display: grid;
+  grid-template-columns: 2.35rem minmax(11rem, 1fr);
+  align-items: center;
+  gap: 0.72rem;
+  min-width: min(18rem, 100%);
+  border: 1px solid rgba(220, 227, 234, 0.9);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--admin-ink);
+  cursor: pointer;
+  padding: 0.68rem 0.75rem;
+  text-align: left;
+}
+
+.messages-voice-control.is-playing {
+  border-color: rgba(231, 75, 50, 0.25);
+  background: linear-gradient(180deg, rgba(255, 247, 244, 0.98), rgba(255, 255, 255, 0.94));
+}
+
+.messages-voice-control.is-loading {
+  cursor: wait;
+  opacity: 0.82;
+}
+
+.messages-voice-control.is-error {
+  border-color: rgba(220, 38, 38, 0.28);
+}
+
+.messages-voice-play {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  width: max-content;
-  border: 1px solid rgba(231, 75, 50, 0.2);
+  width: 2.35rem;
+  height: 2.35rem;
   border-radius: 999px;
-  background: rgba(231, 75, 50, 0.08);
+  background: rgba(231, 75, 50, 0.1);
   color: var(--admin-primary-hover);
-  cursor: pointer;
+}
+
+.messages-voice-control.is-playing .messages-voice-play {
+  background: var(--admin-primary);
+  color: #ffffff;
+}
+
+.messages-voice-main {
+  display: grid;
+  gap: 0.48rem;
+  min-width: 0;
+}
+
+.messages-voice-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.messages-voice-topline strong {
+  overflow: hidden;
+  color: var(--admin-ink);
   font: 900 0.82rem/1 'Inter', system-ui, -apple-system, sans-serif;
-  padding: 0.65rem 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.messages-voice-button:disabled {
-  cursor: wait;
-  opacity: 0.72;
-}
-
-.messages-voice-meta {
+.messages-voice-topline small {
   color: var(--admin-muted);
   font: 800 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
-  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.messages-voice-track {
+  display: block;
+  height: 0.32rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.16);
+}
+
+.messages-voice-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-primary);
+  transition: width 0.12s linear;
 }
 
 .messages-composer {
