@@ -171,6 +171,16 @@
     state.voiceDurationSeconds = 0;
   }
 
+  function stopVoicePlayback() {
+    if (state.activeVoiceAudio) {
+      state.activeVoiceAudio.pause();
+      state.activeVoiceAudio.currentTime = 0;
+    }
+
+    resetVoicePlaybackState();
+    syncVoiceControls();
+  }
+
   function getSelectedDepartment() {
     return state.departments.find((department) => department.id === state.selectedDepartmentId) || null;
   }
@@ -822,6 +832,7 @@
       return;
     }
 
+    stopVoicePlayback();
     state.selectedDepartmentId = departmentId;
     state.loadingConversations = true;
     state.loadingMessages = true;
@@ -845,6 +856,7 @@
       return;
     }
 
+    stopVoicePlayback();
     state.selectedConversationId = conversationId;
     state.loadingMessages = true;
     state.messages = [];
