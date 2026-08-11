@@ -223,7 +223,7 @@ function formatMessage(row) {
   const senderDisplayName = senderType === 'civilian'
     ? civilianSenderName || 'Civilian'
     : senderType === 'admin'
-      ? adminSenderName || 'Admin'
+      ? 'Admin'
       : senderType === 'rescuer'
         ? rescuerSenderName || 'Rescuer'
         : 'System';
