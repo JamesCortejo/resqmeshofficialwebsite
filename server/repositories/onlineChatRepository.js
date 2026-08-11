@@ -283,7 +283,16 @@ function selectMessageColumns(prefix = 'm') {
     vc.id AS "voiceClipId",
     vc.mime_type AS "voiceMimeType",
     vc.duration_seconds AS "voiceDurationSeconds",
-    vc.size_bytes AS "voiceSizeBytes"
+    vc.size_bytes AS "voiceSizeBytes",
+    civilian_sender.first_name_enc AS "civilianSenderFirstNameEnc",
+    civilian_sender.middle_name_enc AS "civilianSenderMiddleNameEnc",
+    civilian_sender.last_name_enc AS "civilianSenderLastNameEnc",
+    admin_sender.first_name_enc AS "adminSenderFirstNameEnc",
+    admin_sender.middle_name_enc AS "adminSenderMiddleNameEnc",
+    admin_sender.last_name_enc AS "adminSenderLastNameEnc",
+    rescuer_sender.first_name_enc AS "rescuerSenderFirstNameEnc",
+    rescuer_sender.middle_name_enc AS "rescuerSenderMiddleNameEnc",
+    rescuer_sender.last_name_enc AS "rescuerSenderLastNameEnc"
   `;
 }
 
@@ -291,6 +300,14 @@ function selectMessageColumnsWithFile(prefix = 'm') {
   return `
     ${selectMessageColumns(prefix)},
     vc.file_path AS "voiceFilePath"
+  `;
+}
+
+function messageSenderJoins(prefix = 'm') {
+  return `
+    LEFT JOIN users civilian_sender ON civilian_sender.id = ${prefix}.sender_id AND ${prefix}.sender_type = 'civilian'
+    LEFT JOIN users admin_sender ON admin_sender.id = ${prefix}.sender_id AND ${prefix}.sender_type = 'admin'
+    LEFT JOIN rescuers rescuer_sender ON rescuer_sender.id = ${prefix}.sender_id AND ${prefix}.sender_type = 'rescuer'
   `;
 }
 
@@ -353,6 +370,7 @@ function insertMessage(message) {
         ${selectMessageColumns('m')}
       FROM online_chat_messages m
       LEFT JOIN online_chat_message_voice_clips vc ON vc.message_id = m.id
+      ${messageSenderJoins('m')}
       WHERE m.id = ?
       LIMIT 1
     `, [inserted.lastID]);
@@ -380,6 +398,7 @@ function listMessages(conversationId, { beforeId = null, afterId = null, limit =
         ${selectMessageColumns('m')}
       FROM online_chat_messages m
       LEFT JOIN online_chat_message_voice_clips vc ON vc.message_id = m.id
+      ${messageSenderJoins('m')}
       WHERE m.conversation_id = ? AND m.deleted = 0 ${rangeClause}
       ORDER BY m.id ${afterId ? 'ASC' : 'DESC'}
       LIMIT ?
@@ -400,6 +419,7 @@ function getMessageByIdWithVoice(id) {
     FROM online_chat_messages m
     JOIN online_chat_departments d ON d.id = m.department_id
     LEFT JOIN online_chat_message_voice_clips vc ON vc.message_id = m.id
+    ${messageSenderJoins('m')}
     WHERE m.id = ? AND m.deleted = 0
     LIMIT 1
   `, [id]);
@@ -410,10 +430,10 @@ function listGlobalMessages(departmentId, { beforeId = null, afterId = null, lim
   let rangeClause = '';
 
   if (afterId) {
-    rangeClause = 'AND id > ?';
+    rangeClause = 'AND gm.id > ?';
     params.push(afterId);
   } else if (beforeId) {
-    rangeClause = 'AND id < ?';
+    rangeClause = 'AND gm.id < ?';
     params.push(beforeId);
   }
 
@@ -423,17 +443,21 @@ function listGlobalMessages(departmentId, { beforeId = null, afterId = null, lim
     SELECT *
     FROM (
       SELECT
-        id,
-        department_id AS departmentId,
-        sender_type AS senderType,
-        sender_id AS senderId,
-        body,
-        deleted,
-        created_at AS createdAt,
-        updated_at AS updatedAt
-      FROM online_chat_global_messages
-      WHERE department_id = ? AND deleted = 0 ${rangeClause}
-      ORDER BY id ${afterId ? 'ASC' : 'DESC'}
+        gm.id,
+        gm.department_id AS "departmentId",
+        gm.sender_type AS "senderType",
+        gm.sender_id AS "senderId",
+        gm.body,
+        gm.deleted,
+        gm.created_at AS "createdAt",
+        gm.updated_at AS "updatedAt",
+        admin_sender.first_name_enc AS "adminSenderFirstNameEnc",
+        admin_sender.middle_name_enc AS "adminSenderMiddleNameEnc",
+        admin_sender.last_name_enc AS "adminSenderLastNameEnc"
+      FROM online_chat_global_messages gm
+      LEFT JOIN users admin_sender ON admin_sender.id = gm.sender_id AND gm.sender_type = 'admin'
+      WHERE gm.department_id = ? AND gm.deleted = 0 ${rangeClause}
+      ORDER BY gm.id ${afterId ? 'ASC' : 'DESC'}
       LIMIT ?
     ) recent
     ORDER BY id ASC

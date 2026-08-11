@@ -158,6 +158,10 @@ function safeDecrypt(value) {
   }
 }
 
+function fullName(...parts) {
+  return parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+}
+
 function formatCivilian(row) {
   const firstName = safeDecrypt(row.firstNameEnc);
   const middleName = safeDecrypt(row.middleNameEnc);
@@ -201,7 +205,29 @@ function formatDepartment(row, unreadCount = 0) {
 function formatMessage(row) {
   const senderType = row.senderType;
   const messageType = row.messageType || 'text';
+  const civilianSenderName = fullName(
+    safeDecrypt(row.civilianSenderFirstNameEnc),
+    safeDecrypt(row.civilianSenderMiddleNameEnc),
+    safeDecrypt(row.civilianSenderLastNameEnc)
+  );
+  const adminSenderName = fullName(
+    safeDecrypt(row.adminSenderFirstNameEnc),
+    safeDecrypt(row.adminSenderMiddleNameEnc),
+    safeDecrypt(row.adminSenderLastNameEnc)
+  );
+  const rescuerSenderName = fullName(
+    safeDecrypt(row.rescuerSenderFirstNameEnc),
+    safeDecrypt(row.rescuerSenderMiddleNameEnc),
+    safeDecrypt(row.rescuerSenderLastNameEnc)
+  );
   const senderDisplayName = senderType === 'civilian'
+    ? civilianSenderName || 'Civilian'
+    : senderType === 'admin'
+      ? adminSenderName || 'Admin'
+      : senderType === 'rescuer'
+        ? rescuerSenderName || 'Rescuer'
+        : 'System';
+  const senderRoleLabel = senderType === 'civilian'
     ? 'Civilian'
     : senderType === 'admin'
       ? 'Admin'
@@ -217,7 +243,7 @@ function formatMessage(row) {
     senderType,
     senderId: row.senderId,
     senderDisplayName,
-    senderRoleLabel: senderDisplayName,
+    senderRoleLabel,
     messageType,
     body: row.body || (messageType === 'voice' ? 'Voice message' : ''),
     voiceClip: row.voiceClipId
