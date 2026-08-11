@@ -176,8 +176,11 @@ function formatCivilian(row) {
     lastName,
     fullName: [firstName, middleName, lastName].filter(Boolean).join(' ') || row.userCode || 'Civilian',
     phone: safeDecrypt(row.phoneEnc),
+    email: safeDecrypt(row.emailEnc),
     occupation: safeDecrypt(row.occupationEnc),
     bloodType: safeDecrypt(row.bloodTypeEnc),
+    allergies: safeDecrypt(row.allergiesEnc),
+    medicalComplications: safeDecrypt(row.medicalComplicationsEnc),
     birthDate: birthDate || null,
     age: calculateAge(birthDate)
   };

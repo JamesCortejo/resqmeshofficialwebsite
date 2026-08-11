@@ -143,8 +143,11 @@ function getCivilianById(id) {
       last_name_enc AS lastNameEnc,
       birth_date_enc AS birthDateEnc,
       phone_enc AS phoneEnc,
+      email_enc AS emailEnc,
       occupation_enc AS occupationEnc,
       blood_type_enc AS bloodTypeEnc,
+      medical_complications_enc AS medicalComplicationsEnc,
+      allergies_enc AS allergiesEnc,
       status
     FROM users
     WHERE id = ?
@@ -198,8 +201,11 @@ function getConversationById(id) {
       u.last_name_enc AS lastNameEnc,
       u.birth_date_enc AS birthDateEnc,
       u.phone_enc AS phoneEnc,
+      u.email_enc AS emailEnc,
       u.occupation_enc AS occupationEnc,
-      u.blood_type_enc AS bloodTypeEnc
+      u.blood_type_enc AS bloodTypeEnc,
+      u.medical_complications_enc AS medicalComplicationsEnc,
+      u.allergies_enc AS allergiesEnc
     FROM online_chat_conversations c
     JOIN online_chat_departments d ON d.id = c.department_id
     JOIN users u ON u.id = c.civilian_user_id
@@ -690,8 +696,11 @@ function listRescuerConversations(
       u.last_name_enc AS lastNameEnc,
       u.birth_date_enc AS birthDateEnc,
       u.phone_enc AS phoneEnc,
+      u.email_enc AS emailEnc,
       u.occupation_enc AS occupationEnc,
       u.blood_type_enc AS bloodTypeEnc,
+      u.medical_complications_enc AS medicalComplicationsEnc,
+      u.allergies_enc AS allergiesEnc,
       m.body AS lastMessageBody,
       m.sender_type AS lastMessageSenderType,
       ods.id AS activeOnlineDistressId,
