@@ -38,7 +38,7 @@ function listDevices() {
         SELECT inner_mnl.id
         FROM mesh_node_links inner_mnl
         WHERE inner_mnl.neighbor_node_id = sd.node_id
-        ORDER BY datetime(COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at)) DESC, inner_mnl.id DESC
+        ORDER BY COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at) DESC, inner_mnl.id DESC
         LIMIT 1
       )
     LEFT JOIN (
@@ -63,17 +63,17 @@ function listDevices() {
           SELECT inner_d.id
           FROM distress_deployments inner_d
           WHERE inner_d.mesh_distress_signal_id = m.id
-          ORDER BY datetime(COALESCE(inner_d.updated_at, inner_d.created_at)) DESC, inner_d.id DESC
+          ORDER BY COALESCE(inner_d.updated_at, inner_d.created_at) DESC, inner_d.id DESC
           LIMIT 1
         )
       WHERE m.deleted = 0
-        AND datetime(COALESCE(d.updated_at, m.updated_at, m.created_at)) >= datetime('now', '-1 day')
+        AND COALESCE(d.updated_at, m.updated_at, m.created_at) >= CURRENT_TIMESTAMP - INTERVAL '1 day'
       GROUP BY m.origin_node_id
     ) md ON md.origin_node_id = sd.node_id
     LEFT JOIN (
       SELECT origin_node_id, COUNT(*) AS recentMessageCount
       FROM mesh_messages
-      WHERE datetime(COALESCE(message_timestamp, uploaded_at)) >= datetime('now', '-1 day')
+      WHERE COALESCE(message_timestamp, uploaded_at) >= CURRENT_TIMESTAMP - INTERVAL '1 day'
       GROUP BY origin_node_id
     ) mm ON mm.origin_node_id = sd.node_id
     LEFT JOIN (
@@ -93,7 +93,7 @@ function listDevices() {
           SELECT inner_d.id
           FROM distress_deployments inner_d
           WHERE inner_d.mesh_distress_signal_id = m.id
-          ORDER BY datetime(COALESCE(inner_d.updated_at, inner_d.created_at)) DESC, inner_d.id DESC
+          ORDER BY COALESCE(inner_d.updated_at, inner_d.created_at) DESC, inner_d.id DESC
           LIMIT 1
         )
       WHERE m.deleted = 0
@@ -107,7 +107,7 @@ function listDevices() {
     LEFT JOIN (
       SELECT origin_node_id, COUNT(*) AS recentAuditCount
       FROM mesh_audit_logs
-      WHERE datetime(COALESCE(event_timestamp, uploaded_at)) >= datetime('now', '-1 day')
+      WHERE COALESCE(event_timestamp, uploaded_at) >= CURRENT_TIMESTAMP - INTERVAL '1 day'
       GROUP BY origin_node_id
     ) ma ON ma.origin_node_id = sd.node_id
     ORDER BY COALESCE(sd.last_sync_at, sd.last_seen_at, sd.created_at) DESC, sd.id DESC
@@ -157,7 +157,7 @@ function listDevicesForMap() {
         SELECT inner_mnl.id
         FROM mesh_node_links inner_mnl
         WHERE inner_mnl.neighbor_node_id = sd.node_id
-        ORDER BY datetime(COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at)) DESC, inner_mnl.id DESC
+        ORDER BY COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at) DESC, inner_mnl.id DESC
         LIMIT 1
       )
     LEFT JOIN mesh_node_health_logs hl
@@ -165,7 +165,7 @@ function listDevicesForMap() {
         SELECT inner_hl.id
         FROM mesh_node_health_logs inner_hl
         WHERE inner_hl.node_id = sd.node_id
-        ORDER BY datetime(inner_hl.recorded_at) DESC, inner_hl.id DESC
+        ORDER BY inner_hl.recorded_at DESC, inner_hl.id DESC
         LIMIT 1
       )
     LEFT JOIN (
@@ -190,7 +190,7 @@ function listDevicesForMap() {
         WHERE inner_mds.origin_node_id = sd.node_id
           AND inner_mds.deleted = 0
           AND LOWER(COALESCE(inner_mds.status, 'active')) = 'active'
-        ORDER BY datetime(COALESCE(inner_mds.updated_at, inner_mds.timestamp, inner_mds.created_at)) DESC, inner_mds.id DESC
+        ORDER BY COALESCE(inner_mds.updated_at, inner_mds.timestamp, inner_mds.created_at) DESC, inner_mds.id DESC
         LIMIT 1
       )
     ORDER BY COALESCE(sd.last_sync_at, sd.last_seen_at, sd.created_at) DESC, sd.id DESC
@@ -334,13 +334,13 @@ function listActiveOnlineDistressMapMarkers() {
         SELECT inner_d.id
         FROM distress_deployments inner_d
         WHERE inner_d.online_distress_signal_id = o.id
-        ORDER BY datetime(COALESCE(inner_d.updated_at, inner_d.created_at)) DESC, inner_d.id DESC
+        ORDER BY COALESCE(inner_d.updated_at, inner_d.created_at) DESC, inner_d.id DESC
         LIMIT 1
       )
     LEFT JOIN rescue_teams t ON t.id = d.team_id
     WHERE o.deleted = 0
       AND LOWER(COALESCE(o.status, 'active')) = 'active'
-    ORDER BY datetime(COALESCE(o.updated_at, o.recorded_at)) DESC, o.id DESC
+    ORDER BY COALESCE(o.updated_at, o.recorded_at) DESC, o.id DESC
   `);
 }
 
@@ -367,7 +367,7 @@ function listSharedRescuerMapMarkers(cutoffTimestamp) {
     WHERE s.sharing_enabled = TRUE
       AND r.access_status = 'active'
       AND l.recorded_at >= ?
-    ORDER BY datetime(l.recorded_at) DESC, r.id ASC
+    ORDER BY l.recorded_at DESC, r.id ASC
   `, [cutoffTimestamp]);
 }
 
@@ -391,7 +391,7 @@ function listMeshNodeMapLinks() {
       AND source.longitude IS NOT NULL
       AND target.latitude IS NOT NULL
       AND target.longitude IS NOT NULL
-    ORDER BY datetime(COALESCE(l.last_seen_at, l.updated_at, l.created_at)) DESC, l.id DESC
+    ORDER BY COALESCE(l.last_seen_at, l.updated_at, l.created_at) DESC, l.id DESC
   `);
 }
 
@@ -428,7 +428,7 @@ function getDeviceSummaryById(id) {
         SELECT inner_mnl.id
         FROM mesh_node_links inner_mnl
         WHERE inner_mnl.neighbor_node_id = sd.node_id
-        ORDER BY datetime(COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at)) DESC, inner_mnl.id DESC
+        ORDER BY COALESCE(inner_mnl.last_seen_at, inner_mnl.updated_at, inner_mnl.created_at) DESC, inner_mnl.id DESC
         LIMIT 1
       )
     LEFT JOIN (
@@ -453,23 +453,23 @@ function getDeviceSummaryById(id) {
           SELECT inner_d.id
           FROM distress_deployments inner_d
           WHERE inner_d.mesh_distress_signal_id = m.id
-          ORDER BY datetime(COALESCE(inner_d.updated_at, inner_d.created_at)) DESC, inner_d.id DESC
+          ORDER BY COALESCE(inner_d.updated_at, inner_d.created_at) DESC, inner_d.id DESC
           LIMIT 1
         )
       WHERE m.deleted = 0
-        AND datetime(COALESCE(d.updated_at, m.updated_at, m.created_at)) >= datetime('now', '-1 day')
+        AND COALESCE(d.updated_at, m.updated_at, m.created_at) >= CURRENT_TIMESTAMP - INTERVAL '1 day'
       GROUP BY m.origin_node_id
     ) md ON md.origin_node_id = sd.node_id
     LEFT JOIN (
       SELECT origin_node_id, COUNT(*) AS recentMessageCount
       FROM mesh_messages
-      WHERE datetime(COALESCE(message_timestamp, uploaded_at)) >= datetime('now', '-1 day')
+      WHERE COALESCE(message_timestamp, uploaded_at) >= CURRENT_TIMESTAMP - INTERVAL '1 day'
       GROUP BY origin_node_id
     ) mm ON mm.origin_node_id = sd.node_id
     LEFT JOIN (
       SELECT origin_node_id, COUNT(*) AS recentAuditCount
       FROM mesh_audit_logs
-      WHERE datetime(COALESCE(event_timestamp, uploaded_at)) >= datetime('now', '-1 day')
+      WHERE COALESCE(event_timestamp, uploaded_at) >= CURRENT_TIMESTAMP - INTERVAL '1 day'
       GROUP BY origin_node_id
     ) ma ON ma.origin_node_id = sd.node_id
     WHERE sd.id = ?
@@ -490,7 +490,7 @@ function getLatestHealthRecord(nodeId) {
       recorded_at AS recordedAt
     FROM mesh_node_health_logs
     WHERE node_id = ?
-    ORDER BY datetime(recorded_at) DESC, id DESC
+    ORDER BY recorded_at DESC, id DESC
     LIMIT 1
   `, [nodeId]);
 }
@@ -512,7 +512,7 @@ function getTotalDistressCount(nodeId) {
         SELECT inner_d.id
         FROM distress_deployments inner_d
         WHERE inner_d.mesh_distress_signal_id = m.id
-        ORDER BY datetime(COALESCE(inner_d.updated_at, inner_d.created_at)) DESC, inner_d.id DESC
+        ORDER BY COALESCE(inner_d.updated_at, inner_d.created_at) DESC, inner_d.id DESC
         LIMIT 1
       )
     WHERE m.origin_node_id = ?
@@ -558,7 +558,7 @@ function listRecentMeshMessages(nodeId, limit = 12) {
       uploaded_at AS uploadedAt
     FROM mesh_messages
     WHERE origin_node_id = ?
-    ORDER BY datetime(COALESCE(message_timestamp, uploaded_at)) DESC, id DESC
+    ORDER BY COALESCE(message_timestamp, uploaded_at) DESC, id DESC
     LIMIT ?
   `, [nodeId, limit]);
 }
@@ -584,7 +584,7 @@ function listMeshMessageFeed(limit = 120, offset = 0) {
       message_timestamp AS messageTimestamp,
       uploaded_at AS uploadedAt
     FROM mesh_messages
-    ORDER BY datetime(COALESCE(message_timestamp, uploaded_at)) DESC, id DESC
+    ORDER BY COALESCE(message_timestamp, uploaded_at) DESC, id DESC
     LIMIT ?
     OFFSET ?
   `, [limit, offset]);
