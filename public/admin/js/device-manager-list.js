@@ -109,7 +109,7 @@
           dom.devicesListEmpty.textContent = state.loading
             ? 'Loading devices...'
             : state.devices.length === 0
-              ? 'No synchronized devices yet.'
+              ? 'No mesh nodes or synchronized devices found yet.'
               : 'No devices match the current search or status filter.';
 
           if (dom.devicesPagination) {
@@ -261,8 +261,6 @@
           render();
         });
       }
-
-      updateFilterButtons();
 
       context.list = {
         loadDevices,
