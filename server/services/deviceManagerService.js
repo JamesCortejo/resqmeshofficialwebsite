@@ -97,6 +97,7 @@ function statusLabel(value) {
   const normalized = String(value || '').toLowerCase();
 
   if (normalized === 'revoked') return 'Revoked';
+  if (normalized === 'unregistered') return 'Unregistered';
   if (normalized === 'online') return 'Online';
   if (normalized === 'stale') return 'Stale';
   if (normalized === 'offline') return 'Offline';

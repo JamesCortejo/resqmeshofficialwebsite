@@ -171,6 +171,7 @@
     if (normalized === 'stale') return 'Stale';
     if (normalized === 'offline') return 'Offline';
     if (normalized === 'revoked') return 'Revoked';
+    if (normalized === 'unregistered') return 'Unregistered';
     if (normalized === 'active') return 'Active';
     if (normalized === 'inactive') return 'Inactive';
     if (normalized === 'dispatched') return 'Dispatched';

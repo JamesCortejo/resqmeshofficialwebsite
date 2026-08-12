@@ -76,10 +76,16 @@
             </div>
 
             <div class="device-card-actions">
-              <button type="button" class="device-card-view-button" data-view-device-id="${helpers.escapeHtml(device.id)}">
-                <i class="fa-regular fa-eye" aria-hidden="true"></i>
-                <span>View More</span>
-              </button>
+              ${device.id ? `
+                <button type="button" class="device-card-view-button" data-view-device-id="${helpers.escapeHtml(device.id)}">
+                  <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                  <span>View More</span>
+                </button>
+              ` : `
+                <span class="device-card-note">
+                  Register sync device to view details
+                </span>
+              `}
             </div>
           </article>
         `).join('');

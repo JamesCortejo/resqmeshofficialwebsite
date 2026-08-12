@@ -288,6 +288,13 @@
   color: #9f1f1f;
 }
 
+.device-card-status-pill[data-status="unregistered"],
+.device-inline-pill[data-status="unregistered"] {
+  border: 1px solid rgba(15, 92, 180, 0.2);
+  background: rgba(15, 92, 180, 0.08);
+  color: #0f5cb4;
+}
+
 .device-card-body {
   display: grid;
   gap: 0.8rem;
@@ -420,6 +427,14 @@
   gap: 0.7rem;
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+.device-card-note {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font: 800 0.8rem 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 40px;
 }
 
 .device-card-view-button,

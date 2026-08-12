@@ -31,7 +31,21 @@ function listDevices() {
       COALESCE(td.totalCanceledDistressCount, 0) AS totalCanceledDistressCount,
       COALESCE(tm.totalMessageCount, 0) AS totalMessageCount,
       COALESCE(ma.recentAuditCount, 0) AS recentAuditCount
-    FROM sync_devices sd
+    FROM (
+      SELECT
+        sd.id,
+        COALESCE(sd.node_id, mn.node_id) AS node_id,
+        COALESCE(NULLIF(sd.node_name, ''), NULLIF(mn.node_name, ''), mn.node_id, sd.node_id) AS node_name,
+        COALESCE(sd.status, 'unregistered') AS status,
+        sd.allowed_ip,
+        sd.last_seen_at,
+        sd.last_sync_at,
+        COALESCE(sd.created_at, mn.created_at) AS created_at,
+        COALESCE(sd.updated_at, mn.updated_at) AS updated_at
+      FROM mesh_nodes mn
+      FULL OUTER JOIN sync_devices sd ON sd.node_id = mn.node_id
+      WHERE COALESCE(mn.deleted, 0) = 0 OR sd.id IS NOT NULL
+    ) sd
     LEFT JOIN mesh_nodes mn ON mn.node_id = sd.node_id
     LEFT JOIN mesh_node_links mnl
       ON mnl.id = (
@@ -150,7 +164,21 @@ function listDevicesForMap() {
       ad.reason AS activeDistressReason,
       ad.priority AS activeDistressPriority,
       ad.timestamp AS activeDistressTimestamp
-    FROM sync_devices sd
+    FROM (
+      SELECT
+        sd.id,
+        COALESCE(sd.node_id, mn.node_id) AS node_id,
+        COALESCE(NULLIF(sd.node_name, ''), NULLIF(mn.node_name, ''), mn.node_id, sd.node_id) AS node_name,
+        COALESCE(sd.status, 'unregistered') AS status,
+        sd.allowed_ip,
+        sd.last_seen_at,
+        sd.last_sync_at,
+        COALESCE(sd.created_at, mn.created_at) AS created_at,
+        COALESCE(sd.updated_at, mn.updated_at) AS updated_at
+      FROM mesh_nodes mn
+      FULL OUTER JOIN sync_devices sd ON sd.node_id = mn.node_id
+      WHERE COALESCE(mn.deleted, 0) = 0 OR sd.id IS NOT NULL
+    ) sd
     LEFT JOIN mesh_nodes mn ON mn.node_id = sd.node_id
     LEFT JOIN mesh_node_links mnl
       ON mnl.id = (
