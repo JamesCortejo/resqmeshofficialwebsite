@@ -50,6 +50,7 @@
               <dl>
                 ${helpers.detailItem('Node Status', details.latestNode?.statusLabel || helpers.getStatusDisplay(details.latestNode?.status))}
                 ${helpers.detailItem('Users Connected', details.latestNode?.usersConnected ?? 0)}
+                ${helpers.detailItem('Battery', helpers.formatPercent(details.latestNode?.batteryPercent))}
                 ${helpers.detailItem('Discovery Signal', helpers.formatSignalStrength(details.latestNode?.signalStrengthDbm, details.latestNode?.signalQualityLabel))}
                 ${helpers.detailItem('Signal Reported By', details.latestNode?.signalReportedByNodeId || 'Not available')}
                 ${helpers.detailItem('Latitude', helpers.formatCoordinate(details.latestNode?.latitude))}
@@ -61,6 +62,7 @@
             <section class="device-detail-section">
               <h3>Health Snapshot</h3>
               <dl>
+                ${helpers.detailItem('Battery', helpers.formatPercent(details.latestHealth?.batteryPercent))}
                 ${helpers.detailItem('Battery Voltage', details.latestHealth?.batteryVoltage ?? 'Not available')}
                 ${helpers.detailItem('Telemetry Signal', details.latestHealth?.signalStrength ?? 'Not available')}
                 ${helpers.detailItem('GPS Status', helpers.getStatusDisplay(details.latestHealth?.gpsStatus))}

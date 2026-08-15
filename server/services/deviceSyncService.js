@@ -331,6 +331,16 @@ function normalizeInteger(value) {
   return Number.isInteger(number) ? number : null;
 }
 
+function normalizeBatteryPercent(value) {
+  const percent = normalizeInteger(value);
+
+  if (percent === null) {
+    return null;
+  }
+
+  return Math.max(0, Math.min(100, percent));
+}
+
 function normalizeRssiDbm(value) {
   const rssi = normalizeInteger(value);
 
@@ -372,6 +382,8 @@ async function syncNodesBatch(payload, syncDevice, requestIp) {
       status: normalizeString(item.status),
       lastSeenAt: normalizeString(item.lastSeenAt || item.last_seen),
       usersConnected: normalizeInteger(item.usersConnected ?? item.users_connected),
+      batteryPercent: normalizeBatteryPercent(item.batteryPercent ?? item.battery_percent),
+      batteryVoltage: normalizeNumber(item.batteryVoltage ?? item.battery_voltage),
       updatedAt: normalizeString(item.updatedAt || item.updated_at) || nowAsIso(),
       createdAt: normalizeString(item.createdAt || item.created_at),
       deleted: normalizeBoolean(item.deleted)
@@ -398,6 +410,7 @@ async function syncNodeHealthBatch(payload, syncDevice, requestIp) {
     await upsertMeshNodeHealthLog({
       nodeId,
       batteryVoltage: normalizeNumber(item.batteryVoltage ?? item.battery_voltage),
+      batteryPercent: normalizeBatteryPercent(item.batteryPercent ?? item.battery_percent),
       signalStrength: normalizeInteger(item.signalStrength ?? item.signal_strength),
       gpsStatus: normalizeString(item.gpsStatus ?? item.gps_status),
       cpuTemp: normalizeNumber(item.cpuTemp ?? item.cpu_temp),

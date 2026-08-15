@@ -110,6 +110,8 @@
     const healthDetails = latestHealth ? `
       <div class="device-map-popup-health">
         <strong>Latest Health</strong>
+        <div class="device-map-popup-row"><span>Battery</span><strong>${helpers.escapeHtml(helpers.formatPercent(latestHealth.batteryPercent))}</strong></div>
+        <div class="device-map-popup-row"><span>Voltage</span><strong>${helpers.escapeHtml(latestHealth.batteryVoltage != null ? `${Number(latestHealth.batteryVoltage).toFixed(2)}V` : 'Not available')}</strong></div>
         <div class="device-map-popup-row"><span>GPS</span><strong>${helpers.escapeHtml(latestHealth.gpsStatus || 'unknown')}</strong></div>
         <div class="device-map-popup-row"><span>CPU</span><strong>${helpers.escapeHtml(helpers.formatTemperature(latestHealth.cpuTemp))}</strong></div>
         <div class="device-map-popup-row"><span>RAM</span><strong>${helpers.escapeHtml(helpers.formatPercent(latestHealth.ramUsage))}</strong></div>
@@ -142,6 +144,7 @@
           <div class="device-map-popup-row"><span>Last sync</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(device.lastSyncAt))}</strong></div>
           <div class="device-map-popup-row"><span>Users connected</span><strong>${helpers.escapeHtml(device.usersConnected)}</strong></div>
           <div class="device-map-popup-row"><span>Pending commands</span><strong>${helpers.escapeHtml(device.pendingCommandCount || 0)}</strong></div>
+          <div class="device-map-popup-row"><span>Battery</span><strong>${helpers.escapeHtml(helpers.formatPercent(device.batteryPercent))}</strong></div>
           <div class="device-map-popup-row device-map-popup-row-signal"><span>Signal</span>${helpers.signalDotsMarkup(device.signalStrengthDbm, device.signalQualityLabel)}</div>
           <div class="device-map-popup-row"><span>Coordinates</span><strong>${helpers.escapeHtml(`${helpers.formatCoordinate(device.latitude)}, ${helpers.formatCoordinate(device.longitude)}`)}</strong></div>
         </div>

@@ -375,6 +375,8 @@ function listPublicNodes() {
       n.longitude,
       n.status,
       n.last_seen_at AS lastSeen,
+      n.battery_percent AS batteryPercent,
+      n.battery_voltage AS batteryVoltage,
       sd.status AS deviceStatus,
       sd.last_seen_at AS deviceLastSeen,
       sd.last_sync_at AS lastSyncAt,

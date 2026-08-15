@@ -16,6 +16,7 @@ const {
 const { pushOnlineDistressNotification } = require('./mobilePushService');
 
 const VALID_REASONS = new Set(['flooding', 'fire', 'medical', 'landslide', 'earthquake', 'accident', 'other']);
+const REMOVED_REASONS = new Set(['missing_person', 'missing person', 'missing-person']);
 
 function safeDecrypt(value) {
   try {
@@ -28,6 +29,10 @@ function safeDecrypt(value) {
 function normalizeReason(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return VALID_REASONS.has(normalized) ? normalized : normalized.slice(0, 80);
+}
+
+function isRemovedReason(value) {
+  return REMOVED_REASONS.has(String(value || '').trim().toLowerCase());
 }
 
 function ensureCoordinate(value, label) {
@@ -112,6 +117,11 @@ async function createCivilianOnlineDistress(civilian, payload) {
   const reason = normalizeReason(payload.reason);
   if (!reason) {
     const error = new Error('Distress reason is required.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (isRemovedReason(reason)) {
+    const error = new Error('Missing Person is no longer available as a distress reason.');
     error.statusCode = 400;
     throw error;
   }

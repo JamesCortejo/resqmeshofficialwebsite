@@ -46,6 +46,10 @@
                   <strong>${helpers.escapeHtml(device.nodeStatusLabel)}</strong>
                 </div>
                 <div class="device-card-meta-row">
+                  <span>Battery</span>
+                  <strong>${helpers.escapeHtml(helpers.formatPercent(device.batteryPercent))}</strong>
+                </div>
+                <div class="device-card-meta-row">
                   <span>Coordinates</span>
                   <strong>${helpers.escapeHtml(`${helpers.formatCoordinate(device.latitude)}, ${helpers.formatCoordinate(device.longitude)}`)}</strong>
                 </div>

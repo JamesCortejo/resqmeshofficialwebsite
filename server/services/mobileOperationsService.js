@@ -439,6 +439,8 @@ async function getPublicNodes() {
       connectivityStatus,
       users: Number(row.users || 0),
       signal: row.signal ?? null,
+      batteryPercent: row.batteryPercent ?? null,
+      batteryVoltage: row.batteryVoltage ?? null,
       rssi: row.rssi ?? null,
       signalStrengthDbm: row.signalStrengthDbm ?? null,
       signalReportedByNodeId: row.signalReportedByNodeId || null,

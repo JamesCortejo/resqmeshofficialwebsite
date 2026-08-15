@@ -101,10 +101,12 @@ function upsertMeshNode(node) {
       status,
       last_seen_at,
       users_connected,
+      battery_percent,
+      battery_voltage,
       deleted,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
     ON CONFLICT(node_id) DO UPDATE SET
       node_name = excluded.node_name,
       latitude = excluded.latitude,
@@ -112,6 +114,8 @@ function upsertMeshNode(node) {
       status = excluded.status,
       last_seen_at = excluded.last_seen_at,
       users_connected = excluded.users_connected,
+      battery_percent = COALESCE(excluded.battery_percent, mesh_nodes.battery_percent),
+      battery_voltage = COALESCE(excluded.battery_voltage, mesh_nodes.battery_voltage),
       deleted = excluded.deleted,
       updated_at = excluded.updated_at
   `, [
@@ -122,6 +126,8 @@ function upsertMeshNode(node) {
     node.status,
     node.lastSeenAt,
     node.usersConnected,
+    node.batteryPercent,
+    node.batteryVoltage,
     node.deleted ? 1 : 0,
     node.createdAt || null,
     node.updatedAt || null
@@ -133,15 +139,17 @@ function upsertMeshNodeHealthLog(item) {
     INSERT INTO mesh_node_health_logs (
       node_id,
       battery_voltage,
+      battery_percent,
       signal_strength,
       gps_status,
       cpu_temp,
       storage_remaining,
       ram_usage,
       recorded_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(node_id, recorded_at) DO UPDATE SET
       battery_voltage = excluded.battery_voltage,
+      battery_percent = excluded.battery_percent,
       signal_strength = excluded.signal_strength,
       gps_status = excluded.gps_status,
       cpu_temp = excluded.cpu_temp,
@@ -150,6 +158,7 @@ function upsertMeshNodeHealthLog(item) {
   `, [
     item.nodeId,
     item.batteryVoltage,
+    item.batteryPercent,
     item.signalStrength,
     item.gpsStatus,
     item.cpuTemp,
