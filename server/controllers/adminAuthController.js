@@ -8,6 +8,7 @@ const {
   authenticateAdmin,
   toAdminSessionPayload
 } = require('../services/adminAuthService');
+const { logAdminLoginAttempt } = require('../services/adminLoginAuditService');
 const { verifyRecaptcha } = require('../services/recaptchaService');
 
 function invalidCredentials(res) {
@@ -18,28 +19,59 @@ function invalidCredentials(res) {
 }
 
 exports.login = async (req, res) => {
+  let auditLogged = false;
+  const audit = async (details) => {
+    auditLogged = true;
+    await logAdminLoginAttempt(req, details);
+  };
+
   try {
     const username = req.body && req.body.username ? String(req.body.username).trim() : '';
     const password = req.body && req.body.password ? String(req.body.password) : '';
     const recaptchaToken = req.body && req.body.recaptchaToken ? String(req.body.recaptchaToken).trim() : '';
 
     if (!username || !password) {
+      await audit({
+        username,
+        result: 'missing_credentials',
+        reason: !username ? 'missing_username' : 'missing_password'
+      });
       return invalidCredentials(res);
     }
 
-    await verifyRecaptcha(recaptchaToken, 'admin_login', {
-      hostname: req.hostname,
-      remoteIp: req.ip
-    });
+    try {
+      await verifyRecaptcha(recaptchaToken, 'admin_login', {
+        hostname: req.hostname,
+        remoteIp: req.ip
+      });
+    } catch (error) {
+      await audit({
+        username,
+        result: 'recaptcha_failed',
+        reason: error.statusCode ? 'verification_rejected' : 'verification_error'
+      });
+      throw error;
+    }
 
     const admin = await authenticateAdmin(username, password);
 
     if (!admin) {
+      await audit({
+        username,
+        result: 'invalid_credentials',
+        reason: 'invalid_username_or_password'
+      });
       return invalidCredentials(res);
     }
 
     const adminSession = await createAdminWebSession(admin, req);
     res.setHeader('Set-Cookie', buildSessionCookie(adminSession.sessionToken, req));
+
+    await audit({
+      username,
+      result: 'success',
+      reason: 'session_created'
+    });
 
     return res.json({
       success: true,
@@ -47,6 +79,14 @@ exports.login = async (req, res) => {
       data: toAdminSessionPayload(admin)
     });
   } catch (error) {
+    if (!auditLogged) {
+      await audit({
+        username: req.body && req.body.username ? String(req.body.username).trim() : '',
+        result: 'server_error',
+        reason: 'login_exception'
+      });
+    }
+
     console.error('Admin login error:', error);
     return res.status(500).json({
       success: false,

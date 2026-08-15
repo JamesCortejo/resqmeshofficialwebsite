@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -23,13 +23,9 @@
   </script>
 
   <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
 
-  <!-- Load React, ReactDOM and Babel for JSX compilation in browser -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js" crossorigin="anonymous"></script>
-</head>
+  </head>
 <body class="site-loading">
   <div class="site-loader" aria-live="polite" aria-label="Loading ResQMesh">
     <div class="site-loader-content">
@@ -64,7 +60,7 @@
     </div>
   </nav>
 
-  <!-- React root container -->
+  <!-- Registration form container -->
   <div id="register-root" aria-live="polite">
     <main class="register-container">
       <div class="card register-fallback-card">
@@ -76,7 +72,7 @@
           Please wait while ResQMesh prepares the civilian verification form.
         </p>
         <p class="register-fallback-help">
-          If this stays on screen, refresh the page and check that external scripts are allowed.
+          If this stays on screen, refresh the page and check your network connection.
         </p>
       </div>
     </main>
@@ -117,7 +113,7 @@
   <script src="/site/js/recaptcha.js"></script>
   <script src="/site/js/register-config.js"></script>
   <script src="/site/js/register-utils.js"></script>
-  <script type="text/babel" src="/site/js/register.js"></script>
+  <script src="/site/js/register.js"></script>
 
 </body>
 </html>

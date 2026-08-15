@@ -10,7 +10,7 @@ function errorResponse(res, error, fallbackMessage) {
   const statusCode = error && error.statusCode ? error.statusCode : 500;
   return res.status(statusCode).json({
     success: false,
-    message: error && error.message ? error.message : fallbackMessage
+    message: statusCode >= 500 ? fallbackMessage : error.message
   });
 }
 

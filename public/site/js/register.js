@@ -1,6 +1,6 @@
-﻿const toggleBtn = document.getElementById('nav-toggle');
+const toggleBtn = document.getElementById('nav-toggle');
 const navMenu = document.getElementById('nav-menu');
-    
+
 if (toggleBtn && navMenu) {
   toggleBtn.setAttribute('aria-expanded', 'false');
 
@@ -36,8 +36,57 @@ if (toggleBtn && navMenu) {
 }
 
 const registerRootElement = document.getElementById('register-root');
+const registerConfig = window.ResQMeshRegisterConfig;
+const registerUtils = window.ResQMeshRegisterUtils;
+const VALENCIA_BARANGAYS = registerConfig?.barangays || [];
 
-const showRegisterBootstrapError = (message) => {
+const state = {
+  currentStep: 1,
+  submitted: false,
+  isSubmitting: false,
+  submitError: '',
+  toast: null,
+  uploadProgress: null,
+  errors: {},
+  formData: {
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    birthDate: '',
+    username: '',
+    streetAddress: '',
+    barangay: '',
+    occupation: '',
+    bloodType: '',
+    medicalComplications: '',
+    allergies: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    idType: 'National ID',
+    idNumber: '',
+    frontIdImageFile: null,
+    frontIdImageName: '',
+    frontIdImagePreview: '',
+    backIdImageFile: null,
+    backIdImageName: '',
+    backIdImagePreview: ''
+  }
+};
+
+let toastTimer = null;
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function showRegisterBootstrapError(message) {
   if (!registerRootElement) {
     return;
   }
@@ -49,923 +98,842 @@ const showRegisterBootstrapError = (message) => {
           <i class="fa-solid fa-triangle-exclamation"></i>
         </div>
         <h2 class="register-fallback-title">Registration form unavailable</h2>
-        <p class="register-fallback-message">${message}</p>
+        <p class="register-fallback-message">${escapeHtml(message)}</p>
         <p class="register-fallback-help">
           Refresh the page and try again. If the problem continues, check your internet connection or browser content settings.
         </p>
       </div>
     </main>
   `;
-};
-
-if (!window.React || !window.ReactDOM) {
-  showRegisterBootstrapError('The registration page could not load its required interface libraries.');
-  throw new Error('ResQMesh registration bootstrap failed: React or ReactDOM is unavailable.');
 }
 
-if (!registerRootElement) {
-  throw new Error('ResQMesh registration bootstrap failed: #register-root was not found.');
+function maxBirthDate() {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - 18);
+  return date.toISOString().split('T')[0];
 }
 
-const { useEffect, useState, useRef } = React;
-const registerConfig = window.ResQMeshRegisterConfig;
-const registerUtils = window.ResQMeshRegisterUtils;
-const VALENCIA_BARANGAYS = registerConfig.barangays;
+function scrollRegistrationToTop() {
+  window.requestAnimationFrame(() => {
+    const target = document.querySelector('.register-card') || registerRootElement;
 
-    function ResQMeshRegistration() {
-      const [currentStep, setCurrentStep] = useState(1);
-      const [submitted, setSubmitted] = useState(false);
-      const [isSubmitting, setIsSubmitting] = useState(false);
-      const [submitError, setSubmitError] = useState('');
-      const [toast, setToast] = useState(null);
-      const [uploadProgress, setUploadProgress] = useState(null);
-      
-      // Form fields state
-      const [formData, setFormData] = useState({
-        // Step 1
-        firstName: '',
-        middleName: '',
-        lastName: '',
-        birthDate: '',
-        username: '',
-        streetAddress: '',
-        barangay: '',
-        occupation: '',
-        bloodType: '',
-        medicalComplications: '',
-        allergies: '',
-        
-        // Step 2
-        email: '',
-        phone: '',
-        password: '',
-        confirmPassword: '',
-        
-        // Step 3
-        idType: 'National ID',
-        idNumber: '',
-        frontIdImageFile: null,
-        frontIdImageName: '',
-        frontIdImagePreview: '',
-        backIdImageFile: null,
-        backIdImageName: '',
-        backIdImagePreview: ''
-      });
+    if (!target) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
-      // Error tracking state
-      const [errors, setErrors] = useState({});
-      const birthDateInputRef = useRef(null);
-      const registerCardRef = useRef(null);
-      const toastTimerRef = useRef(null);
+    const navbarOffset = 96;
+    const top = target.getBoundingClientRect().top + window.pageYOffset - navbarOffset;
 
-      useEffect(() => {
-        window.ResQMeshRecaptcha?.ready?.().catch(() => {
-          // The submit handler will show the actionable security error if needed.
-        });
-      }, [currentStep, submitted]);
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: 'smooth'
+    });
+  });
+}
 
-      const showToast = (message, tone = 'error') => {
-        window.clearTimeout(toastTimerRef.current);
-        setToast({ message, tone });
-        toastTimerRef.current = window.setTimeout(() => {
-          setToast(null);
-        }, 4200);
-      };
+function scrollToField(field) {
+  if (!field) {
+    scrollRegistrationToTop();
+    return;
+  }
 
-      const scrollToField = (field) => {
-        if (!field) {
-          scrollRegistrationToTop();
-          return;
-        }
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      const targetId = registerConfig.fieldTargets[field] || field;
+      const target = document.getElementById(targetId) || document.querySelector('.register-card') || registerRootElement;
 
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => {
-            const targetId = registerConfig.fieldTargets[field] || field;
-            const target = document.getElementById(targetId) || registerCardRef.current || registerRootElement;
-
-            if (!target) {
-              return;
-            }
-
-            const navbarOffset = 106;
-            const top = target.getBoundingClientRect().top + window.pageYOffset - navbarOffset;
-
-            window.scrollTo({
-              top: Math.max(0, top),
-              behavior: 'smooth'
-            });
-
-            if (typeof target.focus === 'function') {
-              window.setTimeout(() => target.focus({ preventScroll: true }), 250);
-            }
-          });
-        });
-      };
-
-      const showValidationErrors = (errorMap, step = currentStep) => {
-        const field = registerUtils.firstErrorField(errorMap, step);
-        const message = field && errorMap[field]
-          ? errorMap[field]
-          : 'Please complete the required fields before continuing.';
-
-        showToast(message, 'error');
-        scrollToField(field);
-      };
-
-      const scrollRegistrationToTop = () => {
-        window.requestAnimationFrame(() => {
-          const target = registerCardRef.current || registerRootElement;
-
-          if (!target) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
-          }
-
-          const navbarOffset = 96;
-          const top = target.getBoundingClientRect().top + window.pageYOffset - navbarOffset;
-
-          window.scrollTo({
-            top: Math.max(0, top),
-            behavior: 'smooth'
-          });
-        });
-      };
-
-      const openBirthDatePicker = (event) => {
-        if (event) {
-          event.stopPropagation();
-        }
-
-        const input = birthDateInputRef.current;
-
-        if (!input) {
-          return;
-        }
-
-        if (typeof input.showPicker === 'function') {
-          input.showPicker();
-          return;
-        }
-
-        input.focus();
-      };
-
-      const handleInputChange = (e) => {
-        const { id, value } = e.target;
-        setFormData(prev => ({
-          ...prev,
-          [id]: value
-        }));
-        
-        // Clear error when user type/selects
-        if (errors[id]) {
-          setErrors(prev => {
-            const nextErrors = {...prev};
-            delete nextErrors[id];
-            return nextErrors;
-          });
-        }
-      };
-
-      const validateStep1 = () => {
-        const step1Errors = {};
-        const required = ['firstName', 'lastName', 'birthDate', 'username', 'streetAddress', 'barangay', 'occupation', 'bloodType'];
-        
-        required.forEach(field => {
-          if (!formData[field] || formData[field].trim() === '') {
-            step1Errors[field] = 'This field is required.';
-          }
-        });
-
-        const birthDate = registerUtils.parseBirthDate(formData.birthDate);
-        const age = registerUtils.calculateAge(formData.birthDate);
-
-        if (formData.birthDate && !birthDate) {
-          step1Errors.birthDate = 'Please enter a valid birthdate.';
-        } else if (birthDate && birthDate > new Date()) {
-          step1Errors.birthDate = 'Birthdate cannot be in the future.';
-        } else if (age !== null && age < 18) {
-          step1Errors.birthDate = 'You must be at least 18 years old to register.';
-        }
-
-        setErrors(step1Errors);
-        return step1Errors;
-      };
-
-      const validateStep2 = () => {
-        const step2Errors = {};
-        
-        // Email Validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!formData.email) {
-          step2Errors.email = 'Email is required.';
-        } else if (!emailRegex.test(formData.email)) {
-          step2Errors.email = 'Please enter a valid email address.';
-        }
-
-        // Phone Validation (Philippine Standard e.g., 09xxxxxxxxx or +639xxxxxxxxx)
-        const phoneRegex = /^(09|\+639)\d{9}$/;
-        if (!formData.phone) {
-          step2Errors.phone = 'Phone number is required.';
-        } else if (!phoneRegex.test(formData.phone)) {
-          step2Errors.phone = 'Please enter a valid mobile number (e.g., 09171234567).';
-        }
-
-        // Password Validation
-        if (!formData.password) {
-          step2Errors.password = 'Password is required.';
-        } else if (formData.password.length < 8) {
-          step2Errors.password = 'Password must be at least 8 characters long.';
-        }
-
-        // Password matching
-        if (!formData.confirmPassword) {
-          step2Errors.confirmPassword = 'Please confirm your password.';
-        } else if (formData.password !== formData.confirmPassword) {
-          step2Errors.confirmPassword = 'Passwords do not match.';
-        }
-
-        setErrors(step2Errors);
-        return step2Errors;
-      };
-
-      const validateStep3 = () => {
-        const step3Errors = {};
-        if (!formData.idType) {
-          step3Errors.idType = 'ID Type is required.';
-        }
-        if (!formData.idNumber || formData.idNumber.trim() === '') {
-          step3Errors.idNumber = 'ID Number is required.';
-        }
-        if (!formData.frontIdImageFile) {
-          step3Errors.frontIdImage = 'Front ID image card is required.';
-        }
-        if (!formData.backIdImageFile) {
-          step3Errors.backIdImage = 'Back ID image card is required.';
-        }
-
-        setErrors(step3Errors);
-        return step3Errors;
-      };
-
-      const handleNext = () => {
-        if (currentStep === 1) {
-          const stepErrors = validateStep1();
-
-          if (Object.keys(stepErrors).length === 0) {
-            setCurrentStep(2);
-            scrollRegistrationToTop();
-          } else {
-            showValidationErrors(stepErrors, 1);
-          }
-        } else if (currentStep === 2) {
-          const stepErrors = validateStep2();
-
-          if (Object.keys(stepErrors).length === 0) {
-            setCurrentStep(3);
-            scrollRegistrationToTop();
-          } else {
-            showValidationErrors(stepErrors, 2);
-          }
-        }
-      };
-
-      const handlePrev = () => {
-        setErrors({});
-        setCurrentStep(prev => prev - 1);
-        scrollRegistrationToTop();
-      };
-
-      const handleFileChange = (e, fileKey) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const errorKey = fileKey === 'frontIdImageFile' ? 'frontIdImage' : 'backIdImage';
-
-        // Ensure file is an image
-        if (!file.type.startsWith('image/')) {
-          setErrors(prev => ({
-            ...prev,
-            [errorKey]: 'Only image files are allowed.'
-          }));
-          showToast('Only image files are allowed.', 'error');
-          scrollToField(errorKey);
-          e.target.value = '';
-          return;
-        }
-
-        if (file.size > registerConfig.maxIdImageSizeBytes) {
-          const message = 'ID images must be 5MB or smaller.';
-          setErrors(prev => ({
-            ...prev,
-            [errorKey]: message
-          }));
-          showToast(message, 'error');
-          scrollToField(errorKey);
-          e.target.value = '';
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setFormData(prev => ({
-            ...prev,
-            [fileKey]: file,
-            [fileKey === 'frontIdImageFile' ? 'frontIdImageName' : 'backIdImageName']: file.name,
-            [fileKey === 'frontIdImageFile' ? 'frontIdImagePreview' : 'backIdImagePreview']: reader.result
-          }));
-          
-          // Clear error
-          setErrors(prev => {
-            const nextErrors = {...prev};
-            delete nextErrors[fileKey === 'frontIdImageFile' ? 'frontIdImage' : 'backIdImage'];
-            return nextErrors;
-          });
-        };
-        reader.readAsDataURL(file);
-      };
-
-      const removeFile = (fileKey) => {
-        setFormData(prev => ({
-          ...prev,
-          [fileKey]: null,
-          [fileKey === 'frontIdImageFile' ? 'frontIdImageName' : 'backIdImageName']: '',
-          [fileKey === 'frontIdImageFile' ? 'frontIdImagePreview' : 'backIdImagePreview']: ''
-        }));
-      };
-
-      const handleServerError = (message) => {
-        const safeMessage = message || 'Registration failed. Please try again.';
-        const field = registerUtils.mapServerErrorToField(safeMessage);
-
-        setSubmitError(safeMessage);
-        showToast(safeMessage, 'error');
-
-        if (!field) {
-          scrollRegistrationToTop();
-          return;
-        }
-
-        const fieldStep = registerConfig.fieldSteps[field] || currentStep;
-        setErrors(prev => ({
-          ...prev,
-          [field]: safeMessage
-        }));
-
-        if (fieldStep !== currentStep) {
-          setCurrentStep(fieldStep);
-        }
-
-        scrollToField(field);
-      };
-
-      const handleSubmit = async (e) => {
-        e.preventDefault();
-        setSubmitError('');
-
-        const stepErrors = validateStep3();
-
-        if (Object.keys(stepErrors).length > 0) {
-          showValidationErrors(stepErrors, 3);
-          return;
-        }
-
-        const payload = new FormData();
-        const textFields = [
-          'firstName',
-          'middleName',
-          'lastName',
-          'birthDate',
-          'username',
-          'streetAddress',
-          'barangay',
-          'occupation',
-          'bloodType',
-          'medicalComplications',
-          'allergies',
-          'email',
-          'phone',
-          'password',
-          'idType',
-          'idNumber'
-        ];
-
-        textFields.forEach((field) => {
-          payload.append(field, formData[field] || '');
-        });
-
-        try {
-          setIsSubmitting(true);
-          setUploadProgress(0);
-          const recaptchaToken = await registerUtils.timeoutPromise(
-            window.ResQMeshRecaptcha.ready().then(() => window.ResQMeshRecaptcha.getToken('register')),
-            registerConfig.recaptchaTimeoutMs,
-            'Security verification timed out. Please refresh the page and try again.'
-          );
-          payload.append('recaptchaToken', recaptchaToken);
-          payload.append('frontIdImageFile', formData.frontIdImageFile);
-          payload.append('backIdImageFile', formData.backIdImageFile);
-
-          await registerUtils.fetchRegistration(payload, {
-            onProgress: (percent) => {
-              if (percent === null) {
-                setUploadProgress(100);
-                return;
-              }
-
-              setUploadProgress(percent);
-            }
-          });
-          setUploadProgress(100);
-          showToast('Registration submitted. Please check your email for account confirmation after admin review.', 'success');
-          setSubmitted(true);
-        } catch (error) {
-          handleServerError(error.message);
-        } finally {
-          setIsSubmitting(false);
-          window.setTimeout(() => setUploadProgress(null), 500);
-        }
-      };
-
-      // Progress bar percentage calculation
-      const progressPercent = ((currentStep - 1) / 2) * 100;
-      const computedAge = registerUtils.calculateAge(formData.birthDate);
-      const maxBirthDate = (() => {
-        const date = new Date();
-        date.setFullYear(date.getFullYear() - 18);
-        return date.toISOString().split('T')[0];
-      })();
-      const toastElement = toast ? (
-        <div className={`register-toast register-toast-${toast.tone || 'error'}`} role="status" aria-live="polite">
-          <span class="register-toast-icon">
-            <i className={`fa-solid ${toast.tone === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation'}`} aria-hidden="true"></i>
-          </span>
-          <span>{toast.message}</span>
-        </div>
-      ) : null;
-
-      if (submitted) {
-        return (
-          <main class="register-container">
-            {toastElement}
-            <div class="card success-card">
-              <div class="success-icon-wrapper"><i class="fa-solid fa-circle-check"></i></div>
-              <h2 class="success-title">Registration submitted</h2>
-              <p class="success-message">
-                Your civilian account request has been sent to the ResQMesh admin team for verification.
-                Please wait for the approval or decline confirmation through the email address you entered.
-              </p>
-              <p class="success-message">
-                Once approved, your account can be used for online access and mesh-supported emergency fallback access.
-              </p>
-              <a href="/" class="btn btn-primary">Return to Homepage</a>
-            </div>
-          </main>
-        );
+      if (!target) {
+        return;
       }
 
-      return (
-        <main class="register-container">
-          {toastElement}
-          <div class="card register-card" ref={registerCardRef}>
-            <div className="register-intro">
-              <span className="register-kicker">Civilian account registration</span>
-              <h2>Prepare your ResQMesh access before an emergency</h2>
-              <p>
-                Submit your profile for admin approval. Approved civilian records can be used for online access when internet is available
-                and for mesh-supported emergency access when internet service is unavailable.
-              </p>
-            </div>
+      const navbarOffset = 106;
+      const top = target.getBoundingClientRect().top + window.pageYOffset - navbarOffset;
 
-            {/* Steps Progress Indicator */}
-            <div class="steps-container">
-              <div class="steps-progress-bar" style={{ width: `${progressPercent}%` }}></div>
-              
-              <div class={`step-indicator ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}>
-                1
-                <span class="step-label">Personal Info</span>
-              </div>
-              <div class={`step-indicator ${currentStep >= 2 ? 'active' : ''} ${currentStep > 2 ? 'completed' : ''}`}>
-                2
-                <span class="step-label">Account details</span>
-              </div>
-              <div class={`step-indicator ${currentStep >= 3 ? 'active' : ''}`}>
-                3
-                <span class="step-label">ID Verification</span>
-              </div>
-            </div>
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: 'smooth'
+      });
 
-            <form onSubmit={handleSubmit} noValidate>
-              {submitError && (
-                <div class="alert alert-warning">
-                  <i class="fa-solid fa-triangle-exclamation"></i>
-                  <span>{submitError}</span>
-                </div>
-              )}
-              
-              {/* STEP 1: PERSONAL INFORMATION */}
-              {currentStep === 1 && (
-                <div className="form-step-content">
-                  <div class="form-grid">
-                    <div class="form-group">
-                      <label htmlFor="firstName" class="form-label">First Name <span class="required-indicator">*</span></label>
-                      <input 
-                        type="text" 
-                        id="firstName" 
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.firstName ? 'error-border' : ''}`}
-                        placeholder="e.g. Juan" 
-                      />
-                      {errors.firstName && <span class="form-error-msg">{errors.firstName}</span>}
-                    </div>
+      if (typeof target.focus === 'function') {
+        window.setTimeout(() => target.focus({ preventScroll: true }), 250);
+      }
+    });
+  });
+}
 
-                    <div class="form-group">
-                      <label htmlFor="middleName" class="form-label">Middle Name</label>
-                      <input 
-                        type="text" 
-                        id="middleName" 
-                        value={formData.middleName}
-                        onChange={handleInputChange}
-                        class="form-control" 
-                        placeholder="e.g. Santos" 
-                      />
-                    </div>
+function showToast(message, tone = 'error') {
+  window.clearTimeout(toastTimer);
+  state.toast = { message, tone };
+  render();
 
-                    <div class="form-group">
-                      <label htmlFor="lastName" class="form-label">Last Name <span class="required-indicator">*</span></label>
-                      <input 
-                        type="text" 
-                        id="lastName" 
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.lastName ? 'error-border' : ''}`}
-                        placeholder="e.g. Dela Cruz" 
-                      />
-                      {errors.lastName && <span class="form-error-msg">{errors.lastName}</span>}
-                    </div>
+  toastTimer = window.setTimeout(() => {
+    state.toast = null;
+    render();
+  }, 4200);
+}
 
-                    <div class="form-group">
-                      <label htmlFor="username" class="form-label">Username <span class="required-indicator">*</span></label>
-                      <input 
-                        type="text" 
-                        id="username" 
-                        value={formData.username}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.username ? 'error-border' : ''}`}
-                        placeholder="Choose a screen username" 
-                      />
-                      {errors.username && <span class="form-error-msg">{errors.username}</span>}
-                    </div>
+function setErrors(errors) {
+  state.errors = errors;
+  render();
+}
 
-                    <div class="form-group">
-                      <label htmlFor="birthDate" class="form-label">Birthdate <span class="required-indicator">*</span></label>
-                      <div className={`birthdate-picker ${errors.birthDate ? 'error-border' : ''}`} onClick={openBirthDatePicker}>
-                        <i class="fa-regular fa-calendar-days birthdate-picker-icon" aria-hidden="true"></i>
-                        <input
-                          ref={birthDateInputRef}
-                          type="date"
-                          id="birthDate"
-                          value={formData.birthDate}
-                          min="1900-01-01"
-                          max={maxBirthDate}
-                          onChange={handleInputChange}
-                          className="birthdate-picker-input"
-                          aria-describedby="birthDateHelp"
-                        />
-                        <button type="button" class="birthdate-picker-button" onClick={openBirthDatePicker} aria-label="Open birthdate calendar">
-                          <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-                        </button>
-                      </div>
-                      <span id="birthDateHelp" class="form-help-msg">Open the calendar and select month, day, and year.</span>
-                      {computedAge !== null && computedAge >= 18 && !errors.birthDate && (
-                        <span class="form-help-msg">Age: {computedAge}</span>
-                      )}
-                      {errors.birthDate && <span class="form-error-msg">{errors.birthDate}</span>}
-                    </div>
+function fieldError(field) {
+  return state.errors[field] || '';
+}
 
-                    <div class="form-group form-grid-full">
-                      <label htmlFor="streetAddress" class="form-label">House No. / Street / Purok <span class="required-indicator">*</span></label>
-                      <input 
-                        type="text" 
-                        id="streetAddress" 
-                        value={formData.streetAddress}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.streetAddress ? 'error-border' : ''}`}
-                        placeholder="e.g. Purok 4, Sayre Highway" 
-                      />
-                      {errors.streetAddress && <span class="form-error-msg">{errors.streetAddress}</span>}
-                    </div>
+function fieldClass(field, base = 'form-control') {
+  return `${base}${fieldError(field) ? ' error-border' : ''}`;
+}
 
-                    <div class="form-group">
-                      <label htmlFor="barangay" class="form-label">Barangay (Valencia City) <span class="required-indicator">*</span></label>
-                      <select 
-                        id="barangay" 
-                        value={formData.barangay}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.barangay ? 'error-border' : ''}`}
-                      >
-                        <option value="">-- Select Barangay --</option>
-                        {VALENCIA_BARANGAYS.map(brgy => (
-                          <option key={brgy} value={brgy}>{brgy}</option>
-                        ))}
-                      </select>
-                      {errors.barangay && <span class="form-error-msg">{errors.barangay}</span>}
-                    </div>
+function errorMarkup(field) {
+  const message = fieldError(field);
+  return message ? `<span class="form-error-msg" data-error-for="${escapeHtml(field)}">${escapeHtml(message)}</span>` : '';
+}
 
-                    <div class="form-group">
-                      <label htmlFor="occupation" class="form-label">Occupation <span class="required-indicator">*</span></label>
-                      <input 
-                        type="text" 
-                        id="occupation" 
-                        value={formData.occupation}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.occupation ? 'error-border' : ''}`}
-                        placeholder="e.g. Farmer, Teacher, Rescuer" 
-                      />
-                      {errors.occupation && <span class="form-error-msg">{errors.occupation}</span>}
-                    </div>
+function inputMarkup(field, options = {}) {
+  const type = options.type || 'text';
+  return `
+    <input
+      type="${escapeHtml(type)}"
+      id="${escapeHtml(field)}"
+      value="${escapeHtml(state.formData[field])}"
+      class="${escapeHtml(fieldClass(field))}"
+      placeholder="${escapeHtml(options.placeholder || '')}"
+      ${options.autocomplete ? `autocomplete="${escapeHtml(options.autocomplete)}"` : ''}
+    />
+  `;
+}
 
-                    <div class="form-group">
-                      <label htmlFor="bloodType" class="form-label">Blood Type <span class="required-indicator">*</span></label>
-                      <select 
-                        id="bloodType" 
-                        value={formData.bloodType}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.bloodType ? 'error-border' : ''}`}
-                      >
-                        <option value="">-- Select Blood Type --</option>
-                        <option value="A+">A+</option>
-                        <option value="A-">A-</option>
-                        <option value="B+">B+</option>
-                        <option value="B-">B-</option>
-                        <option value="AB+">AB+</option>
-                        <option value="AB-">AB-</option>
-                        <option value="O+">O+</option>
-                        <option value="O-">O-</option>
-                      </select>
-                      {errors.bloodType && <span class="form-error-msg">{errors.bloodType}</span>}
-                    </div>
+function textareaMarkup(field, options = {}) {
+  return `
+    <textarea
+      id="${escapeHtml(field)}"
+      class="form-control"
+      rows="${escapeHtml(options.rows || 2)}"
+      placeholder="${escapeHtml(options.placeholder || '')}"
+    >${escapeHtml(state.formData[field])}</textarea>
+  `;
+}
 
-                    <div class="form-group form-grid-full">
-                      <label htmlFor="medicalComplications" class="form-label">Medical Complications (Optional)</label>
-                      <textarea 
-                        id="medicalComplications" 
-                        value={formData.medicalComplications}
-                        onChange={handleInputChange}
-                        class="form-control" 
-                        rows="2" 
-                        placeholder="List any existing conditions (e.g. Asthma, Hypertension)"
-                      ></textarea>
-                    </div>
+function selectMarkup(field, options, placeholder = '') {
+  return `
+    <select id="${escapeHtml(field)}" class="${escapeHtml(fieldClass(field))}">
+      ${placeholder ? `<option value="">${escapeHtml(placeholder)}</option>` : ''}
+      ${options.map((option) => {
+        const value = typeof option === 'string' ? option : option.value;
+        const label = typeof option === 'string' ? option : option.label;
+        const selected = state.formData[field] === value ? ' selected' : '';
+        return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(label)}</option>`;
+      }).join('')}
+    </select>
+  `;
+}
 
-                    <div class="form-group form-grid-full">
-                      <label htmlFor="allergies" class="form-label">Allergies (Optional)</label>
-                      <textarea 
-                        id="allergies" 
-                        value={formData.allergies}
-                        onChange={handleInputChange}
-                        class="form-control" 
-                        rows="2" 
-                        placeholder="List any drug, food or environmental allergies"
-                      ></textarea>
-                    </div>
-                  </div>
-                </div>
-              )}
+function toastMarkup() {
+  if (!state.toast) {
+    return '';
+  }
 
-              {/* STEP 2: ACCOUNT INFORMATION */}
-              {currentStep === 2 && (
-                <div className="form-step-content">
-                  <div class="form-grid">
-                    <div class="form-group form-grid-full">
-                      <label htmlFor="email" class="form-label">Email Address <span class="required-indicator">*</span></label>
-                      <input 
-                        type="email" 
-                        id="email" 
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.email ? 'error-border' : ''}`}
-                        placeholder="e.g. Juan@example.com" 
-                      />
-                      {errors.email && <span class="form-error-msg">{errors.email}</span>}
-                    </div>
+  const tone = state.toast.tone || 'error';
+  const icon = tone === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation';
 
-                    <div class="form-group form-grid-full">
-                      <label htmlFor="phone" class="form-label">Phone Number <span class="required-indicator">*</span></label>
-                      <input 
-                        type="tel" 
-                        id="phone" 
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.phone ? 'error-border' : ''}`}
-                        placeholder="e.g. 09171234567" 
-                      />
-                      {errors.phone && <span class="form-error-msg">{errors.phone}</span>}
-                    </div>
+  return `
+    <div class="register-toast register-toast-${escapeHtml(tone)}" role="status" aria-live="polite">
+      <span class="register-toast-icon">
+        <i class="fa-solid ${escapeHtml(icon)}" aria-hidden="true"></i>
+      </span>
+      <span>${escapeHtml(state.toast.message)}</span>
+    </div>
+  `;
+}
 
-                    <div class="form-group">
-                      <label htmlFor="password" class="form-label">Password <span class="required-indicator">*</span></label>
-                      <input 
-                        type="password" 
-                        id="password" 
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.password ? 'error-border' : ''}`}
-                        placeholder="Min. 8 characters" 
-                      />
-                      {errors.password && <span class="form-error-msg">{errors.password}</span>}
-                    </div>
+function renderStepIndicators() {
+  const progressPercent = ((state.currentStep - 1) / 2) * 100;
 
-                    <div class="form-group">
-                      <label htmlFor="confirmPassword" class="form-label">Confirm Password <span class="required-indicator">*</span></label>
-                      <input 
-                        type="password" 
-                        id="confirmPassword" 
-                        value={formData.confirmPassword}
-                        onChange={handleInputChange}
-                        className={`form-control ${errors.confirmPassword ? 'error-border' : ''}`}
-                        placeholder="Re-enter your password" 
-                      />
-                      {errors.confirmPassword && <span class="form-error-msg">{errors.confirmPassword}</span>}
-                    </div>
-                  </div>
-                </div>
-              )}
+  return `
+    <div class="steps-container">
+      <div class="steps-progress-bar" style="width: ${progressPercent}%"></div>
+      <div class="step-indicator ${state.currentStep >= 1 ? 'active' : ''} ${state.currentStep > 1 ? 'completed' : ''}">
+        1
+        <span class="step-label">Personal Info</span>
+      </div>
+      <div class="step-indicator ${state.currentStep >= 2 ? 'active' : ''} ${state.currentStep > 2 ? 'completed' : ''}">
+        2
+        <span class="step-label">Account details</span>
+      </div>
+      <div class="step-indicator ${state.currentStep >= 3 ? 'active' : ''}">
+        3
+        <span class="step-label">ID Verification</span>
+      </div>
+    </div>
+  `;
+}
 
-              {/* STEP 3: ID VERIFICATION */}
-              {currentStep === 3 && (
-                <div className="form-step-content">
-                  <div class="form-group">
-                    <label htmlFor="idType" class="form-label">Select Valid Identity Document <span class="required-indicator">*</span></label>
-                    <select 
-                      id="idType" 
-                      value={formData.idType}
-                      onChange={handleInputChange}
-                      className={`form-control ${errors.idType ? 'error-border' : ''}`}
-                    >
-                      <option value="National ID">National ID</option>
-                      <option value="Driver's License">Driver's License</option>
-                      <option value="PhilHealth ID">PhilHealth ID</option>
-                    </select>
-                    {errors.idType && <span class="form-error-msg">{errors.idType}</span>}
-                  </div>
+function renderStepOne() {
+  const computedAge = registerUtils.calculateAge(state.formData.birthDate);
+  const ageHelp = computedAge !== null && computedAge >= 18 && !fieldError('birthDate')
+    ? `<span class="form-help-msg">Age: ${computedAge}</span>`
+    : '';
 
-                  <div class="upload-grid">
-                    
-                    {/* ID Card Front Image */}
-                    <div class="form-group">
-                      <label class="form-label">Upload {formData.idType} Front Image <span class="required-indicator">*</span></label>
-                      
-                      {!formData.frontIdImagePreview ? (
-                        <div
-                          className={`file-upload-zone ${errors.frontIdImage ? 'error-border' : ''}`}
-                          id="frontIdImageUploadZone"
-                          role="button"
-                          tabIndex="0"
-                          onClick={() => document.getElementById('frontIdImageFileInput').click()}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              document.getElementById('frontIdImageFileInput').click();
-                            }
-                          }}
-                        >
-                          <div class="upload-icon">&#128203;</div>
-                          <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', display: 'block' }}>
-                            Click to select Front image
-                          </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-secondary)' }}>
-                            PNG, JPG or JPEG only
-                          </span>
-                          <input 
-                            type="file" 
-                            id="frontIdImageFileInput" 
-                            style={{ display: 'none' }} 
-                            accept="image/*"
-                            onChange={(e) => handleFileChange(e, 'frontIdImageFile')}
-                          />
-                        </div>
-                      ) : (
-                        <div class="preview-container">
-                          <button type="button" class="preview-remove-btn" onClick={() => removeFile('frontIdImageFile')}>&times;</button>
-                          <img src={formData.frontIdImagePreview} alt="Front ID Preview" class="preview-image" />
-                          <span class="preview-filename">{formData.frontIdImageName}</span>
-                        </div>
-                      )}
-                      {errors.frontIdImage && <span class="form-error-msg">{errors.frontIdImage}</span>}
-                    </div>
-
-                    {/* ID Card Back Image */}
-                    <div class="form-group">
-                      <label class="form-label">Upload {formData.idType} Back Image <span class="required-indicator">*</span></label>
-                      
-                      {!formData.backIdImagePreview ? (
-                        <div
-                          className={`file-upload-zone ${errors.backIdImage ? 'error-border' : ''}`}
-                          id="backIdImageUploadZone"
-                          role="button"
-                          tabIndex="0"
-                          onClick={() => document.getElementById('backIdImageFileInput').click()}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              document.getElementById('backIdImageFileInput').click();
-                            }
-                          }}
-                        >
-                          <div class="upload-icon">&#128203;</div>
-                          <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', display: 'block' }}>
-                            Click to select Back image
-                          </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-secondary)' }}>
-                            PNG, JPG or JPEG only
-                          </span>
-                          <input 
-                            type="file" 
-                            id="backIdImageFileInput" 
-                            style={{ display: 'none' }} 
-                            accept="image/*"
-                            onChange={(e) => handleFileChange(e, 'backIdImageFile')}
-                          />
-                        </div>
-                      ) : (
-                        <div class="preview-container">
-                          <button type="button" class="preview-remove-btn" onClick={() => removeFile('backIdImageFile')}>&times;</button>
-                          <img src={formData.backIdImagePreview} alt="Back ID Preview" class="preview-image" />
-                          <span class="preview-filename">{formData.backIdImageName}</span>
-                        </div>
-                      )}
-                      {errors.backIdImage && <span class="form-error-msg">{errors.backIdImage}</span>}
-                    </div>
-
-                  </div>
-
-                  {isSubmitting && uploadProgress !== null && (
-                    <div class="register-upload-progress" role="status" aria-live="polite">
-                      <div class="register-upload-progress-copy">
-                        <span>Uploading ID images</span>
-                        <span>{uploadProgress}%</span>
-                      </div>
-                      <div class="register-upload-progress-bar" aria-hidden="true">
-                        <span style={{ width: `${uploadProgress}%` }}></span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ID Card Number Input field */}
-                  <div class="form-group" style={{ marginTop: '1.5rem' }}>
-                    <label htmlFor="idNumber" class="form-label">ID Number <span class="required-indicator">*</span></label>
-                    <input 
-                      type="text" 
-                      id="idNumber" 
-                      value={formData.idNumber}
-                      onChange={handleInputChange}
-                      className={`form-control ${errors.idNumber ? 'error-border' : ''}`}
-                      placeholder="e.g. 1234-56789-0" 
-                    />
-                    {errors.idNumber && <span class="form-error-msg">{errors.idNumber}</span>}
-                  </div>
-
-                </div>
-              )}
-
-              {/* Navigation Controls */}
-              <div class="form-navigation">
-                {currentStep > 1 ? (
-                  <button type="button" class="btn btn-secondary" onClick={handlePrev}>
-                    &larr; Previous
-                  </button>
-                ) : (
-                  <div></div> // Spacer to keep Next button aligned right
-                )}
-
-                {currentStep < 3 ? (
-                  <button type="button" class="btn btn-primary" onClick={handleNext}>
-                    Next &rarr;
-                  </button>
-                ) : (
-                  <button type="submit" class="btn btn-primary" disabled={isSubmitting} style={{ backgroundColor: 'var(--color-success)' }}>
-                    {isSubmitting ? 'Submitting...' : 'Submit Registration'}
-                  </button>
-                )}
-              </div>
-
-              <div className="register-account-help">
-                <a href="/forgot-password">Forgot your password? Reset it here.</a>
-              </div>
-
-            </form>
+  return `
+    <div class="form-step-content">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="firstName" class="form-label">First Name <span class="required-indicator">*</span></label>
+          ${inputMarkup('firstName', { placeholder: 'e.g. Juan' })}
+          ${errorMarkup('firstName')}
+        </div>
+        <div class="form-group">
+          <label for="middleName" class="form-label">Middle Name</label>
+          ${inputMarkup('middleName', { placeholder: 'e.g. Santos' })}
+        </div>
+        <div class="form-group">
+          <label for="lastName" class="form-label">Last Name <span class="required-indicator">*</span></label>
+          ${inputMarkup('lastName', { placeholder: 'e.g. Dela Cruz' })}
+          ${errorMarkup('lastName')}
+        </div>
+        <div class="form-group">
+          <label for="username" class="form-label">Username <span class="required-indicator">*</span></label>
+          ${inputMarkup('username', { placeholder: 'Choose a screen username' })}
+          ${errorMarkup('username')}
+        </div>
+        <div class="form-group">
+          <label for="birthDate" class="form-label">Birthdate <span class="required-indicator">*</span></label>
+          <div class="birthdate-picker ${fieldError('birthDate') ? 'error-border' : ''}" id="birthDatePicker">
+            <i class="fa-regular fa-calendar-days birthdate-picker-icon" aria-hidden="true"></i>
+            <input
+              type="date"
+              id="birthDate"
+              value="${escapeHtml(state.formData.birthDate)}"
+              min="1900-01-01"
+              max="${escapeHtml(maxBirthDate())}"
+              class="birthdate-picker-input"
+              aria-describedby="birthDateHelp"
+            />
+            <button type="button" class="birthdate-picker-button" id="birthDateButton" aria-label="Open birthdate calendar">
+              <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </button>
           </div>
-        </main>
-      );
+          <span id="birthDateHelp" class="form-help-msg">Open the calendar and select month, day, and year.</span>
+          ${ageHelp}
+          ${errorMarkup('birthDate')}
+        </div>
+        <div class="form-group form-grid-full">
+          <label for="streetAddress" class="form-label">House No. / Street / Purok <span class="required-indicator">*</span></label>
+          ${inputMarkup('streetAddress', { placeholder: 'e.g. Purok 4, Sayre Highway' })}
+          ${errorMarkup('streetAddress')}
+        </div>
+        <div class="form-group">
+          <label for="barangay" class="form-label">Barangay (Valencia City) <span class="required-indicator">*</span></label>
+          ${selectMarkup('barangay', VALENCIA_BARANGAYS, '-- Select Barangay --')}
+          ${errorMarkup('barangay')}
+        </div>
+        <div class="form-group">
+          <label for="occupation" class="form-label">Occupation <span class="required-indicator">*</span></label>
+          ${inputMarkup('occupation', { placeholder: 'e.g. Farmer, Teacher, Rescuer' })}
+          ${errorMarkup('occupation')}
+        </div>
+        <div class="form-group">
+          <label for="bloodType" class="form-label">Blood Type <span class="required-indicator">*</span></label>
+          ${selectMarkup('bloodType', ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], '-- Select Blood Type --')}
+          ${errorMarkup('bloodType')}
+        </div>
+        <div class="form-group form-grid-full">
+          <label for="medicalComplications" class="form-label">Medical Complications (Optional)</label>
+          ${textareaMarkup('medicalComplications', { placeholder: 'List any existing conditions (e.g. Asthma, Hypertension)' })}
+        </div>
+        <div class="form-group form-grid-full">
+          <label for="allergies" class="form-label">Allergies (Optional)</label>
+          ${textareaMarkup('allergies', { placeholder: 'List any drug, food or environmental allergies' })}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStepTwo() {
+  return `
+    <div class="form-step-content">
+      <div class="form-grid">
+        <div class="form-group form-grid-full">
+          <label for="email" class="form-label">Email Address <span class="required-indicator">*</span></label>
+          ${inputMarkup('email', { type: 'email', placeholder: 'e.g. Juan@example.com', autocomplete: 'email' })}
+          ${errorMarkup('email')}
+        </div>
+        <div class="form-group form-grid-full">
+          <label for="phone" class="form-label">Phone Number <span class="required-indicator">*</span></label>
+          ${inputMarkup('phone', { type: 'tel', placeholder: 'e.g. 09171234567', autocomplete: 'tel' })}
+          ${errorMarkup('phone')}
+        </div>
+        <div class="form-group">
+          <label for="password" class="form-label">Password <span class="required-indicator">*</span></label>
+          ${inputMarkup('password', { type: 'password', placeholder: 'Min. 8 characters', autocomplete: 'new-password' })}
+          ${errorMarkup('password')}
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword" class="form-label">Confirm Password <span class="required-indicator">*</span></label>
+          ${inputMarkup('confirmPassword', { type: 'password', placeholder: 'Re-enter your password', autocomplete: 'new-password' })}
+          ${errorMarkup('confirmPassword')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderFileUpload(fileKey, sideLabel, errorKey) {
+  const previewKey = fileKey === 'frontIdImageFile' ? 'frontIdImagePreview' : 'backIdImagePreview';
+  const nameKey = fileKey === 'frontIdImageFile' ? 'frontIdImageName' : 'backIdImageName';
+  const inputId = fileKey === 'frontIdImageFile' ? 'frontIdImageFileInput' : 'backIdImageFileInput';
+  const zoneId = fileKey === 'frontIdImageFile' ? 'frontIdImageUploadZone' : 'backIdImageUploadZone';
+  const preview = state.formData[previewKey];
+
+  if (!preview) {
+    return `
+      <div
+        class="file-upload-zone ${fieldError(errorKey) ? 'error-border' : ''}"
+        id="${zoneId}"
+        role="button"
+        tabindex="0"
+        data-upload-zone="${fileKey}"
+      >
+        <div class="upload-icon">&#128203;</div>
+        <span class="register-upload-text">Click to select ${escapeHtml(sideLabel)} image</span>
+        <span class="register-upload-note">PNG, JPG, WebP or HEIC only</span>
+        <input
+          type="file"
+          id="${inputId}"
+          class="register-hidden-file-input"
+          accept="image/*"
+          data-file-input="${fileKey}"
+        />
+      </div>
+    `;
+  }
+
+  return `
+    <div class="preview-container">
+      <button type="button" class="preview-remove-btn" data-remove-file="${fileKey}" aria-label="Remove ${escapeHtml(sideLabel)} ID image">&times;</button>
+      <img src="${escapeHtml(preview)}" alt="${escapeHtml(sideLabel)} ID Preview" class="preview-image" />
+      <span class="preview-filename">${escapeHtml(state.formData[nameKey])}</span>
+    </div>
+  `;
+}
+
+function renderUploadProgress() {
+  if (!state.isSubmitting || state.uploadProgress === null) {
+    return '';
+  }
+
+  const progress = Math.max(0, Math.min(100, Number(state.uploadProgress) || 0));
+
+  return `
+    <div class="register-upload-progress" role="status" aria-live="polite">
+      <div class="register-upload-progress-copy">
+        <span>Uploading ID images</span>
+        <span>${progress}%</span>
+      </div>
+      <div class="register-upload-progress-bar" aria-hidden="true">
+        <span class="register-upload-progress-fill" style="width: ${progress}%"></span>
+      </div>
+    </div>
+  `;
+}
+
+function renderStepThree() {
+  return `
+    <div class="form-step-content">
+      <div class="form-group">
+        <label for="idType" class="form-label">Select Valid Identity Document <span class="required-indicator">*</span></label>
+        ${selectMarkup('idType', ['National ID', "Driver's License", 'PhilHealth ID'])}
+        ${errorMarkup('idType')}
+      </div>
+      <div class="upload-grid">
+        <div class="form-group">
+          <label class="form-label">Upload ${escapeHtml(state.formData.idType)} Front Image <span class="required-indicator">*</span></label>
+          ${renderFileUpload('frontIdImageFile', 'Front', 'frontIdImage')}
+          ${errorMarkup('frontIdImage')}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Upload ${escapeHtml(state.formData.idType)} Back Image <span class="required-indicator">*</span></label>
+          ${renderFileUpload('backIdImageFile', 'Back', 'backIdImage')}
+          ${errorMarkup('backIdImage')}
+        </div>
+      </div>
+      ${renderUploadProgress()}
+      <div class="form-group register-id-number-group">
+        <label for="idNumber" class="form-label">ID Number <span class="required-indicator">*</span></label>
+        ${inputMarkup('idNumber', { placeholder: 'e.g. 1234-56789-0' })}
+        ${errorMarkup('idNumber')}
+      </div>
+    </div>
+  `;
+}
+
+function renderCurrentStep() {
+  if (state.currentStep === 1) {
+    return renderStepOne();
+  }
+
+  if (state.currentStep === 2) {
+    return renderStepTwo();
+  }
+
+  return renderStepThree();
+}
+
+function renderNavigation() {
+  const previous = state.currentStep > 1
+    ? '<button type="button" class="btn btn-secondary" id="registerPrevButton">&larr; Previous</button>'
+    : '<div></div>';
+  const next = state.currentStep < 3
+    ? '<button type="button" class="btn btn-primary" id="registerNextButton">Next &rarr;</button>'
+    : `<button type="submit" class="btn btn-primary register-submit-success" ${state.isSubmitting ? 'disabled' : ''}>${state.isSubmitting ? 'Submitting...' : 'Submit Registration'}</button>`;
+
+  return `
+    <div class="form-navigation">
+      ${previous}
+      ${next}
+    </div>
+  `;
+}
+
+function renderSubmitted() {
+  return `
+    <main class="register-container">
+      ${toastMarkup()}
+      <div class="card success-card">
+        <div class="success-icon-wrapper"><i class="fa-solid fa-circle-check"></i></div>
+        <h2 class="success-title">Registration submitted</h2>
+        <p class="success-message">
+          Your civilian account request has been sent to the ResQMesh admin team for verification.
+          Please wait for the approval or decline confirmation through the email address you entered.
+        </p>
+        <p class="success-message">
+          Once approved, your account can be used for online access and mesh-supported emergency fallback access.
+        </p>
+        <a href="/" class="btn btn-primary">Return to Homepage</a>
+      </div>
+    </main>
+  `;
+}
+
+function renderForm() {
+  const alert = state.submitError
+    ? `<div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>${escapeHtml(state.submitError)}</span></div>`
+    : '';
+
+  return `
+    <main class="register-container">
+      ${toastMarkup()}
+      <div class="card register-card">
+        <div class="register-intro">
+          <span class="register-kicker">Civilian account registration</span>
+          <h2>Prepare your ResQMesh access before an emergency</h2>
+          <p>
+            Submit your profile for admin approval. Approved civilian records can be used for online access when internet is available
+            and for mesh-supported emergency access when internet service is unavailable.
+          </p>
+        </div>
+        ${renderStepIndicators()}
+        <form id="registrationForm" novalidate>
+          ${alert}
+          ${renderCurrentStep()}
+          ${renderNavigation()}
+          <div class="register-account-help">
+            <a href="/forgot-password">Forgot your password? Reset it here.</a>
+          </div>
+        </form>
+      </div>
+    </main>
+  `;
+}
+
+function render() {
+  if (!registerRootElement) {
+    return;
+  }
+
+  registerRootElement.innerHTML = state.submitted ? renderSubmitted() : renderForm();
+  bindFormEvents();
+}
+
+function updateFieldErrorDom(field) {
+  const input = document.getElementById(field);
+  const errorElement = document.querySelector(`[data-error-for="${field}"]`);
+  const uploadZone = ['frontIdImage', 'backIdImage'].includes(field)
+    ? document.getElementById(registerConfig.fieldTargets[field])
+    : null;
+
+  input?.classList.remove('error-border');
+  uploadZone?.classList.remove('error-border');
+  errorElement?.remove();
+}
+
+function handleFieldInput(event) {
+  const field = event.target.id;
+
+  if (!Object.prototype.hasOwnProperty.call(state.formData, field)) {
+    return;
+  }
+
+  state.formData[field] = event.target.value;
+
+  if (state.errors[field]) {
+    delete state.errors[field];
+    updateFieldErrorDom(field);
+  }
+
+  if (field === 'birthDate') {
+    render();
+  }
+}
+
+function openBirthDatePicker(event) {
+  if (event) {
+    event.stopPropagation();
+  }
+
+  const input = document.getElementById('birthDate');
+
+  if (!input) {
+    return;
+  }
+
+  if (typeof input.showPicker === 'function') {
+    input.showPicker();
+    return;
+  }
+
+  input.focus();
+}
+
+function validateStep1() {
+  const stepErrors = {};
+  const required = ['firstName', 'lastName', 'birthDate', 'username', 'streetAddress', 'barangay', 'occupation', 'bloodType'];
+
+  required.forEach((field) => {
+    if (!state.formData[field] || state.formData[field].trim() === '') {
+      stepErrors[field] = 'This field is required.';
+    }
+  });
+
+  const birthDate = registerUtils.parseBirthDate(state.formData.birthDate);
+  const age = registerUtils.calculateAge(state.formData.birthDate);
+
+  if (state.formData.birthDate && !birthDate) {
+    stepErrors.birthDate = 'Please enter a valid birthdate.';
+  } else if (birthDate && birthDate > new Date()) {
+    stepErrors.birthDate = 'Birthdate cannot be in the future.';
+  } else if (age !== null && age < 18) {
+    stepErrors.birthDate = 'You must be at least 18 years old to register.';
+  }
+
+  return stepErrors;
+}
+
+function validateStep2() {
+  const stepErrors = {};
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^(09|\+639)\d{9}$/;
+
+  if (!state.formData.email) {
+    stepErrors.email = 'Email is required.';
+  } else if (!emailRegex.test(state.formData.email)) {
+    stepErrors.email = 'Please enter a valid email address.';
+  }
+
+  if (!state.formData.phone) {
+    stepErrors.phone = 'Phone number is required.';
+  } else if (!phoneRegex.test(state.formData.phone)) {
+    stepErrors.phone = 'Please enter a valid mobile number (e.g., 09171234567).';
+  }
+
+  if (!state.formData.password) {
+    stepErrors.password = 'Password is required.';
+  } else if (state.formData.password.length < 8) {
+    stepErrors.password = 'Password must be at least 8 characters long.';
+  }
+
+  if (!state.formData.confirmPassword) {
+    stepErrors.confirmPassword = 'Please confirm your password.';
+  } else if (state.formData.password !== state.formData.confirmPassword) {
+    stepErrors.confirmPassword = 'Passwords do not match.';
+  }
+
+  return stepErrors;
+}
+
+function validateStep3() {
+  const stepErrors = {};
+
+  if (!state.formData.idType) {
+    stepErrors.idType = 'ID Type is required.';
+  }
+
+  if (!state.formData.idNumber || state.formData.idNumber.trim() === '') {
+    stepErrors.idNumber = 'ID Number is required.';
+  }
+
+  if (!state.formData.frontIdImageFile) {
+    stepErrors.frontIdImage = 'Front ID image card is required.';
+  }
+
+  if (!state.formData.backIdImageFile) {
+    stepErrors.backIdImage = 'Back ID image card is required.';
+  }
+
+  return stepErrors;
+}
+
+function showValidationErrors(errorMap, step = state.currentStep) {
+  const field = registerUtils.firstErrorField(errorMap, step);
+  const message = field && errorMap[field]
+    ? errorMap[field]
+    : 'Please complete the required fields before continuing.';
+
+  showToast(message, 'error');
+  scrollToField(field);
+}
+
+function handleNext() {
+  const stepErrors = state.currentStep === 1 ? validateStep1() : validateStep2();
+
+  if (Object.keys(stepErrors).length === 0) {
+    state.errors = {};
+    state.currentStep += 1;
+    render();
+    scrollRegistrationToTop();
+    return;
+  }
+
+  setErrors(stepErrors);
+  showValidationErrors(stepErrors, state.currentStep);
+}
+
+function handlePrev() {
+  state.errors = {};
+  state.currentStep -= 1;
+  render();
+  scrollRegistrationToTop();
+}
+
+function handleFileChange(event, fileKey) {
+  const file = event.target.files[0];
+
+  if (!file) {
+    return;
+  }
+
+  const errorKey = fileKey === 'frontIdImageFile' ? 'frontIdImage' : 'backIdImage';
+
+  if (!file.type.startsWith('image/')) {
+    state.errors[errorKey] = 'Only image files are allowed.';
+    event.target.value = '';
+    render();
+    showToast('Only image files are allowed.', 'error');
+    scrollToField(errorKey);
+    return;
+  }
+
+  if (file.size > registerConfig.maxIdImageSizeBytes) {
+    const message = 'ID images must be 5MB or smaller.';
+    state.errors[errorKey] = message;
+    event.target.value = '';
+    render();
+    showToast(message, 'error');
+    scrollToField(errorKey);
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onloadend = () => {
+    state.formData[fileKey] = file;
+    state.formData[fileKey === 'frontIdImageFile' ? 'frontIdImageName' : 'backIdImageName'] = file.name;
+    state.formData[fileKey === 'frontIdImageFile' ? 'frontIdImagePreview' : 'backIdImagePreview'] = reader.result;
+    delete state.errors[errorKey];
+    render();
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function removeFile(fileKey) {
+  state.formData[fileKey] = null;
+  state.formData[fileKey === 'frontIdImageFile' ? 'frontIdImageName' : 'backIdImageName'] = '';
+  state.formData[fileKey === 'frontIdImageFile' ? 'frontIdImagePreview' : 'backIdImagePreview'] = '';
+  render();
+}
+
+function handleServerError(message) {
+  const safeMessage = message || 'Registration failed. Please try again.';
+  const field = registerUtils.mapServerErrorToField(safeMessage);
+
+  state.submitError = safeMessage;
+  showToast(safeMessage, 'error');
+
+  if (!field) {
+    render();
+    scrollRegistrationToTop();
+    return;
+  }
+
+  const fieldStep = registerConfig.fieldSteps[field] || state.currentStep;
+  state.errors = {
+    ...state.errors,
+    [field]: safeMessage
+  };
+
+  if (fieldStep !== state.currentStep) {
+    state.currentStep = fieldStep;
+  }
+
+  render();
+  scrollToField(field);
+}
+
+async function handleSubmit(event) {
+  event.preventDefault();
+
+  if (state.isSubmitting) {
+    return;
+  }
+
+  state.submitError = '';
+  const stepErrors = validateStep3();
+
+  if (Object.keys(stepErrors).length > 0) {
+    setErrors(stepErrors);
+    showValidationErrors(stepErrors, 3);
+    return;
+  }
+
+  const payload = new FormData();
+  [
+    'firstName',
+    'middleName',
+    'lastName',
+    'birthDate',
+    'username',
+    'streetAddress',
+    'barangay',
+    'occupation',
+    'bloodType',
+    'medicalComplications',
+    'allergies',
+    'email',
+    'phone',
+    'password',
+    'idType',
+    'idNumber'
+  ].forEach((field) => {
+    payload.append(field, state.formData[field] || '');
+  });
+
+  try {
+    state.isSubmitting = true;
+    state.uploadProgress = 0;
+    render();
+
+    const recaptchaToken = await registerUtils.timeoutPromise(
+      window.ResQMeshRecaptcha.ready().then(() => window.ResQMeshRecaptcha.getToken('register')),
+      registerConfig.recaptchaTimeoutMs,
+      'Security verification timed out. Please refresh the page and try again.'
+    );
+
+    payload.append('recaptchaToken', recaptchaToken);
+    payload.append('frontIdImageFile', state.formData.frontIdImageFile);
+    payload.append('backIdImageFile', state.formData.backIdImageFile);
+
+    await registerUtils.fetchRegistration(payload, {
+      onProgress: (percent) => {
+        state.uploadProgress = percent === null ? 100 : percent;
+        render();
+      }
+    });
+
+    state.uploadProgress = 100;
+    state.submitted = true;
+    state.submitError = '';
+    showToast('Registration submitted. Please check your email for account confirmation after admin review.', 'success');
+  } catch (error) {
+    handleServerError(error.message);
+  } finally {
+    state.isSubmitting = false;
+    window.setTimeout(() => {
+      state.uploadProgress = null;
+      render();
+    }, 500);
+  }
+}
+
+function bindFormEvents() {
+  const form = document.getElementById('registrationForm');
+  const nextButton = document.getElementById('registerNextButton');
+  const prevButton = document.getElementById('registerPrevButton');
+  const birthDatePicker = document.getElementById('birthDatePicker');
+  const birthDateButton = document.getElementById('birthDateButton');
+
+  if (form) {
+    form.addEventListener('submit', handleSubmit);
+  }
+
+  if (nextButton) {
+    nextButton.addEventListener('click', handleNext);
+  }
+
+  if (prevButton) {
+    prevButton.addEventListener('click', handlePrev);
+  }
+
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach((input) => {
+    if (input.type === 'file') {
+      return;
     }
 
-    // Render the React application
-    try {
-      const root = ReactDOM.createRoot(registerRootElement);
-      root.render(<React.StrictMode><ResQMeshRegistration /></React.StrictMode>);
-    } catch (error) {
-      showRegisterBootstrapError('The registration form could not finish loading.');
-      console.error(error);
-    }
+    input.addEventListener(input.tagName === 'SELECT' ? 'change' : 'input', handleFieldInput);
+  });
 
+  document.querySelectorAll('[data-file-input]').forEach((input) => {
+    input.addEventListener('change', (event) => handleFileChange(event, input.dataset.fileInput));
+  });
+
+  document.querySelectorAll('[data-upload-zone]').forEach((zone) => {
+    zone.addEventListener('click', () => {
+      const input = document.querySelector(`[data-file-input="${zone.dataset.uploadZone}"]`);
+      input?.click();
+    });
+
+    zone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        const input = document.querySelector(`[data-file-input="${zone.dataset.uploadZone}"]`);
+        input?.click();
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-remove-file]').forEach((button) => {
+    button.addEventListener('click', () => removeFile(button.dataset.removeFile));
+  });
+
+  if (birthDatePicker) {
+    birthDatePicker.addEventListener('click', openBirthDatePicker);
+  }
+
+  if (birthDateButton) {
+    birthDateButton.addEventListener('click', openBirthDatePicker);
+  }
+}
+
+if (!registerConfig || !registerUtils) {
+  showRegisterBootstrapError('The registration page could not load its required configuration.');
+} else if (!registerRootElement) {
+  throw new Error('ResQMesh registration bootstrap failed: #register-root was not found.');
+} else {
+  window.ResQMeshRecaptcha?.ready?.().catch(() => {
+    // The submit handler will show the actionable security error if needed.
+  });
+  render();
+}

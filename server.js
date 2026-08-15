@@ -17,6 +17,14 @@ const {
   requireHttps,
   securityHeaders
 } = require('./server/middleware/securityMiddleware');
+const {
+  handleBodyParserErrors,
+  requestBodyParser
+} = require('./server/middleware/requestLimitMiddleware');
+const {
+  errorHandler,
+  notFoundHandler
+} = require('./server/middleware/errorMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,8 +35,8 @@ app.use(securityHeaders());
 app.use(requireHttps);
 
 // Body Parser Middleware
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(requestBodyParser);
+app.use(handleBodyParserErrors);
 
 app.get('/downloads/:filename', require('./server/controllers/downloadController').serveProtectedDownload);
 
@@ -122,6 +130,9 @@ app.get('/resqmeshadmin/rescuers', requireAdminPageSession, (req, res) => {
 app.get('/resqmeshadmin/rescue-teams', requireAdminPageSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'rescue-teams.html'));
 });
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // Start Server
 async function startServer() {

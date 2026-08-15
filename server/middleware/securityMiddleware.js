@@ -47,9 +47,9 @@ function securityHeaders() {
         frameAncestors: ["'none'"],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://tile.openstreetmap.org'],
         mediaSrc: ["'self'", 'blob:', 'data:'],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://www.google.com', 'https://www.gstatic.com', 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://unpkg.com'],
-        fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://www.google.com', 'https://www.gstatic.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
         frameSrc: ["'self'", 'https://www.google.com', 'https://recaptcha.google.com'],
         connectSrc: ["'self'", 'https://www.google.com', 'https://www.gstatic.com'],
         upgradeInsecureRequests: null
