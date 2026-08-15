@@ -43,6 +43,7 @@ const VALENCIA_BARANGAYS = registerConfig?.barangays || [];
 const state = {
   currentStep: 1,
   submitted: false,
+  hasAnimatedForm: false,
   isSubmitting: false,
   submitError: '',
   toast: null,
@@ -76,6 +77,18 @@ const state = {
 };
 
 let toastTimer = null;
+const previewObjectUrls = {
+  frontIdImagePreview: '',
+  backIdImagePreview: ''
+};
+
+window.addEventListener('beforeunload', () => {
+  Object.values(previewObjectUrls).forEach((url) => {
+    if (url) {
+      URL.revokeObjectURL(url);
+    }
+  });
+});
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -431,7 +444,7 @@ function renderUploadProgress() {
     <div class="register-upload-progress" role="status" aria-live="polite">
       <div class="register-upload-progress-copy">
         <span>Uploading ID images</span>
-        <span>${progress}%</span>
+        <span data-upload-progress-value>${progress}%</span>
       </div>
       <div class="register-upload-progress-bar" aria-hidden="true">
         <span class="register-upload-progress-fill" style="width: ${progress}%"></span>
@@ -522,11 +535,12 @@ function renderForm() {
   const alert = state.submitError
     ? `<div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>${escapeHtml(state.submitError)}</span></div>`
     : '';
+  const cardClass = state.hasAnimatedForm ? 'card register-card register-card-stable' : 'card register-card';
 
   return `
     <main class="register-container">
       ${toastMarkup()}
-      <div class="card register-card">
+      <div class="${cardClass}">
         <div class="register-intro">
           <span class="register-kicker">Civilian account registration</span>
           <h2>Prepare your ResQMesh access before an emergency</h2>
@@ -556,6 +570,60 @@ function render() {
 
   registerRootElement.innerHTML = state.submitted ? renderSubmitted() : renderForm();
   bindFormEvents();
+
+  if (!state.submitted && !state.hasAnimatedForm) {
+    state.hasAnimatedForm = true;
+    window.setTimeout(() => {
+      document.querySelector('.register-card')?.classList.add('register-card-stable');
+    }, 580);
+  }
+}
+
+function setPreviewFile(fileKey, file) {
+  const isFront = fileKey === 'frontIdImageFile';
+  const nameKey = isFront ? 'frontIdImageName' : 'backIdImageName';
+  const previewKey = isFront ? 'frontIdImagePreview' : 'backIdImagePreview';
+  const previousUrl = previewObjectUrls[previewKey];
+
+  if (previousUrl) {
+    URL.revokeObjectURL(previousUrl);
+  }
+
+  const previewUrl = URL.createObjectURL(file);
+  previewObjectUrls[previewKey] = previewUrl;
+  state.formData[fileKey] = file;
+  state.formData[nameKey] = file.name;
+  state.formData[previewKey] = previewUrl;
+}
+
+function clearPreviewFile(fileKey) {
+  const isFront = fileKey === 'frontIdImageFile';
+  const nameKey = isFront ? 'frontIdImageName' : 'backIdImageName';
+  const previewKey = isFront ? 'frontIdImagePreview' : 'backIdImagePreview';
+  const previousUrl = previewObjectUrls[previewKey];
+
+  if (previousUrl) {
+    URL.revokeObjectURL(previousUrl);
+  }
+
+  previewObjectUrls[previewKey] = '';
+  state.formData[fileKey] = null;
+  state.formData[nameKey] = '';
+  state.formData[previewKey] = '';
+}
+
+function updateUploadProgressDom(percent) {
+  const progress = Math.max(0, Math.min(100, Number(percent) || 0));
+  const fill = document.querySelector('.register-upload-progress-fill');
+  const value = document.querySelector('[data-upload-progress-value]');
+
+  if (fill) {
+    fill.style.width = `${progress}%`;
+  }
+
+  if (value) {
+    value.textContent = `${progress}%`;
+  }
 }
 
 function updateFieldErrorDom(field) {
@@ -746,23 +814,13 @@ function handleFileChange(event, fileKey) {
     return;
   }
 
-  const reader = new FileReader();
-
-  reader.onloadend = () => {
-    state.formData[fileKey] = file;
-    state.formData[fileKey === 'frontIdImageFile' ? 'frontIdImageName' : 'backIdImageName'] = file.name;
-    state.formData[fileKey === 'frontIdImageFile' ? 'frontIdImagePreview' : 'backIdImagePreview'] = reader.result;
-    delete state.errors[errorKey];
-    render();
-  };
-
-  reader.readAsDataURL(file);
+  setPreviewFile(fileKey, file);
+  delete state.errors[errorKey];
+  render();
 }
 
 function removeFile(fileKey) {
-  state.formData[fileKey] = null;
-  state.formData[fileKey === 'frontIdImageFile' ? 'frontIdImageName' : 'backIdImageName'] = '';
-  state.formData[fileKey === 'frontIdImageFile' ? 'frontIdImagePreview' : 'backIdImagePreview'] = '';
+  clearPreviewFile(fileKey);
   render();
 }
 
@@ -849,7 +907,7 @@ async function handleSubmit(event) {
     await registerUtils.fetchRegistration(payload, {
       onProgress: (percent) => {
         state.uploadProgress = percent === null ? 100 : percent;
-        render();
+        updateUploadProgressDom(state.uploadProgress);
       }
     });
 

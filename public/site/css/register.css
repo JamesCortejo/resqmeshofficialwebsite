@@ -17,7 +17,13 @@
 }
 
 .register-card {
+  backface-visibility: hidden;
+  transform: translateZ(0);
   padding: clamp(1.35rem, 4vw, 3rem);
+}
+
+.register-card-stable {
+  animation: none !important;
 }
 
 .register-card:hover,
@@ -384,8 +390,15 @@
   position: relative;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .preview-container {
+    animation: register-preview-in 180ms ease both;
+  }
+}
+
 .preview-image {
   border-radius: 12px;
+  display: block;
   max-height: 180px;
   max-width: 100%;
   object-fit: contain;
@@ -454,6 +467,18 @@
   border-radius: inherit;
   background: linear-gradient(90deg, var(--color-primary), var(--color-primary-strong));
   transition: width 0.18s ease;
+}
+
+@keyframes register-preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .form-navigation {
