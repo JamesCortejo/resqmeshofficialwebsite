@@ -99,13 +99,17 @@ function isSecureRequest(req) {
   return Boolean(req.secure || String(req.headers['x-forwarded-proto'] || '').toLowerCase() === 'https');
 }
 
+function shouldUseSecureCookie(req) {
+  return Boolean(config.security?.forceSecureCookies || isSecureRequest(req));
+}
+
 function getRequestIpAddress(req) {
   const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   return forwardedFor || req.socket?.remoteAddress || '';
 }
 
 function buildSessionCookie(token, req) {
-  const secure = isSecureRequest(req);
+  const secure = shouldUseSecureCookie(req);
 
   return serializeCookie(ADMIN_SESSION_COOKIE_NAME, token, {
     httpOnly: true,
@@ -117,7 +121,7 @@ function buildSessionCookie(token, req) {
 }
 
 function buildClearedSessionCookie(req) {
-  const secure = isSecureRequest(req);
+  const secure = shouldUseSecureCookie(req);
 
   return serializeCookie(ADMIN_SESSION_COOKIE_NAME, '', {
     httpOnly: true,

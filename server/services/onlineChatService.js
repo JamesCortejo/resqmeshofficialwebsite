@@ -4,6 +4,7 @@ const path = require('path');
 const sharp = require('sharp');
 const config = require('../config/env');
 const { decryptText } = require('./encryptionService');
+const { validateImageUpload } = require('./uploadValidationService');
 const {
   enforceCivilianMessageSecurity,
   enforceRescuerMessageSecurity,
@@ -370,13 +371,10 @@ async function saveDepartmentIcon(file) {
     return {};
   }
 
-  if (!file.mimetype || !file.mimetype.startsWith('image/')) {
-    throw appError('Department logo must be an image file.');
-  }
-
-  if (file.size > MAX_ICON_SIZE_BYTES) {
-    throw appError('Department logo must be 1MB or smaller.');
-  }
+  await validateImageUpload(file, {
+    label: 'Department logo',
+    maxBytes: MAX_ICON_SIZE_BYTES
+  });
 
   await fs.mkdir(ICON_UPLOAD_DIR, { recursive: true });
   const filename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}.webp`;

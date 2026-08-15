@@ -12,17 +12,27 @@ const {
   redirectAuthenticatedAdmin,
   requireAdminPageSession
 } = require('./server/middleware/adminSessionMiddleware');
+const {
+  handleDirectAdminHtmlAccess,
+  requireHttps,
+  securityHeaders
+} = require('./server/middleware/securityMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
 
+app.use(securityHeaders());
+app.use(requireHttps);
+
 // Body Parser Middleware
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 app.get('/downloads/:filename', require('./server/controllers/downloadController').serveProtectedDownload);
+
+app.use(handleDirectAdminHtmlAccess);
 
 // Serve static frontend files (CSS, JS, images) while HTML pages are routed below.
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));

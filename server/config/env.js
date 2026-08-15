@@ -59,6 +59,14 @@ function parseBoolean(value, name) {
   throw new Error(`${name} must be true or false.`);
 }
 
+function parseOptionalBoolean(value, fallback, name) {
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return fallback;
+  }
+
+  return parseBoolean(value, name);
+}
+
 function optional(value) {
   if (value === undefined || value === null) {
     return null;
@@ -98,6 +106,11 @@ const config = {
   },
   mobileAppSession: {
     ttlHours: parsePositiveInteger(process.env.MOBILE_APP_SESSION_TTL_HOURS, 24 * 7, 'MOBILE_APP_SESSION_TTL_HOURS')
+  },
+  security: {
+    forceSecureCookies: parseOptionalBoolean(process.env.FORCE_SECURE_COOKIES, false, 'FORCE_SECURE_COOKIES'),
+    requireHttps: parseOptionalBoolean(process.env.REQUIRE_HTTPS, false, 'REQUIRE_HTTPS'),
+    enableHsts: parseOptionalBoolean(process.env.ENABLE_HSTS, false, 'ENABLE_HSTS')
   },
   deviceSync: {
     tokenTtlMinutes: parsePositiveInteger(process.env.DEVICE_SYNC_TOKEN_TTL_MINUTES, 30, 'DEVICE_SYNC_TOKEN_TTL_MINUTES'),
