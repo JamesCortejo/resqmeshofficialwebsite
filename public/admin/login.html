@@ -41,9 +41,6 @@
           Valencia City Emergency Network
         </span>
         <h2 id="admin-login-title">Admin Login</h2>
-        <p>
-          Sign in to access the ResQMesh admin panel for system management, monitoring, and operational controls.
-        </p>
       </div>
 
       <form id="admin-login-form" class="admin-form" novalidate>
@@ -67,13 +64,10 @@
           <span class="form-error" id="password-error"></span>
         </div>
 
-        <p class="admin-security-note">
-          This admin sign-in is protected by reCAPTCHA and standard account security checks.
-        </p>
-
-        <button type="submit" class="admin-submit">
-          <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
-          Sign In
+        <button type="submit" class="admin-submit" id="admin-login-submit">
+          <span class="admin-submit-spinner" aria-hidden="true"></span>
+          <i class="fa-solid fa-right-to-bracket admin-submit-icon" aria-hidden="true"></i>
+          <span class="admin-submit-label">Sign In</span>
         </button>
       </form>
 
@@ -99,12 +93,15 @@
     const passwordInput = document.getElementById('admin-password');
     const usernameError = document.getElementById('username-error');
     const passwordError = document.getElementById('password-error');
+    const submitButton = document.getElementById('admin-login-submit');
+    const submitLabel = submitButton.querySelector('.admin-submit-label');
     const toast = document.getElementById('adminLoginToast');
     const toastIcon = document.getElementById('adminLoginToastIcon');
     const toastMessage = document.getElementById('adminLoginToastMessage');
     const routeParams = new URLSearchParams(window.location.search);
     const routeMessage = routeParams.get('reason');
     let toastTimer = null;
+    let isSubmitting = false;
 
     function showToast(text, tone = 'warning') {
       window.clearTimeout(toastTimer);
@@ -137,8 +134,20 @@
       errorElement.textContent = errorMessage;
     }
 
+    function setSubmitLoading(isLoading) {
+      isSubmitting = isLoading;
+      submitButton.disabled = isLoading;
+      submitButton.classList.toggle('is-loading', isLoading);
+      submitButton.setAttribute('aria-busy', String(isLoading));
+      submitLabel.textContent = isLoading ? 'Signing in...' : 'Sign In';
+    }
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+
+      if (isSubmitting) {
+        return;
+      }
 
       const username = usernameInput.value.trim();
       const password = passwordInput.value.trim();
@@ -152,6 +161,8 @@
         hideToast();
         return;
       }
+
+      setSubmitLoading(true);
 
       try {
         const recaptchaToken = await window.ResQMeshRecaptcha.getToken('admin_login');
@@ -172,6 +183,7 @@
         window.location.href = result.redirectTo || '/resqmeshadmin/overview';
       } catch (error) {
         showToast(error.message, 'warning');
+        setSubmitLoading(false);
       }
     });
 
