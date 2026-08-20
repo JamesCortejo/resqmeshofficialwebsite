@@ -1,0 +1,88 @@
+.privacy-page {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(237, 66, 47, 0.1), transparent 24rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 248, 251, 0.96));
+}
+
+.privacy-hero {
+  padding: clamp(4rem, 9vw, 7rem) 0 clamp(2rem, 5vw, 3.5rem);
+}
+
+.privacy-hero h1 {
+  font-size: clamp(2.4rem, 6vw, 4.8rem);
+  letter-spacing: -0.065em;
+  line-height: 0.98;
+  margin: 0.9rem 0 1rem;
+  max-width: 760px;
+}
+
+.privacy-hero p {
+  color: var(--color-ink-soft);
+  font-size: 1.08rem;
+  line-height: 1.75;
+  max-width: 720px;
+}
+
+.privacy-content-section {
+  padding-bottom: clamp(4rem, 8vw, 6rem);
+}
+
+.privacy-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(237, 66, 47, 0.08), transparent 20rem),
+    rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--color-border);
+  border-radius: 34px;
+  box-shadow: var(--shadow-card);
+  margin: 0 auto;
+  max-width: 920px;
+  padding: clamp(1.35rem, 4vw, 3rem);
+}
+
+.privacy-updated {
+  color: var(--color-primary-strong);
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  margin-top: 0;
+  text-transform: uppercase;
+}
+
+.privacy-card h2 {
+  font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+  letter-spacing: -0.03em;
+  margin: 1.8rem 0 0.65rem;
+}
+
+.privacy-card p {
+  color: var(--color-ink-soft);
+  line-height: 1.75;
+  margin: 0;
+}
+
+.privacy-card a:not(.btn) {
+  color: var(--color-primary-strong);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.privacy-card a:not(.btn):hover {
+  text-decoration: underline;
+}
+
+.privacy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 2.2rem;
+}
+
+@media (max-width: 640px) {
+  .privacy-card {
+    border-radius: 26px;
+  }
+
+  .privacy-actions {
+    flex-direction: column;
+  }
+}

@@ -97,6 +97,9 @@ app.get('/register', (req, res) => {
 app.get('/forgot-password', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'site', 'forgot-password.html'));
 });
+app.get('/privacy-policy', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'site', 'privacy-policy.html'));
+});
 app.get('/resqmeshadmin', redirectAuthenticatedAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
 });

@@ -1,10 +1,3 @@
-const crypto = require('crypto');
-const fs = require('fs/promises');
-const path = require('path');
-const sharp = require('sharp');
-const config = require('../config/env');
-const { decryptText } = require('./encryptionService');
-const { validateImageUpload } = require('./uploadValidationService');
 const {
   enforceCivilianMessageSecurity,
   enforceRescuerMessageSecurity,
@@ -43,225 +36,35 @@ const {
   markConversationRead,
   updateDepartment
 } = require('../repositories/onlineChatRepository');
-
-const ICON_UPLOAD_DIR = path.join(config.appRoot, 'public', 'uploads', 'department-chat-icons');
-const ICON_PUBLIC_BASE = '/uploads/department-chat-icons';
-const VOICE_UPLOAD_DIR = path.join(config.appRoot, 'storage', 'online-chat-voice');
-const MAX_MESSAGE_LENGTH = 1000;
-const MAX_ICON_SIZE_BYTES = 1024 * 1024;
-const MAX_ONLINE_VOICE_SECONDS = 40;
-const MAX_ONLINE_VOICE_SIZE_BYTES = 2 * 1024 * 1024;
-const STATUS_VALUES = new Set(['active', 'inactive', 'archived']);
-const COLOR_VALUES = new Set(['red', 'blue', 'amber', 'orange', 'slate']);
-const RESCUER_AGENCY_VALUES = new Set(['cdrrmo', 'fire-department', 'police-department']);
-const ONLINE_VOICE_MIME_TYPES = new Set(['audio/mp4', 'audio/m4a', 'audio/x-m4a', 'audio/aac']);
-const SYSTEM_GLOBAL_DEPARTMENT = Object.freeze({
-  slug: 'global-announcements',
-  name: 'Global Announcements',
-  subtitle: 'Admin-only broadcast lane',
-  status: 'active',
-  colorTag: 'slate',
-  rescuerAgency: null,
-  sortOrder: 0,
-  readOnly: 1
-});
-
-function appError(message, statusCode = 400) {
-  const error = new Error(message);
-  error.statusCode = statusCode;
-  return error;
-}
-
-function normalizeString(value, maxLength) {
-  const normalized = String(value ?? '').trim();
-  return maxLength ? normalized.slice(0, maxLength) : normalized;
-}
-
-function slugify(value) {
-  const slug = normalizeString(value, 80)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-  return slug || `department-${Date.now()}`;
-}
-
-function normalizeInteger(value, fallback) {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isInteger(parsed) ? parsed : fallback;
-}
-
-function normalizeFlag(value) {
-  if (value === true || value === 1 || value === '1') {
-    return 1;
-  }
-
-  if (String(value).toLowerCase() === 'true') {
-    return 1;
-  }
-
-  return 0;
-}
-
-function normalizeAgency(value) {
-  const normalized = normalizeString(value, 40).toLowerCase();
-  return normalized || null;
-}
-
-function resolveRescuerAgency(value, fallbackSlug = '', fallbackName = '') {
-  const direct = normalizeAgency(value);
-  if (direct && RESCUER_AGENCY_VALUES.has(direct)) {
-    return direct;
-  }
-
-  const source = `${fallbackSlug} ${fallbackName}`.toLowerCase();
-  if (source.includes('cdrrmo')) {
-    return 'cdrrmo';
-  }
-  if (source.includes('fire')) {
-    return 'fire-department';
-  }
-  if (source.includes('police')) {
-    return 'police-department';
-  }
-
-  return null;
-}
-
-function calculateAge(birthDateValue) {
-  if (!birthDateValue) {
-    return null;
-  }
-
-  const parsed = new Date(`${birthDateValue}T00:00:00Z`);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-
-  const today = new Date();
-  let age = today.getUTCFullYear() - parsed.getUTCFullYear();
-  const monthDiff = today.getUTCMonth() - parsed.getUTCMonth();
-  const dayDiff = today.getUTCDate() - parsed.getUTCDate();
-
-  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-    age -= 1;
-  }
-
-  return Math.max(age, 0);
-}
-
-function safeDecrypt(value) {
-  try {
-    return decryptText(value);
-  } catch (error) {
-    return '';
-  }
-}
-
-function fullName(...parts) {
-  return parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
-}
-
-function formatCivilian(row) {
-  const firstName = safeDecrypt(row.firstNameEnc);
-  const middleName = safeDecrypt(row.middleNameEnc);
-  const lastName = safeDecrypt(row.lastNameEnc);
-  const birthDate = safeDecrypt(row.birthDateEnc);
-
-  return {
-    id: row.civilianUserId || row.id,
-    code: row.userCode,
-    firstName,
-    middleName: middleName || null,
-    lastName,
-    fullName: [firstName, middleName, lastName].filter(Boolean).join(' ') || row.userCode || 'Civilian',
-    phone: safeDecrypt(row.phoneEnc),
-    email: safeDecrypt(row.emailEnc),
-    occupation: safeDecrypt(row.occupationEnc),
-    bloodType: safeDecrypt(row.bloodTypeEnc),
-    allergies: safeDecrypt(row.allergiesEnc),
-    medicalComplications: safeDecrypt(row.medicalComplicationsEnc),
-    birthDate: birthDate || null,
-    age: calculateAge(birthDate)
-  };
-}
-
-function formatDepartment(row, unreadCount = 0) {
-  return {
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    subtitle: row.subtitle || '',
-    status: row.status,
-    colorTag: row.colorTag,
-    rescuerAgency: resolveRescuerAgency(row.rescuerAgency, row.slug, row.name),
-    iconUrl: row.iconUrl || null,
-    sortOrder: row.sortOrder,
-    readOnly: Number(row.readOnly) === 1,
-    unreadCount: Number(unreadCount || 0),
-    archivedAt: row.archivedAt || null,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt
-  };
-}
-
-function formatMessage(row) {
-  const senderType = row.senderType;
-  const messageType = row.messageType || 'text';
-  const civilianSenderName = fullName(
-    safeDecrypt(row.civilianSenderFirstNameEnc),
-    safeDecrypt(row.civilianSenderMiddleNameEnc),
-    safeDecrypt(row.civilianSenderLastNameEnc)
-  );
-  const adminSenderName = fullName(
-    safeDecrypt(row.adminSenderFirstNameEnc),
-    safeDecrypt(row.adminSenderMiddleNameEnc),
-    safeDecrypt(row.adminSenderLastNameEnc)
-  );
-  const rescuerSenderName = fullName(
-    safeDecrypt(row.rescuerSenderFirstNameEnc),
-    safeDecrypt(row.rescuerSenderMiddleNameEnc),
-    safeDecrypt(row.rescuerSenderLastNameEnc)
-  );
-  const senderDisplayName = senderType === 'civilian'
-    ? civilianSenderName || 'Civilian'
-    : senderType === 'admin'
-      ? 'Admin'
-      : senderType === 'rescuer'
-        ? rescuerSenderName || 'Rescuer'
-        : 'System';
-  const senderRoleLabel = senderType === 'civilian'
-    ? 'Civilian'
-    : senderType === 'admin'
-      ? 'Admin'
-      : senderType === 'rescuer'
-        ? 'Rescuer'
-        : 'System';
-
-  return {
-    id: row.id,
-    conversationId: row.conversationId || 0,
-    departmentId: row.departmentId,
-    civilianUserId: row.civilianUserId || 0,
-    senderType,
-    senderId: row.senderId,
-    senderDisplayName,
-    senderRoleLabel,
-    messageType,
-    body: row.body || (messageType === 'voice' ? 'Voice message' : ''),
-    voiceClip: row.voiceClipId
-      ? {
-          id: row.voiceClipId,
-          durationSeconds: Number(row.voiceDurationSeconds || 0),
-          sizeBytes: Number(row.voiceSizeBytes || 0),
-          mimeType: row.voiceMimeType || null,
-        }
-      : null,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt
-  };
-}
+const {
+  COLOR_VALUES,
+  MAX_MESSAGE_LENGTH,
+  RESCUER_AGENCY_VALUES,
+  STATUS_VALUES,
+  SYSTEM_GLOBAL_DEPARTMENT
+} = require('./onlineChat/constants');
+const {
+  appError,
+  normalizeAgency,
+  normalizeFlag,
+  normalizeInteger,
+  normalizeString,
+  resolveRescuerAgency,
+  slugify
+} = require('./onlineChat/utils');
+const {
+  formatCivilian,
+  formatConversation,
+  formatDepartment,
+  formatDepartmentFromConversation,
+  formatMessage
+} = require('./onlineChat/formatters');
+const { saveDepartmentIcon } = require('./onlineChat/departmentIconStorage');
+const {
+  readVoiceClipBase64,
+  removeFileIfWritten,
+  saveOnlineVoiceClip
+} = require('./onlineChat/voiceStorage');
 
 async function ensureSystemGlobalDepartment() {
   const existing = await getDepartmentBySlug(SYSTEM_GLOBAL_DEPARTMENT.slug);
@@ -277,37 +80,6 @@ async function ensureSystemGlobalDepartment() {
   });
 
   return getDepartmentById(created.lastID);
-}
-
-function formatConversation(row) {
-  return {
-    id: row.id,
-    departmentId: row.departmentId,
-    civilianUserId: row.civilianUserId,
-    status: row.status,
-    lastMessageId: row.lastMessageId || null,
-    lastMessageAt: row.lastMessageAt || null,
-    lastMessage: row.lastMessageBody
-      ? {
-          body: row.lastMessageBody,
-          senderType: row.lastMessageSenderType,
-          createdAt: row.lastMessageAt || row.updatedAt
-        }
-      : null,
-    unreadCount: Number(row.unreadCount || 0),
-    hasActiveOnlineDistress: Number(row.hasActiveOnlineDistress || 0) === 1,
-    activeOnlineDistress: Number(row.hasActiveOnlineDistress || 0) === 1
-      ? {
-          id: row.activeOnlineDistressId || null,
-          code: row.distressCode || null,
-          reason: row.distressReason || null,
-          recordedAt: row.distressRecordedAt || null
-        }
-      : null,
-    civilian: formatCivilian(row),
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt
-  };
 }
 
 function isSystemGlobalDepartment(department) {
@@ -364,90 +136,6 @@ function normalizeDepartmentPayload(payload, existing = null, icon = {}) {
     sortOrder: normalizeInteger(payload.sortOrder ?? existing?.sortOrder, existing?.sortOrder || 100),
     readOnly: normalizeFlag(payload.readOnly ?? existing?.readOnly ?? 0)
   };
-}
-
-async function saveDepartmentIcon(file) {
-  if (!file) {
-    return {};
-  }
-
-  await validateImageUpload(file, {
-    label: 'Department logo',
-    maxBytes: MAX_ICON_SIZE_BYTES
-  });
-
-  await fs.mkdir(ICON_UPLOAD_DIR, { recursive: true });
-  const filename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}.webp`;
-  const iconPath = path.join(ICON_UPLOAD_DIR, filename);
-
-  await sharp(file.buffer)
-    .resize(160, 160, { fit: 'cover' })
-    .webp({ quality: 82 })
-    .toFile(iconPath);
-
-  return {
-    iconPath,
-    iconUrl: `${ICON_PUBLIC_BASE}/${filename}`
-  };
-}
-
-function normalizeVoiceMimeType(value) {
-  const normalized = normalizeString(value || 'audio/mp4', 80).toLowerCase();
-  return ONLINE_VOICE_MIME_TYPES.has(normalized) ? normalized : null;
-}
-
-function decodeVoiceBase64(value) {
-  const raw = String(value || '').trim();
-  const content = raw.includes(',') ? raw.split(',').pop() : raw;
-
-  if (!content || !/^[A-Za-z0-9+/=\r\n]+$/.test(content)) {
-    throw appError('Voice clip content is invalid.');
-  }
-
-  return Buffer.from(content.replace(/\s+/g, ''), 'base64');
-}
-
-async function saveOnlineVoiceClip(payload = {}) {
-  const mimeType = normalizeVoiceMimeType(payload.mimeType);
-  const durationSeconds = Math.ceil(Number(payload.durationSeconds || payload.duration || 0));
-
-  if (!mimeType) {
-    throw appError('Unsupported voice clip format.');
-  }
-
-  if (!Number.isFinite(durationSeconds) || durationSeconds < 1 || durationSeconds > MAX_ONLINE_VOICE_SECONDS) {
-    throw appError(`Voice clips must be ${MAX_ONLINE_VOICE_SECONDS} seconds or shorter.`);
-  }
-
-  const buffer = decodeVoiceBase64(payload.content || payload.base64Audio || payload.audio);
-
-  if (buffer.length <= 0 || buffer.length > MAX_ONLINE_VOICE_SIZE_BYTES) {
-    throw appError('Voice clip file is too large.');
-  }
-
-  await fs.mkdir(VOICE_UPLOAD_DIR, { recursive: true });
-  const filename = `${Date.now()}-${crypto.randomBytes(10).toString('hex')}.m4a`;
-  const filePath = path.join(VOICE_UPLOAD_DIR, filename);
-  await fs.writeFile(filePath, buffer);
-
-  return {
-    filePath,
-    mimeType,
-    durationSeconds,
-    sizeBytes: buffer.length
-  };
-}
-
-async function removeFileIfWritten(filePath) {
-  if (!filePath) {
-    return;
-  }
-
-  try {
-    await fs.unlink(filePath);
-  } catch (error) {
-    // Best-effort cleanup only; the DB transaction remains the source of truth.
-  }
 }
 
 async function getAdminDepartments(adminUserId, options = {}) {
@@ -706,24 +394,6 @@ async function getConversationMessages(conversationId, actor, options = {}) {
   };
 }
 
-function formatDepartmentFromConversation(conversation) {
-  return formatDepartment({
-    id: conversation.departmentId,
-    slug: conversation.departmentSlug,
-    name: conversation.departmentName,
-    subtitle: conversation.departmentSubtitle,
-    status: conversation.departmentStatus,
-    colorTag: conversation.departmentColorTag,
-    rescuerAgency: conversation.departmentRescuerAgency,
-    iconUrl: conversation.departmentIconUrl,
-    sortOrder: conversation.departmentSortOrder,
-    readOnly: conversation.departmentReadOnly,
-    archivedAt: conversation.departmentArchivedAt,
-    createdAt: conversation.departmentCreatedAt,
-    updatedAt: conversation.departmentUpdatedAt
-  });
-}
-
 function assertVoiceConversationAccess(conversation, actor) {
   if (!conversation) {
     throw appError('Conversation not found.', 404);
@@ -810,7 +480,7 @@ async function getOnlineVoiceClip(messageId, actor) {
     ? { type: 'admin', id: actor.id }
     : actor);
 
-  const content = await fs.readFile(row.voiceFilePath, 'base64').catch(() => null);
+  const content = await readVoiceClipBase64(row.voiceFilePath);
 
   if (!content) {
     throw appError('Voice clip file is unavailable.', 404);

@@ -30,6 +30,10 @@ function isValidPhone(phone) {
   return /^(09|\+639)\d{9}$/.test(phone);
 }
 
+function isTruthyConsent(value) {
+  return value === true || ['true', '1', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+}
+
 function parseBirthDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) {
     return null;
@@ -124,6 +128,13 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Password must be at least 8 characters long.'
+      });
+    }
+
+    if (!isTruthyConsent(req.body.privacyPolicyAccepted)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please confirm that you have read and agree to the Privacy Policy.'
       });
     }
 

@@ -27,17 +27,19 @@
       idType: 3,
       frontIdImage: 3,
       backIdImage: 3,
-      idNumber: 3
+      idNumber: 3,
+      privacyPolicyAccepted: 3
     },
     fieldTargets: {
       birthDate: 'birthDate',
       frontIdImage: 'frontIdImageUploadZone',
-      backIdImage: 'backIdImageUploadZone'
+      backIdImage: 'backIdImageUploadZone',
+      privacyPolicyAccepted: 'privacyPolicyAccepted'
     },
     stepFieldOrder: {
       1: ['firstName', 'lastName', 'birthDate', 'username', 'streetAddress', 'barangay', 'occupation', 'bloodType'],
       2: ['email', 'phone', 'password', 'confirmPassword'],
-      3: ['idType', 'frontIdImage', 'backIdImage', 'idNumber']
+      3: ['idType', 'frontIdImage', 'backIdImage', 'idNumber', 'privacyPolicyAccepted']
     }
   };
 }());

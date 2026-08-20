@@ -1,0 +1,167 @@
+async function ensurePostgresColumnTypes(db) {
+  await db.exec(`
+    ALTER TABLE mesh_audit_logs
+      ALTER COLUMN local_audit_id TYPE BIGINT;
+  `);
+}
+
+async function ensureUserPhoneLookupHashes(db, decryptText, lookupHash) {
+  await db.exec(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS phone_lookup_hash TEXT;
+  `);
+
+  const rows = await db.all(`
+    SELECT id, phone_enc AS "phoneEnc"
+    FROM users
+    WHERE phone_lookup_hash IS NULL OR phone_lookup_hash = ''
+  `);
+
+  for (const row of rows) {
+    const phone = decryptText(row.phoneEnc);
+
+    if (!phone) {
+      continue;
+    }
+
+    await db.run(`
+      UPDATE users
+      SET phone_lookup_hash = ?
+      WHERE id = ?
+    `, [lookupHash(phone), row.id]);
+  }
+
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_users_phone_lookup_hash
+      ON users (phone_lookup_hash);
+  `);
+}
+
+async function ensureAccountAccessAuditBaseline(db) {
+  await db.run(`
+    INSERT INTO account_access_audit_logs (
+      subject_type,
+      subject_id,
+      subject_code,
+      action_type,
+      actor_admin_id,
+      reason_text,
+      metadata_json,
+      occurred_at,
+      created_at
+    )
+    SELECT
+      'civilian',
+      u.id,
+      u.user_code,
+      'registered',
+      NULL,
+      NULL,
+      json_build_object('seededBaseline', true)::text,
+      u.created_at,
+      CURRENT_TIMESTAMP
+    FROM users u
+    WHERE u.status <> 'admin'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM account_access_audit_logs aal
+        WHERE aal.subject_type = 'civilian'
+          AND aal.subject_id = u.id
+          AND aal.action_type = 'registered'
+      )
+  `);
+
+  await db.run(`
+    INSERT INTO account_access_audit_logs (
+      subject_type,
+      subject_id,
+      subject_code,
+      action_type,
+      actor_admin_id,
+      reason_text,
+      metadata_json,
+      occurred_at,
+      created_at
+    )
+    SELECT
+      'rescuer',
+      r.id,
+      r.rescuer_code,
+      'rescuer_created',
+      NULL,
+      NULL,
+      json_build_object('seededBaseline', true)::text,
+      r.created_at,
+      CURRENT_TIMESTAMP
+    FROM rescuers r
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM account_access_audit_logs aal
+      WHERE aal.subject_type = 'rescuer'
+        AND aal.subject_id = r.id
+        AND aal.action_type = 'rescuer_created'
+    )
+  `);
+}
+
+async function runCompatibilityMigrations(db) {
+  await ensurePostgresColumnTypes(db);
+  await ensureAccountAccessAuditBaseline(db);
+  await db.exec(`
+    ALTER TABLE distress_deployments
+      ADD COLUMN IF NOT EXISTS distress_source TEXT NOT NULL DEFAULT 'mesh';
+    ALTER TABLE distress_deployments
+      ADD COLUMN IF NOT EXISTS online_distress_signal_id INTEGER REFERENCES online_distress_signals(id);
+    ALTER TABLE distress_deployments
+      ALTER COLUMN mesh_distress_signal_id DROP NOT NULL;
+    ALTER TABLE online_chat_departments
+      ADD COLUMN IF NOT EXISTS rescuer_agency TEXT;
+    ALTER TABLE online_chat_departments
+      DROP CONSTRAINT IF EXISTS online_chat_departments_rescuer_agency_check;
+    ALTER TABLE online_chat_departments
+      ADD CONSTRAINT online_chat_departments_rescuer_agency_check
+      CHECK (rescuer_agency IN ('cdrrmo', 'fire-department', 'police-department') OR rescuer_agency IS NULL);
+    ALTER TABLE online_chat_messages
+      ADD COLUMN IF NOT EXISTS message_type TEXT NOT NULL DEFAULT 'text';
+    ALTER TABLE online_chat_messages
+      DROP CONSTRAINT IF EXISTS online_chat_messages_sender_type_check;
+    ALTER TABLE online_chat_messages
+      ADD CONSTRAINT online_chat_messages_sender_type_check
+      CHECK (sender_type IN ('civilian', 'admin', 'rescuer', 'system'));
+    ALTER TABLE online_chat_messages
+      DROP CONSTRAINT IF EXISTS online_chat_messages_message_type_check;
+    ALTER TABLE online_chat_messages
+      ADD CONSTRAINT online_chat_messages_message_type_check
+      CHECK (message_type IN ('text', 'voice'));
+    ALTER TABLE online_chat_read_states
+      DROP CONSTRAINT IF EXISTS online_chat_read_states_reader_type_check;
+    ALTER TABLE online_chat_read_states
+      ADD CONSTRAINT online_chat_read_states_reader_type_check
+      CHECK (reader_type IN ('civilian', 'admin', 'rescuer'));
+    ALTER TABLE online_chat_global_read_states
+      DROP CONSTRAINT IF EXISTS online_chat_global_read_states_reader_type_check;
+    ALTER TABLE online_chat_global_read_states
+      ADD CONSTRAINT online_chat_global_read_states_reader_type_check
+      CHECK (reader_type IN ('civilian', 'admin', 'rescuer'));
+    ALTER TABLE mesh_nodes
+      ADD COLUMN IF NOT EXISTS battery_percent INTEGER;
+    ALTER TABLE mesh_nodes
+      ADD COLUMN IF NOT EXISTS battery_voltage DOUBLE PRECISION;
+    ALTER TABLE mesh_node_health_logs
+      ADD COLUMN IF NOT EXISTS battery_percent INTEGER;
+  `);
+}
+
+async function normalizeLegacyDistressStatuses(db) {
+  await db.run(`
+    UPDATE mesh_distress_signals
+    SET status = 'canceled'
+    WHERE LOWER(COALESCE(status, '')) = 'cancelled'
+  `);
+}
+
+module.exports = {
+  ensureUserPhoneLookupHashes,
+  runCompatibilityMigrations,
+  normalizeLegacyDistressStatuses
+};

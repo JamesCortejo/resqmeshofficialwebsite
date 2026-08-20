@@ -80,6 +80,10 @@
       return 'frontIdImage';
     }
 
+    if (normalized.includes('privacy policy') || normalized.includes('privacy')) {
+      return 'privacyPolicyAccepted';
+    }
+
     return '';
   }
 
