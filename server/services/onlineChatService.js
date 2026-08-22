@@ -97,6 +97,36 @@ function buildGlobalConversation(departmentId, civilianUserId = 0) {
   };
 }
 
+function normalizeSearchValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function matchesAdminConversationSearch(conversation, rawQuery) {
+  const query = normalizeSearchValue(rawQuery);
+
+  if (!query) {
+    return true;
+  }
+
+  const civilian = conversation.civilian || {};
+  const searchableValues = [
+    civilian.code,
+    civilian.fullName,
+    civilian.firstName,
+    civilian.middleName,
+    civilian.lastName,
+    civilian.phone,
+    civilian.email,
+    civilian.occupation,
+    civilian.bloodType,
+    conversation.lastMessage?.body,
+    conversation.activeOnlineDistress?.code,
+    conversation.activeOnlineDistress?.reason
+  ];
+
+  return searchableValues.some((value) => normalizeSearchValue(value).includes(query));
+}
+
 function normalizeDepartmentPayload(payload, existing = null, icon = {}) {
   const name = normalizeString(payload.name, 60);
   const subtitle = normalizeString(payload.subtitle, 120);
@@ -276,10 +306,14 @@ async function getAdminConversations(departmentId, adminUserId, options = {}) {
     throw appError('Department chat not found.', 404);
   }
 
-  const rows = await listAdminConversations(departmentId, adminUserId, options);
+  const rows = await listAdminConversations(departmentId, adminUserId);
+  const conversations = rows
+    .map(formatConversation)
+    .filter((conversation) => matchesAdminConversationSearch(conversation, options.search));
+
   return {
     department: formatDepartment(department),
-    conversations: rows.map(formatConversation)
+    conversations
   };
 }
 

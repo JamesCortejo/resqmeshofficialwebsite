@@ -56,11 +56,14 @@
       }
 
       if (!state.conversations.length) {
+        const hasSearch = Boolean(String(state.searchQuery || '').trim());
         dom.conversationList.innerHTML = `
           <div class="messages-empty-state">
             ${helpers.isGlobalDepartment(department)
               ? 'Announcements are broadcast from the chat pane.'
-              : 'No civilian messages in this department yet.'}
+              : hasSearch
+                ? 'No civilian conversations match your search.'
+                : 'No civilian messages in this department yet.'}
           </div>
         `;
         return;
