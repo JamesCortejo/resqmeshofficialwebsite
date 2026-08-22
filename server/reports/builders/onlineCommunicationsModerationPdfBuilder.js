@@ -179,12 +179,43 @@ function drawMetricCards(doc, title, subtitle, items, columns = 3) {
 function drawTable(doc, title, subtitle, columns, rows, options = {}) {
   const startX = doc.page.margins.left;
   const tableWidth = getContentWidth(doc);
-  const headerHeight = options.headerHeight || 24;
-  const rowHeight = options.rowHeight || 24;
+  const minHeaderHeight = options.headerHeight || 24;
+  const minRowHeight = options.rowHeight || 24;
+  const maxRowHeight = options.maxRowHeight || 74;
+  const cellPaddingX = 8;
+  const cellPaddingY = 7;
+  const headerFontSize = options.headerFontSize || 8.5;
+  const bodyFontSize = options.bodyFontSize || 8.5;
   const repeatTitle = options.repeatTitle !== false;
   const widths = columns.map((column) => Math.floor(tableWidth * column.widthRatio));
   const totalWidth = widths.reduce((sum, width) => sum + width, 0);
   widths[widths.length - 1] += tableWidth - totalWidth;
+
+  function getTextWidth(index) {
+    return Math.max(18, widths[index] - cellPaddingX * 2);
+  }
+
+  function measureTextHeight(text, index, fontName, fontSize, align = 'left') {
+    doc.font(fontName).fontSize(fontSize);
+    return doc.heightOfString(String(text ?? ''), {
+      width: getTextWidth(index),
+      align
+    });
+  }
+
+  function measureHeaderHeight() {
+    const contentHeight = Math.max(...columns.map((column, index) => (
+      measureTextHeight(column.label, index, 'Helvetica-Bold', headerFontSize, column.align || 'left')
+    )));
+    return Math.max(minHeaderHeight, Math.ceil(contentHeight + cellPaddingY * 2));
+  }
+
+  function measureRowHeight(row) {
+    const contentHeight = Math.max(...columns.map((column, index) => (
+      measureTextHeight(row[column.key], index, 'Helvetica', bodyFontSize, column.align || 'left')
+    )));
+    return Math.min(maxRowHeight, Math.max(minRowHeight, Math.ceil(contentHeight + cellPaddingY * 2)));
+  }
 
   function renderTitle() {
     if (repeatTitle) {
@@ -193,7 +224,8 @@ function drawTable(doc, title, subtitle, columns, rows, options = {}) {
   }
 
   function renderHeader() {
-    ensurePageSpace(doc, headerHeight + rowHeight);
+    const headerHeight = measureHeaderHeight();
+    ensurePageSpace(doc, headerHeight + minRowHeight);
     const y = doc.y;
 
     doc.save();
@@ -202,10 +234,10 @@ function drawTable(doc, title, subtitle, columns, rows, options = {}) {
 
     let cursor = startX;
     columns.forEach((column, index) => {
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.ink).text(column.label, cursor + 8, y + 8, {
-        width: widths[index] - 16,
-        align: column.align || 'left',
-        ellipsis: true
+      doc.font('Helvetica-Bold').fontSize(headerFontSize).fillColor(COLORS.ink).text(column.label, cursor + cellPaddingX, y + cellPaddingY, {
+        width: getTextWidth(index),
+        height: headerHeight - cellPaddingY * 2,
+        align: column.align || 'left'
       });
       cursor += widths[index];
     });
@@ -214,6 +246,7 @@ function drawTable(doc, title, subtitle, columns, rows, options = {}) {
   }
 
   function renderRow(row) {
+    const rowHeight = measureRowHeight(row);
     ensurePageSpace(doc, rowHeight + 4);
     const y = doc.y;
 
@@ -227,8 +260,9 @@ function drawTable(doc, title, subtitle, columns, rows, options = {}) {
 
     let cursor = startX;
     columns.forEach((column, index) => {
-      doc.font('Helvetica').fontSize(9).fillColor(COLORS.body).text(String(row[column.key] ?? ''), cursor + 8, y + 7, {
-        width: widths[index] - 16,
+      doc.font('Helvetica').fontSize(bodyFontSize).fillColor(COLORS.body).text(String(row[column.key] ?? ''), cursor + cellPaddingX, y + cellPaddingY, {
+        width: getTextWidth(index),
+        height: rowHeight - cellPaddingY * 2,
         align: column.align || 'left',
         ellipsis: true
       });
@@ -241,6 +275,7 @@ function drawTable(doc, title, subtitle, columns, rows, options = {}) {
   renderTitle();
   renderHeader();
   rows.forEach((row) => {
+    const rowHeight = measureRowHeight(row);
     if (doc.y + rowHeight > doc.page.height - doc.page.margins.bottom) {
       doc.addPage();
       renderTitle();
@@ -466,6 +501,7 @@ async function buildOnlineCommunicationsModerationPdf(payload) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: 'A4',
+      layout: 'landscape',
       margin: 40
     });
     const chunks = [];

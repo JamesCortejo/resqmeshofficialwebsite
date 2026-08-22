@@ -401,6 +401,7 @@ async function buildIncidentSummaryPdf(payload) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: 'A4',
+      layout: 'landscape',
       margin: 40
     });
     const chunks = [];
