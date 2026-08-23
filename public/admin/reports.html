@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -81,6 +81,10 @@
               <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
               <span>Reports</span>
             </a>
+            <a href="/resqmeshadmin/audit-logs" class="admin-nav-link">
+              <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+              <span>Audit Logs</span>
+            </a>
           </nav>
         </div>
       </div>
@@ -150,9 +154,19 @@
                       <option value="7d" selected>Last 7 days</option>
                       <option value="30d">Last 30 days</option>
                       <option value="month">This month</option>
-                      <option value="custom" disabled>Custom range</option>
+                      <option value="custom">Custom range</option>
                     </select>
                   </label>
+                  <div class="reports-custom-range-fields" id="reportsCustomRangeFields" hidden>
+                    <label class="reports-field">
+                      <span>Start date</span>
+                      <input type="date" id="reportsCustomDateFromInput">
+                    </label>
+                    <label class="reports-field">
+                      <span>End date</span>
+                      <input type="date" id="reportsCustomDateToInput">
+                    </label>
+                  </div>
                   <label class="reports-field">
                     <span id="reportsScopeLabel">Source scope</span>
                     <select id="reportsSourceScopeInput">

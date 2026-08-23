@@ -1,4 +1,4 @@
-const { MESH_DEVICE_SYNC_HEALTH_REPORT } = require('../../../reports/catalog');
+﻿const { MESH_DEVICE_SYNC_HEALTH_REPORT } = require('../../../reports/catalog');
 const { buildMeshDeviceSyncHealthPdf } = require('../../../reports/builders/meshDeviceSyncHealthPdfBuilder');
 const { verifyAdminPassword } = require('../../adminAuthService');
 const {
@@ -50,7 +50,7 @@ async function generateMeshDeviceSyncHealthReport(adminUserId, payload = {}) {
   }
 
   const sectionIds = normalizeSectionIds(reportDefinition, payload.includeSections);
-  const { start, end } = getUtcRange(dateRangeKind);
+  const { start, end } = getUtcRange(dateRangeKind, payload);
   const rangeStartIso = start.toISOString();
   const rangeEndIso = end.toISOString();
   const filename = buildMeshDeviceSyncHealthFilename(dateRangeKind, sourceScope);

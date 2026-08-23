@@ -1,4 +1,4 @@
-const INCIDENT_SUMMARY_REPORT = Object.freeze({
+﻿const INCIDENT_SUMMARY_REPORT = Object.freeze({
   id: 'incident-summary',
   name: 'Incident Summary Report',
   icon: 'fa-chart-line',
@@ -7,7 +7,7 @@ const INCIDENT_SUMMARY_REPORT = Object.freeze({
   range: 'Flexible',
   available: true,
   scopeLabel: 'Source scope',
-  supportedDateRanges: ['today', '7d', '30d', 'month'],
+  supportedDateRanges: ['today', '7d', '30d', 'month', 'custom'],
   supportedSourceScopes: ['all', 'mesh', 'online'],
   supportedOutputModes: ['briefing', 'archive', 'field'],
   include: [
@@ -59,7 +59,7 @@ const RESCUE_TEAM_ACTIVITY_REPORT = Object.freeze({
   range: 'Daily to monthly',
   available: true,
   scopeLabel: 'Source scope',
-  supportedDateRanges: ['today', '7d', '30d', 'month'],
+  supportedDateRanges: ['today', '7d', '30d', 'month', 'custom'],
   supportedSourceScopes: ['all', 'mesh', 'online'],
   supportedOutputModes: ['briefing', 'archive', 'field'],
   include: [
@@ -111,7 +111,7 @@ const ACCOUNTS_ACCESS_AUDIT_REPORT = Object.freeze({
   range: 'Daily to monthly',
   available: true,
   scopeLabel: 'Account scope',
-  supportedDateRanges: ['today', '7d', '30d', 'month'],
+  supportedDateRanges: ['today', '7d', '30d', 'month', 'custom'],
   supportedSourceScopes: ['all', 'civilian', 'rescuer'],
   supportedOutputModes: ['briefing', 'archive', 'field'],
   include: [
@@ -163,7 +163,7 @@ const MESH_DEVICE_SYNC_HEALTH_REPORT = Object.freeze({
   range: 'Daily to monthly',
   available: true,
   scopeLabel: 'Node scope',
-  supportedDateRanges: ['today', '7d', '30d', 'month'],
+  supportedDateRanges: ['today', '7d', '30d', 'month', 'custom'],
   supportedSourceScopes: ['all', 'active', 'offline'],
   supportedOutputModes: ['briefing', 'archive', 'field'],
   include: [
@@ -215,7 +215,7 @@ const ONLINE_COMMUNICATIONS_MODERATION_REPORT = Object.freeze({
   range: 'Daily to monthly',
   available: true,
   scopeLabel: 'Chat scope',
-  supportedDateRanges: ['today', '7d', '30d', 'month'],
+  supportedDateRanges: ['today', '7d', '30d', 'month', 'custom'],
   supportedSourceScopes: ['all', 'department', 'global'],
   supportedOutputModes: ['briefing', 'archive', 'field'],
   include: [

@@ -1,4 +1,4 @@
-const { ONLINE_COMMUNICATIONS_MODERATION_REPORT } = require('../../../reports/catalog');
+﻿const { ONLINE_COMMUNICATIONS_MODERATION_REPORT } = require('../../../reports/catalog');
 const { buildOnlineCommunicationsModerationPdf } = require('../../../reports/builders/onlineCommunicationsModerationPdfBuilder');
 const { verifyAdminPassword } = require('../../adminAuthService');
 const {
@@ -54,7 +54,7 @@ async function generateOnlineCommunicationsModerationReport(adminUserId, payload
   }
 
   const sectionIds = normalizeSectionIds(reportDefinition, payload.includeSections);
-  const { start, end } = getUtcRange(dateRangeKind);
+  const { start, end } = getUtcRange(dateRangeKind, payload);
   const rangeStartIso = start.toISOString();
   const rangeEndIso = end.toISOString();
   const filename = buildOnlineCommunicationsModerationFilename(dateRangeKind, sourceScope);

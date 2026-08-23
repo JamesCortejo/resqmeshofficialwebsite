@@ -1,0 +1,233 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ResQMesh admin action audit logs.">
+  <title>Audit Logs - ResQMesh</title>
+  <link rel="icon" type="image/png" href="/assets/logo-icon.png">
+
+  <link rel="stylesheet" href="/admin/css/login.css">
+  <link rel="stylesheet" href="/admin/css/admin-loader.css">
+  <link rel="stylesheet" href="/admin/css/app-shell.css">
+  <link rel="stylesheet" href="/admin/css/admin-notifications.css">
+  <link rel="stylesheet" href="/admin/css/audit-logs.css">
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
+</head>
+
+<body class="admin-login-page admin-loading">
+  <div class="admin-loader" aria-live="polite" aria-label="Loading ResQMesh admin">
+    <div class="admin-loader-content">
+      <span class="admin-loader-mark" aria-hidden="true"></span>
+      <span>
+        <span class="admin-loader-title">ResQMesh Admin</span>
+        <span class="admin-loader-subtitle">Preparing audit logs</span>
+      </span>
+    </div>
+  </div>
+
+  <main class="admin-app-shell">
+    <aside class="admin-sidebar" aria-label="Admin navigation">
+      <div>
+        <a href="/resqmeshadmin/overview" class="admin-logo-link" aria-label="ResQMesh admin overview">
+          <img src="/assets/logo-icon.png" alt="ResQMesh Logo" class="admin-logo-icon">
+          <div>
+            <span class="admin-logo-title">RESQ-MESH</span>
+            <span class="admin-logo-subtitle">Admin Console</span>
+          </div>
+        </a>
+
+        <div class="admin-sidebar-group">
+          <span class="admin-sidebar-label">Navigation</span>
+          <nav class="admin-nav">
+            <a href="/resqmeshadmin/overview" class="admin-nav-link">
+              <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+              <span>Overview</span>
+            </a>
+            <a href="/resqmeshadmin/device-map" class="admin-nav-link">
+              <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+              <span>Mesh Node Map</span>
+            </a>
+            <a href="/resqmeshadmin/accounts" class="admin-nav-link">
+              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+              <span>Accounts Manager</span>
+            </a>
+            <a href="/resqmeshadmin/rescuers" class="admin-nav-link">
+              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+              <span>Rescuer Manager</span>
+            </a>
+            <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link">
+              <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+              <span>Rescue Teams</span>
+            </a>
+            <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
+              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+              <span>Distress Signals</span>
+            </a>
+            <a href="/resqmeshadmin/messages" class="admin-nav-link">
+              <i class="fa-regular fa-comments" aria-hidden="true"></i>
+              <span>Messages Manager</span>
+            </a>
+            <a href="/resqmeshadmin/devices" class="admin-nav-link">
+              <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+              <span>Device Manager</span>
+            </a>
+            <a href="/resqmeshadmin/department-chats" class="admin-nav-link">
+              <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
+              <span>Department Chats</span>
+            </a>
+            <a href="/resqmeshadmin/reports" class="admin-nav-link">
+              <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+              <span>Reports</span>
+            </a>
+            <a href="/resqmeshadmin/audit-logs" class="admin-nav-link is-active" aria-current="page">
+              <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+              <span>Audit Logs</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+
+      <p class="admin-sidebar-footnote">Administrative tools for the ResQMesh emergency network.</p>
+    </aside>
+
+    <section class="admin-app-main">
+      <header class="admin-topbar">
+        <div class="admin-topbar-copy">
+          <span class="admin-kicker">
+            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+            Valencia City Emergency Network
+          </span>
+          <h1 class="admin-topbar-title">Audit Logs</h1>
+          <p class="admin-topbar-desc">Review sensitive admin actions, failed permission checks, and accountability events from the ResQMesh admin workspace.</p>
+        </div>
+
+        <div class="admin-topbar-actions">
+          <button type="button" class="admin-notification-button" id="adminNotificationButton" aria-label="Notifications" aria-expanded="false">
+            <i class="fa-regular fa-bell" aria-hidden="true"></i>
+            <span class="admin-notification-badge" id="adminNotificationBadge" hidden>0</span>
+          </button>
+          <button type="button" class="admin-topbar-button" data-admin-logout>
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span data-admin-logout-label>Logout</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="admin-content-panel audit-logs-panel" aria-labelledby="auditLogsPanelTitle">
+        <div class="audit-logs-panel-header">
+          <div>
+            <h2 id="auditLogsPanelTitle">Admin Action Trail</h2>
+            <p>Read-only security records for sensitive admin actions and permission failures.</p>
+          </div>
+        </div>
+
+        <form class="audit-logs-toolbar" id="auditLogsFilterForm">
+          <label class="audit-logs-search">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="auditLogsSearchInput" placeholder="Search admin, action, target, reason, or IP">
+          </label>
+          <label class="audit-logs-filter">
+            <span>Result</span>
+            <select id="auditLogsResultFilter">
+              <option value="">All</option>
+              <option value="success">Success</option>
+              <option value="failure">Failure</option>
+            </select>
+          </label>
+          <label class="audit-logs-filter">
+            <span>Action</span>
+            <select id="auditLogsActionFilter">
+              <option value="">All actions</option>
+            </select>
+          </label>
+          <label class="audit-logs-filter">
+            <span>Target</span>
+            <select id="auditLogsTargetFilter">
+              <option value="">All targets</option>
+            </select>
+          </label>
+          <label class="audit-logs-filter">
+            <span>Admin</span>
+            <input type="text" id="auditLogsAdminFilter" placeholder="Admin code">
+          </label>
+          <label class="audit-logs-filter">
+            <span>From</span>
+            <input type="date" id="auditLogsDateFromFilter">
+          </label>
+          <label class="audit-logs-filter">
+            <span>To</span>
+            <input type="date" id="auditLogsDateToFilter">
+          </label>
+          <label class="audit-logs-filter audit-logs-limit-filter">
+            <span>Rows</span>
+            <select id="auditLogsLimitFilter">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+        </form>
+
+        <div class="audit-logs-feedback" id="auditLogsFeedback" role="status" hidden></div>
+
+        <div class="audit-logs-table-wrap">
+          <table class="audit-logs-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Admin</th>
+                <th>Action</th>
+                <th>Target</th>
+                <th>Result</th>
+                <th>Status</th>
+                <th>IP Address</th>
+                <th>Reason / Metadata</th>
+              </tr>
+            </thead>
+            <tbody id="auditLogsTableBody"></tbody>
+          </table>
+          <div class="audit-logs-empty" id="auditLogsEmpty" hidden>
+            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+            <strong>No audit logs found</strong>
+            <span>Try changing the filters or search term.</span>
+          </div>
+        </div>
+
+        <footer class="audit-logs-pagination">
+          <button type="button" class="audit-logs-secondary-button" id="auditLogsPrevButton">Previous</button>
+          <span id="auditLogsPageLabel">Page 1 of 1</span>
+          <button type="button" class="audit-logs-secondary-button" id="auditLogsNextButton">Next</button>
+        </footer>
+      </section>
+    </section>
+  </main>
+
+  <div class="audit-log-modal" id="auditLogDetailsModal" aria-hidden="true">
+    <div class="audit-log-modal-backdrop" data-close-audit-log-details></div>
+    <section class="audit-log-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="auditLogDetailsTitle">
+      <header class="audit-log-modal-header">
+        <div>
+          <span class="audit-log-modal-kicker">Audit details</span>
+          <h2 id="auditLogDetailsTitle">Audit Log Record</h2>
+        </div>
+        <button type="button" class="audit-log-icon-button" aria-label="Close audit log details" data-close-audit-log-details>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+      <div class="audit-log-details-grid" id="auditLogDetailsGrid"></div>
+      <div class="audit-log-metadata-section">
+        <h3>Sanitized Metadata</h3>
+        <pre id="auditLogMetadataBlock">{}</pre>
+      </div>
+    </section>
+  </div>
+
+  <script src="/admin/js/admin-loader.js"></script>
+  <script src="/admin/js/admin-auth.js"></script>
+  <script src="/admin/js/admin-notifications.js"></script>
+  <script src="/admin/js/audit-logs.js"></script>
+</body>
+
+</html>

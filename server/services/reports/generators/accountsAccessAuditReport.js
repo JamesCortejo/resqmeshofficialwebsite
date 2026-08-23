@@ -1,4 +1,4 @@
-const { ACCOUNTS_ACCESS_AUDIT_REPORT } = require('../../../reports/catalog');
+﻿const { ACCOUNTS_ACCESS_AUDIT_REPORT } = require('../../../reports/catalog');
 const { buildAccountsAccessAuditPdf } = require('../../../reports/builders/accountsAccessAuditPdfBuilder');
 const { verifyAdminPassword } = require('../../adminAuthService');
 const {
@@ -58,7 +58,7 @@ async function generateAccountsAccessAuditReport(adminUserId, payload = {}) {
   }
 
   const sectionIds = normalizeSectionIds(reportDefinition, payload.includeSections);
-  const { start, end } = getUtcRange(dateRangeKind);
+  const { start, end } = getUtcRange(dateRangeKind, payload);
   const rangeStartIso = start.toISOString();
   const rangeEndIso = end.toISOString();
   const filename = buildAccountsAccessAuditFilename(dateRangeKind, sourceScope);

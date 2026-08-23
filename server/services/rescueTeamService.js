@@ -328,7 +328,8 @@ async function updateRescueTeamProfile(id, payload) {
 
   return {
     message: `Rescue team ${response.teamCode} updated successfully.`,
-    team: response
+    team: response,
+    rosterChanged
   };
 }
 

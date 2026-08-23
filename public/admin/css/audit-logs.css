@@ -1,0 +1,390 @@
+﻿.audit-logs-panel {
+  display: grid;
+  gap: 1rem;
+  max-height: none;
+}
+
+.audit-logs-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.audit-logs-panel-header h2 {
+  margin-bottom: 0.35rem;
+}
+
+.audit-logs-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.5fr) repeat(3, minmax(150px, 0.75fr));
+  gap: 0.8rem;
+  align-items: stretch;
+}
+
+.audit-logs-search,
+.audit-logs-filter {
+  display: grid;
+  align-items: center;
+  min-height: 44px;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  color: var(--admin-primary);
+  padding: 0 0.85rem;
+}
+
+.audit-logs-search {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.65rem;
+}
+
+.audit-logs-filter {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.6rem;
+}
+
+.audit-logs-filter span {
+  color: var(--admin-muted);
+  font: 900 0.7rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.audit-logs-search input,
+.audit-logs-filter input,
+.audit-logs-filter select {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--admin-ink);
+  font: 800 0.88rem 'Inter', system-ui, -apple-system, sans-serif;
+  outline: none;
+  padding: 0.72rem 0;
+}
+
+.audit-logs-search input::placeholder,
+.audit-logs-filter input::placeholder {
+  color: var(--admin-muted);
+  font-weight: 600;
+}
+
+.audit-logs-search:focus-within,
+.audit-logs-filter:focus-within {
+  border-color: rgba(231, 75, 50, 0.46);
+  box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
+}
+
+.audit-logs-primary-button,
+.audit-logs-secondary-button,
+.audit-log-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--admin-radius-md);
+  cursor: pointer;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 900;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.audit-logs-primary-button {
+  min-height: 44px;
+  border: 1px solid rgba(231, 75, 50, 0.22);
+  background: var(--admin-primary);
+  color: #ffffff;
+  padding: 0.7rem 1rem;
+}
+
+.audit-logs-secondary-button,
+.audit-log-icon-button {
+  min-height: 44px;
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  background: #ffffff;
+  color: var(--admin-primary-hover);
+  padding: 0.7rem 0.95rem;
+}
+
+.audit-logs-primary-button:hover,
+.audit-logs-secondary-button:hover,
+.audit-log-icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.audit-logs-primary-button:disabled,
+.audit-logs-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+}
+
+.audit-logs-feedback {
+  border: 1px solid rgba(231, 75, 50, 0.18);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-soft);
+  color: var(--admin-primary-hover);
+  font: 800 0.9rem 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 0.85rem 1rem;
+}
+
+.audit-logs-table-wrap {
+  position: relative;
+  overflow-x: auto;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: var(--admin-radius-lg);
+  background: #ffffff;
+}
+
+.audit-logs-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+  color: var(--admin-ink);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.audit-logs-table th,
+.audit-logs-table td {
+  border-bottom: 1px solid rgba(220, 227, 234, 0.78);
+  padding: 0.9rem 0.85rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.audit-logs-table th {
+  background: #fff8f6;
+  color: var(--admin-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.audit-logs-table td {
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.audit-logs-table small {
+  display: block;
+  color: var(--admin-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-top: 0.2rem;
+  overflow-wrap: anywhere;
+}
+
+.audit-logs-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.audit-log-row {
+  cursor: pointer;
+}
+
+.audit-log-row:hover td {
+  background: rgba(231, 75, 50, 0.045);
+}
+
+.audit-log-muted {
+  color: var(--admin-muted);
+  font-weight: 700;
+}
+
+.audit-log-code {
+  display: block;
+  color: var(--admin-ink);
+  font-weight: 900;
+}
+
+.audit-log-subtext {
+  display: block;
+  color: var(--admin-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  margin-top: 0.2rem;
+}
+
+.audit-log-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  padding: 0.35rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.audit-log-badge-success {
+  background: rgba(14, 139, 112, 0.12);
+  color: #08725c;
+}
+
+.audit-log-badge-failure {
+  background: rgba(212, 58, 49, 0.12);
+  color: #b8322a;
+}
+
+.audit-log-metadata-preview {
+  max-width: 360px;
+  color: var(--admin-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.audit-logs-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  color: var(--admin-muted);
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.audit-logs-empty[hidden] {
+  display: none;
+}
+
+.audit-logs-empty i {
+  color: var(--admin-primary);
+  font-size: 1.5rem;
+}
+
+.audit-logs-empty strong {
+  color: var(--admin-ink);
+}
+
+.audit-logs-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.85rem;
+  color: var(--admin-muted);
+  font: 800 0.88rem 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.audit-log-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  display: none;
+}
+
+.audit-log-modal.is-open {
+  display: block;
+}
+
+.audit-log-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 18, 32, 0.48);
+  backdrop-filter: blur(5px);
+}
+
+.audit-log-modal-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(760px, calc(100% - 2rem));
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  margin: 1.5rem auto;
+  border: 1px solid rgba(231, 75, 50, 0.12);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 28px 80px rgba(23, 33, 43, 0.24);
+  padding: 1.25rem;
+}
+
+.audit-log-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.audit-log-modal-kicker {
+  color: var(--admin-primary);
+  font: 900 0.72rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.audit-log-modal-header h2 {
+  color: var(--admin-ink);
+  font-size: 1.25rem;
+  margin-top: 0.2rem;
+}
+
+.audit-log-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.audit-log-detail-item {
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: var(--admin-radius-md);
+  background: #fffdfc;
+  padding: 0.8rem;
+}
+
+.audit-log-detail-item span {
+  display: block;
+  color: var(--admin-muted);
+  font: 900 0.7rem 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+
+.audit-log-detail-item strong {
+  color: var(--admin-ink);
+  font: 800 0.9rem 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.audit-log-metadata-section {
+  margin-top: 1rem;
+}
+
+.audit-log-metadata-section h3 {
+  color: var(--admin-ink);
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.audit-log-metadata-section pre {
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid rgba(220, 227, 234, 0.95);
+  border-radius: var(--admin-radius-md);
+  background: #101826;
+  color: #e9f0f7;
+  font: 700 0.82rem 'JetBrains Mono', 'Consolas', monospace;
+  line-height: 1.55;
+  padding: 1rem;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1100px) {
+  .audit-logs-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .audit-logs-toolbar,
+  .audit-log-details-grid {
+    grid-template-columns: 1fr;
+  }
+.audit-logs-pagination {
+    justify-content: center;
+  }
+}
+
+
+

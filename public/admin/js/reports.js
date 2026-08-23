@@ -1,9 +1,10 @@
-(function createReportsPage() {
+﻿(function createReportsPage() {
   const RANGE_LABELS = {
     today: 'Today',
     '7d': 'Last 7 days',
     '30d': 'Last 30 days',
-    month: 'This month'
+    month: 'This month',
+    custom: 'Custom range'
   };
 
   const SCOPE_LABELS = {
@@ -53,6 +54,9 @@
     includeGrid: document.getElementById('reportsIncludeGrid'),
     feedback: document.getElementById('reportsFeedback'),
     dateRangeInput: document.getElementById('reportsDateRangeInput'),
+    customRangeFields: document.getElementById('reportsCustomRangeFields'),
+    customDateFromInput: document.getElementById('reportsCustomDateFromInput'),
+    customDateToInput: document.getElementById('reportsCustomDateToInput'),
     scopeLabel: document.getElementById('reportsScopeLabel'),
     sourceScopeInput: document.getElementById('reportsSourceScopeInput'),
     previewName: document.getElementById('reportsPreviewName'),
@@ -162,6 +166,63 @@
     return SCOPE_LABELS;
   }
 
+  function formatDateInputLabel(value) {
+    if (!value) {
+      return '';
+    }
+
+    const date = new Date(`${value}T00:00:00Z`);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC'
+    });
+  }
+
+  function customRangeError() {
+    if (dom.dateRangeInput.value !== 'custom') {
+      return '';
+    }
+
+    const fromValue = dom.customDateFromInput?.value || '';
+    const toValue = dom.customDateToInput?.value || '';
+
+    if (!fromValue || !toValue) {
+      return 'Select both start and end dates for the custom range.';
+    }
+
+    if (fromValue > toValue) {
+      return 'Custom start date cannot be later than custom end date.';
+    }
+
+    return '';
+  }
+
+  function selectedDateRangeLabel() {
+    if (dom.dateRangeInput.value !== 'custom') {
+      return RANGE_LABELS[dom.dateRangeInput.value] || 'Selected range';
+    }
+
+    const error = customRangeError();
+    if (error) {
+      return 'Custom range';
+    }
+
+    return `Custom range (${formatDateInputLabel(dom.customDateFromInput.value)} to ${formatDateInputLabel(dom.customDateToInput.value)})`;
+  }
+
+  function syncCustomRangeFields() {
+    if (!dom.customRangeFields) {
+      return;
+    }
+
+    dom.customRangeFields.hidden = dom.dateRangeInput.value !== 'custom';
+  }
   function updateScopeField(report) {
     const labels = scopeLabelsForReport(report);
     const supportedScopes = Array.isArray(report?.supportedSourceScopes) && report.supportedSourceScopes.length
@@ -305,7 +366,7 @@
     dom.previewSubtitle.textContent = report.available
       ? report.description
       : (report.pendingMessage || 'Backend generation is not available yet.');
-    dom.previewRange.textContent = RANGE_LABELS[dom.dateRangeInput.value] || 'Selected range';
+    dom.previewRange.textContent = selectedDateRangeLabel();
     dom.previewScope.textContent = scopeLabelsForReport(report)[dom.sourceScopeInput.value] || 'Selected scope';
 
     const selectedLabels = report.available
@@ -368,17 +429,14 @@
 
   function applyReportConstraints(report) {
     updateScopeField(report);
-    const dateOptions = new Set(report?.supportedDateRanges || ['today', '7d', '30d', 'month']);
+    const dateOptions = new Set(report?.supportedDateRanges || ['today', '7d', '30d', 'month', 'custom']);
     Array.from(dom.dateRangeInput.options).forEach((option) => {
-      if (option.value === 'custom') {
-        option.disabled = true;
-        return;
-      }
       option.disabled = !dateOptions.has(option.value);
     });
     if (!dateOptions.has(dom.dateRangeInput.value)) {
       dom.dateRangeInput.value = '7d';
     }
+    syncCustomRangeFields();
 
     const scopeOptions = new Set(report?.supportedSourceScopes || ['all', 'mesh', 'online']);
     if (!scopeOptions.has(dom.sourceScopeInput.value)) {
@@ -406,6 +464,12 @@
 
     if (!state.includeSections.size) {
       showFeedback('Select at least one PDF section.');
+      return;
+    }
+
+    const dateError = customRangeError();
+    if (dateError) {
+      showFeedback(dateError);
       return;
     }
 
@@ -526,11 +590,17 @@
     refreshUi();
   });
 
-  [dom.dateRangeInput, dom.sourceScopeInput].forEach((input) => {
-    input.addEventListener('change', renderPreview);
+  [dom.dateRangeInput, dom.sourceScopeInput, dom.customDateFromInput, dom.customDateToInput].forEach((input) => {
+    input?.addEventListener('change', refreshUi);
   });
 
   dom.generateButton.addEventListener('click', () => {
+    const dateError = customRangeError();
+    if (dateError) {
+      showFeedback(dateError);
+      return;
+    }
+
     openPasswordModal();
   });
 

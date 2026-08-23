@@ -9,6 +9,7 @@ const ADMIN_HTML_REDIRECTS = Object.freeze({
   'device-map.html': '/resqmeshadmin/device-map',
   'distress-signals.html': '/resqmeshadmin/distress-signals',
   'reports.html': '/resqmeshadmin/reports',
+  'audit-logs.html': '/resqmeshadmin/audit-logs',
   'messages.html': '/resqmeshadmin/messages',
   'department-chats.html': '/resqmeshadmin/department-chats',
   'rescuers.html': '/resqmeshadmin/rescuers',

@@ -7,6 +7,12 @@ const {
   getAdminReportCatalog,
   listAdminReportExports
 } = require('../services/reportService');
+const {
+  ADMIN_ACTIONS,
+  AUDIT_RESULTS,
+  getErrorStatusCode,
+  logAdminAction
+} = require('../services/adminActionAuditService');
 
 function errorResponse(res, error, fallbackMessage) {
   const statusCode = error.statusCode || 500;
@@ -21,6 +27,56 @@ function errorResponse(res, error, fallbackMessage) {
   });
 }
 
+function sendReportResponse(res, result) {
+  res.setHeader('Content-Type', result.contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+  res.setHeader('Content-Length', result.buffer.length);
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Report-Export-Id', String(result.exportId));
+
+  return res.send(result.buffer);
+}
+
+async function auditReportExport(req, reportType, details) {
+  await logAdminAction(req, {
+    action: ADMIN_ACTIONS.REPORT_EXPORT_GENERATED,
+    targetType: 'report_export',
+    targetId: details.exportId || null,
+    targetCode: details.filename || reportType,
+    result: details.result,
+    statusCode: details.statusCode,
+    reason: details.reason,
+    metadata: {
+      reportType,
+      exportId: details.exportId || null,
+      filename: details.filename || null,
+      options: req.body || {}
+    }
+  });
+}
+
+async function generateReport(req, res, reportType, generator, fallbackMessage) {
+  try {
+    const result = await generator(req.adminUser.id, req.body || {});
+
+    await auditReportExport(req, reportType, {
+      result: AUDIT_RESULTS.SUCCESS,
+      statusCode: 200,
+      exportId: result.exportId,
+      filename: result.filename
+    });
+
+    return sendReportResponse(res, result);
+  } catch (error) {
+    await auditReportExport(req, reportType, {
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message
+    });
+
+    return errorResponse(res, error, fallbackMessage);
+  }
+}
 exports.getCatalog = async (req, res) => {
   try {
     const catalog = await getAdminReportCatalog();
@@ -46,82 +102,42 @@ exports.listExports = async (req, res) => {
   }
 };
 
-exports.generateIncidentSummary = async (req, res) => {
-  try {
-    const result = await generateIncidentSummaryReport(req.adminUser.id, req.body || {});
+exports.generateIncidentSummary = async (req, res) => generateReport(
+  req,
+  res,
+  'incident_summary',
+  generateIncidentSummaryReport,
+  'Unable to generate incident summary report.'
+);
 
-    res.setHeader('Content-Type', result.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-    res.setHeader('Content-Length', result.buffer.length);
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('X-Report-Export-Id', String(result.exportId));
+exports.generateRescueTeamActivity = async (req, res) => generateReport(
+  req,
+  res,
+  'rescue_team_activity',
+  generateRescueTeamActivityReport,
+  'Unable to generate rescue team activity report.'
+);
 
-    return res.send(result.buffer);
-  } catch (error) {
-    return errorResponse(res, error, 'Unable to generate incident summary report.');
-  }
-};
+exports.generateAccountsAccessAudit = async (req, res) => generateReport(
+  req,
+  res,
+  'accounts_access_audit',
+  generateAccountsAccessAuditReport,
+  'Unable to generate accounts and access audit report.'
+);
 
-exports.generateRescueTeamActivity = async (req, res) => {
-  try {
-    const result = await generateRescueTeamActivityReport(req.adminUser.id, req.body || {});
+exports.generateMeshDeviceSyncHealth = async (req, res) => generateReport(
+  req,
+  res,
+  'mesh_device_sync_health',
+  generateMeshDeviceSyncHealthReport,
+  'Unable to generate mesh device and sync health report.'
+);
 
-    res.setHeader('Content-Type', result.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-    res.setHeader('Content-Length', result.buffer.length);
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('X-Report-Export-Id', String(result.exportId));
-
-    return res.send(result.buffer);
-  } catch (error) {
-    return errorResponse(res, error, 'Unable to generate rescue team activity report.');
-  }
-};
-
-exports.generateAccountsAccessAudit = async (req, res) => {
-  try {
-    const result = await generateAccountsAccessAuditReport(req.adminUser.id, req.body || {});
-
-    res.setHeader('Content-Type', result.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-    res.setHeader('Content-Length', result.buffer.length);
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('X-Report-Export-Id', String(result.exportId));
-
-    return res.send(result.buffer);
-  } catch (error) {
-    return errorResponse(res, error, 'Unable to generate accounts and access audit report.');
-  }
-};
-
-exports.generateMeshDeviceSyncHealth = async (req, res) => {
-  try {
-    const result = await generateMeshDeviceSyncHealthReport(req.adminUser.id, req.body || {});
-
-    res.setHeader('Content-Type', result.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-    res.setHeader('Content-Length', result.buffer.length);
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('X-Report-Export-Id', String(result.exportId));
-
-    return res.send(result.buffer);
-  } catch (error) {
-    return errorResponse(res, error, 'Unable to generate mesh device and sync health report.');
-  }
-};
-
-exports.generateOnlineCommunicationsModeration = async (req, res) => {
-  try {
-    const result = await generateOnlineCommunicationsModerationReport(req.adminUser.id, req.body || {});
-
-    res.setHeader('Content-Type', result.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-    res.setHeader('Content-Length', result.buffer.length);
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('X-Report-Export-Id', String(result.exportId));
-
-    return res.send(result.buffer);
-  } catch (error) {
-    return errorResponse(res, error, 'Unable to generate online communications and moderation report.');
-  }
-};
+exports.generateOnlineCommunicationsModeration = async (req, res) => generateReport(
+  req,
+  res,
+  'online_communications_moderation',
+  generateOnlineCommunicationsModerationReport,
+  'Unable to generate online communications and moderation report.'
+);

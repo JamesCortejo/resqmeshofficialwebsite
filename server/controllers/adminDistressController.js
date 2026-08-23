@@ -6,6 +6,12 @@ const {
   cancelDeployment,
   accomplishDeployment
 } = require('../services/distressDeploymentService');
+const {
+  ADMIN_ACTIONS,
+  AUDIT_RESULTS,
+  getErrorStatusCode,
+  logAdminAction
+} = require('../services/adminActionAuditService');
 
 function parseId(value) {
   const id = Number.parseInt(String(value || ''), 10);
@@ -29,6 +35,23 @@ function errorResponse(res, error, fallbackMessage) {
   });
 }
 
+async function auditDeploymentAction(req, details) {
+  await logAdminAction(req, {
+    action: details.action,
+    targetType: 'deployment',
+    targetId: details.id,
+    targetCode: details.targetCode,
+    result: details.result,
+    statusCode: details.statusCode,
+    reason: details.reason,
+    metadata: {
+      requestedDeploymentId: details.id || null,
+      deploymentStatus: details.deploymentStatus || null,
+      distressSource: details.distressSource || null,
+      distressCode: details.distressCode || null
+    }
+  });
+}
 exports.listDistressSignals = async (req, res) => {
   try {
     const signals = await getDistressSignalSummaries();
@@ -105,10 +128,20 @@ exports.deployDistressSignal = async (req, res) => {
 };
 
 exports.cancelDeployment = async (req, res) => {
+  let id = null;
+
   try {
-    const id = parseId(req.params.id);
+    id = parseId(req.params.id);
 
     if (!id) {
+      await auditDeploymentAction(req, {
+        action: ADMIN_ACTIONS.DEPLOYMENT_CANCELED,
+        id: req.params.id,
+        result: AUDIT_RESULTS.FAILURE,
+        statusCode: 400,
+        reason: 'Invalid deployment id.'
+      });
+
       return res.status(400).json({
         success: false,
         message: 'Invalid deployment id.'
@@ -117,21 +150,50 @@ exports.cancelDeployment = async (req, res) => {
 
     const deployment = await cancelDeployment(id);
 
+    await auditDeploymentAction(req, {
+      action: ADMIN_ACTIONS.DEPLOYMENT_CANCELED,
+      id,
+      targetCode: deployment.deploymentCode,
+      result: AUDIT_RESULTS.SUCCESS,
+      statusCode: 200,
+      deploymentStatus: deployment.status,
+      distressSource: deployment.distressSource,
+      distressCode: deployment.distressCode
+    });
+
     return res.json({
       success: true,
       message: `Deployment ${deployment.deploymentCode} canceled.`,
       data: deployment
     });
   } catch (error) {
+    await auditDeploymentAction(req, {
+      action: ADMIN_ACTIONS.DEPLOYMENT_CANCELED,
+      id: id || req.params.id,
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message
+    });
+
     return errorResponse(res, error, 'Unable to cancel deployment.');
   }
 };
 
 exports.accomplishDeployment = async (req, res) => {
+  let id = null;
+
   try {
-    const id = parseId(req.params.id);
+    id = parseId(req.params.id);
 
     if (!id) {
+      await auditDeploymentAction(req, {
+        action: ADMIN_ACTIONS.DEPLOYMENT_ACCOMPLISHED,
+        id: req.params.id,
+        result: AUDIT_RESULTS.FAILURE,
+        statusCode: 400,
+        reason: 'Invalid deployment id.'
+      });
+
       return res.status(400).json({
         success: false,
         message: 'Invalid deployment id.'
@@ -140,12 +202,31 @@ exports.accomplishDeployment = async (req, res) => {
 
     const deployment = await accomplishDeployment(id);
 
+    await auditDeploymentAction(req, {
+      action: ADMIN_ACTIONS.DEPLOYMENT_ACCOMPLISHED,
+      id,
+      targetCode: deployment.deploymentCode,
+      result: AUDIT_RESULTS.SUCCESS,
+      statusCode: 200,
+      deploymentStatus: deployment.status,
+      distressSource: deployment.distressSource,
+      distressCode: deployment.distressCode
+    });
+
     return res.json({
       success: true,
       message: `Deployment ${deployment.deploymentCode} marked as accomplished.`,
       data: deployment
     });
   } catch (error) {
+    await auditDeploymentAction(req, {
+      action: ADMIN_ACTIONS.DEPLOYMENT_ACCOMPLISHED,
+      id: id || req.params.id,
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message
+    });
+
     return errorResponse(res, error, 'Unable to complete deployment.');
   }
 };

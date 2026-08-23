@@ -12,6 +12,12 @@ const {
   sendGlobalAnnouncement,
   updateDepartmentChat
 } = require('../services/onlineChatService');
+const {
+  ADMIN_ACTIONS,
+  AUDIT_RESULTS,
+  getErrorStatusCode,
+  logAdminAction
+} = require('../services/adminActionAuditService');
 
 function parseId(value) {
   const id = Number.parseInt(value, 10);
@@ -35,6 +41,34 @@ function errorResponse(res, error, fallbackMessage) {
   });
 }
 
+function getDepartmentTargetCode(department) {
+  return department?.slug || department?.name || null;
+}
+
+function getDepartmentAuditMetadata(req, department = null) {
+  return {
+    name: department?.name || req.body?.name || null,
+    slug: department?.slug || null,
+    requestedStatus: req.body?.status || null,
+    currentStatus: department?.status || null,
+    rescuerAgency: department?.rescuerAgency || req.body?.rescuerAgency || req.body?.rescuer_agency || null,
+    iconProvided: Boolean(req.file)
+  };
+}
+
+async function auditDepartmentChatAction(req, details) {
+  await logAdminAction(req, {
+    action: details.action,
+    targetType: 'department_chat',
+    targetId: details.id,
+    targetCode: details.targetCode,
+    result: details.result,
+    statusCode: details.statusCode,
+    reason: details.reason,
+    metadata: getDepartmentAuditMetadata(req, details.department)
+  });
+}
+
 exports.listDepartments = async (req, res) => {
   try {
     const departments = await getAdminDepartments(req.adminUser.id, {
@@ -55,21 +89,47 @@ exports.createDepartment = async (req, res) => {
   try {
     const department = await createDepartmentChat(req.body || {}, req.file || null);
 
+    await auditDepartmentChatAction(req, {
+      action: ADMIN_ACTIONS.DEPARTMENT_CHAT_CREATED,
+      id: department.id,
+      targetCode: getDepartmentTargetCode(department),
+      department,
+      result: AUDIT_RESULTS.SUCCESS,
+      statusCode: 201
+    });
+
     return res.status(201).json({
       success: true,
       message: 'Department chat created successfully.',
       data: department
     });
   } catch (error) {
+    await auditDepartmentChatAction(req, {
+      action: ADMIN_ACTIONS.DEPARTMENT_CHAT_CREATED,
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message
+    });
+
     return errorResponse(res, error, 'Unable to create department chat.');
   }
 };
 
 exports.updateDepartment = async (req, res) => {
+  let id = null;
+
   try {
-    const id = parseId(req.params.id);
+    id = parseId(req.params.id);
 
     if (!id) {
+      await auditDepartmentChatAction(req, {
+        action: ADMIN_ACTIONS.DEPARTMENT_CHAT_UPDATED,
+        id: req.params.id,
+        result: AUDIT_RESULTS.FAILURE,
+        statusCode: 400,
+        reason: 'Invalid department chat id.'
+      });
+
       return res.status(400).json({
         success: false,
         message: 'Invalid department chat id.'
@@ -78,21 +138,48 @@ exports.updateDepartment = async (req, res) => {
 
     const department = await updateDepartmentChat(id, req.body || {}, req.file || null);
 
+    await auditDepartmentChatAction(req, {
+      action: ADMIN_ACTIONS.DEPARTMENT_CHAT_UPDATED,
+      id,
+      targetCode: getDepartmentTargetCode(department),
+      department,
+      result: AUDIT_RESULTS.SUCCESS,
+      statusCode: 200
+    });
+
     return res.json({
       success: true,
       message: 'Department chat updated successfully.',
       data: department
     });
   } catch (error) {
+    await auditDepartmentChatAction(req, {
+      action: ADMIN_ACTIONS.DEPARTMENT_CHAT_UPDATED,
+      id: id || req.params.id,
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message
+    });
+
     return errorResponse(res, error, 'Unable to update department chat.');
   }
 };
 
 exports.archiveDepartment = async (req, res) => {
+  let id = null;
+
   try {
-    const id = parseId(req.params.id);
+    id = parseId(req.params.id);
 
     if (!id) {
+      await auditDepartmentChatAction(req, {
+        action: ADMIN_ACTIONS.DEPARTMENT_CHAT_ARCHIVED,
+        id: req.params.id,
+        result: AUDIT_RESULTS.FAILURE,
+        statusCode: 400,
+        reason: 'Invalid department chat id.'
+      });
+
       return res.status(400).json({
         success: false,
         message: 'Invalid department chat id.'
@@ -101,12 +188,29 @@ exports.archiveDepartment = async (req, res) => {
 
     const department = await archiveDepartmentChat(id);
 
+    await auditDepartmentChatAction(req, {
+      action: ADMIN_ACTIONS.DEPARTMENT_CHAT_ARCHIVED,
+      id,
+      targetCode: getDepartmentTargetCode(department),
+      department,
+      result: AUDIT_RESULTS.SUCCESS,
+      statusCode: 200
+    });
+
     return res.json({
       success: true,
       message: 'Department chat archived successfully.',
       data: department
     });
   } catch (error) {
+    await auditDepartmentChatAction(req, {
+      action: ADMIN_ACTIONS.DEPARTMENT_CHAT_ARCHIVED,
+      id: id || req.params.id,
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message
+    });
+
     return errorResponse(res, error, 'Unable to archive department chat.');
   }
 };

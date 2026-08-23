@@ -1,4 +1,4 @@
-.reports-panel {
+﻿.reports-panel {
   display: grid;
   gap: 1rem;
   max-height: none;
@@ -35,6 +35,7 @@
 .reports-primary-button,
 .reports-catalog-button,
 .reports-field select,
+.reports-field input,
 .reports-checkbox-card,
 .reports-catalog-card {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -221,6 +222,14 @@
   max-width: 320px;
 }
 
+.reports-custom-range-fields {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.reports-custom-range-fields[hidden] {
+  display: none;
+}
 .reports-builder-shell {
   display: flex;
   gap: 1rem;
@@ -238,7 +247,8 @@
   gap: 0.5rem;
 }
 
-.reports-field select {
+.reports-field select,
+.reports-field input {
   width: 100%;
   min-height: 46px;
   border: 1px solid rgba(220, 227, 234, 0.95);
@@ -250,7 +260,8 @@
   padding: 0 0.9rem;
 }
 
-.reports-field select:focus {
+.reports-field select:focus,
+.reports-field input:focus {
   border-color: rgba(231, 75, 50, 0.46);
   box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
 }

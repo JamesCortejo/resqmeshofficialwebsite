@@ -1,4 +1,4 @@
-const { INCIDENT_SUMMARY_REPORT } = require('../../../reports/catalog');
+﻿const { INCIDENT_SUMMARY_REPORT } = require('../../../reports/catalog');
 const { buildIncidentSummaryPdf } = require('../../../reports/builders/incidentSummaryPdfBuilder');
 const { verifyAdminPassword } = require('../../adminAuthService');
 const {
@@ -49,7 +49,7 @@ async function generateIncidentSummaryReport(adminUserId, payload = {}) {
   }
 
   const sectionIds = normalizeSectionIds(reportDefinition, payload.includeSections);
-  const { start, end } = getUtcRange(dateRangeKind);
+  const { start, end } = getUtcRange(dateRangeKind, payload);
   const rangeStartIso = start.toISOString();
   const rangeEndIso = end.toISOString();
   const filename = buildFilename(dateRangeKind, sourceScope);

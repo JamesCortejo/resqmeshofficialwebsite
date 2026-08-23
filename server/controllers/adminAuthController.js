@@ -87,6 +87,13 @@ exports.login = async (req, res) => {
       });
     }
 
+    if (error.statusCode && error.statusCode < 500) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+
     console.error('Admin login error:', error);
     return res.status(500).json({
       success: false,

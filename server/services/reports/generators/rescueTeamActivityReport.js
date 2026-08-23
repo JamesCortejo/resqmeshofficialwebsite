@@ -1,4 +1,4 @@
-const { RESCUE_TEAM_ACTIVITY_REPORT } = require('../../../reports/catalog');
+﻿const { RESCUE_TEAM_ACTIVITY_REPORT } = require('../../../reports/catalog');
 const { buildRescueTeamActivityPdf } = require('../../../reports/builders/rescueTeamActivityPdfBuilder');
 const { verifyAdminPassword } = require('../../adminAuthService');
 const {
@@ -51,7 +51,7 @@ async function generateRescueTeamActivityReport(adminUserId, payload = {}) {
   }
 
   const sectionIds = normalizeSectionIds(reportDefinition, payload.includeSections);
-  const { start, end } = getUtcRange(dateRangeKind);
+  const { start, end } = getUtcRange(dateRangeKind, payload);
   const rangeStartIso = start.toISOString();
   const rangeEndIso = end.toISOString();
   const filename = buildRescueTeamActivityFilename(dateRangeKind, sourceScope);

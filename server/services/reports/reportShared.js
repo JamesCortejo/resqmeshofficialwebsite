@@ -1,4 +1,4 @@
-const {
+﻿const {
   listReportCatalog,
   ACCOUNTS_ACCESS_AUDIT_REPORT,
   MESH_DEVICE_SYNC_HEALTH_REPORT,
@@ -10,7 +10,8 @@ const DATE_RANGE_LABELS = Object.freeze({
   today: 'Today',
   '7d': 'Last 7 days',
   '30d': 'Last 30 days',
-  month: 'This month'
+  month: 'This month',
+  custom: 'Custom range'
 });
 
 const SOURCE_SCOPE_LABELS = Object.freeze({
@@ -128,7 +129,48 @@ function decryptLeaderName(row, prefix = 'leader') {
   );
 }
 
-function getUtcRange(dateRangeKind) {
+function parseCustomDateOnly(value, fieldName) {
+  const normalized = String(value || '').trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    throw appError(`${fieldName} must use YYYY-MM-DD format.`);
+  }
+
+  const [year, month, day] = normalized.split('-').map((part) => Number.parseInt(part, 10));
+  const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+
+  if (
+    Number.isNaN(date.getTime())
+    || date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month - 1
+    || date.getUTCDate() !== day
+  ) {
+    throw appError(`${fieldName} must be a valid calendar date.`);
+  }
+
+  return date;
+}
+
+function getCustomUtcRange(options = {}) {
+  const start = parseCustomDateOnly(options.customDateFrom || options.dateFrom || options.rangeStart, 'Custom start date');
+  const endStart = parseCustomDateOnly(options.customDateTo || options.dateTo || options.rangeEnd, 'Custom end date');
+  const end = new Date(Date.UTC(
+    endStart.getUTCFullYear(),
+    endStart.getUTCMonth(),
+    endStart.getUTCDate() + 1,
+    0,
+    0,
+    0,
+    0
+  ));
+
+  if (start.getTime() >= end.getTime()) {
+    throw appError('Custom start date cannot be later than custom end date.');
+  }
+
+  return { start, end };
+}
+function getUtcRange(dateRangeKind, options = {}) {
   const now = new Date();
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
@@ -155,6 +197,8 @@ function getUtcRange(dateRangeKind) {
       const end = new Date(Date.UTC(year, month, day + 1, 0, 0, 0, 0));
       return { start, end };
     }
+    case 'custom':
+      return getCustomUtcRange(options);
     default:
       throw appError('Unsupported date range for this report.');
   }
@@ -213,7 +257,7 @@ function formatDateRangeLabel(dateRangeKind, rangeStartIso, rangeEndIso) {
     return 'Selected range';
   }
 
-  if (dateRangeKind !== 'month') {
+  if (dateRangeKind !== 'month' && dateRangeKind !== 'custom') {
     return baseLabel;
   }
 
@@ -372,7 +416,7 @@ function shapeExportRow(row) {
     sourceScope: row.sourceScope,
     sourceScopeLabel: scopeLabelsForReport(row.reportType)[row.sourceScope] || row.sourceScope,
     dateRangeKind: row.dateRangeKind,
-    dateRangeLabel: DATE_RANGE_LABELS[row.dateRangeKind] || row.dateRangeKind,
+    dateRangeLabel: formatDateRangeLabel(row.dateRangeKind, row.rangeStartAt, row.rangeEndAt),
     outputMode: row.outputMode,
     outputModeLabel: OUTPUT_MODE_LABELS[row.outputMode] || row.outputMode,
     selectedSectionIds,
