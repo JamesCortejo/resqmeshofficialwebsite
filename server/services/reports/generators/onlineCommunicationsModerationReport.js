@@ -1,4 +1,4 @@
-﻿const { ONLINE_COMMUNICATIONS_MODERATION_REPORT } = require('../../../reports/catalog');
+const { ONLINE_COMMUNICATIONS_MODERATION_REPORT } = require('../../../reports/catalog');
 const { buildOnlineCommunicationsModerationPdf } = require('../../../reports/builders/onlineCommunicationsModerationPdfBuilder');
 const { verifyAdminPassword } = require('../../adminAuthService');
 const {

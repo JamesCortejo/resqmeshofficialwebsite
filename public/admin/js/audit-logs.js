@@ -1,4 +1,4 @@
-﻿(function initializeAuditLogsPage() {
+(function initializeAuditLogsPage() {
   'use strict';
 
   var ACTION_OPTIONS = [

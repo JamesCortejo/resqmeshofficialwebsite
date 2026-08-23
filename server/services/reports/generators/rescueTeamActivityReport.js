@@ -1,4 +1,4 @@
-﻿const { RESCUE_TEAM_ACTIVITY_REPORT } = require('../../../reports/catalog');
+const { RESCUE_TEAM_ACTIVITY_REPORT } = require('../../../reports/catalog');
 const { buildRescueTeamActivityPdf } = require('../../../reports/builders/rescueTeamActivityPdfBuilder');
 const { verifyAdminPassword } = require('../../adminAuthService');
 const {

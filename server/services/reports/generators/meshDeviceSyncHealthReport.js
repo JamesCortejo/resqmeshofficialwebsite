@@ -1,4 +1,4 @@
-﻿const { MESH_DEVICE_SYNC_HEALTH_REPORT } = require('../../../reports/catalog');
+const { MESH_DEVICE_SYNC_HEALTH_REPORT } = require('../../../reports/catalog');
 const { buildMeshDeviceSyncHealthPdf } = require('../../../reports/builders/meshDeviceSyncHealthPdfBuilder');
 const { verifyAdminPassword } = require('../../adminAuthService');
 const {

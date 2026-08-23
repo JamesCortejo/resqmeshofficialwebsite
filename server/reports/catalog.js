@@ -1,4 +1,4 @@
-﻿const INCIDENT_SUMMARY_REPORT = Object.freeze({
+const INCIDENT_SUMMARY_REPORT = Object.freeze({
   id: 'incident-summary',
   name: 'Incident Summary Report',
   icon: 'fa-chart-line',

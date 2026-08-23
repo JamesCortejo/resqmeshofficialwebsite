@@ -1,4 +1,4 @@
-﻿const { INCIDENT_SUMMARY_REPORT } = require('../../../reports/catalog');
+const { INCIDENT_SUMMARY_REPORT } = require('../../../reports/catalog');
 const { buildIncidentSummaryPdf } = require('../../../reports/builders/incidentSummaryPdfBuilder');
 const { verifyAdminPassword } = require('../../adminAuthService');
 const {

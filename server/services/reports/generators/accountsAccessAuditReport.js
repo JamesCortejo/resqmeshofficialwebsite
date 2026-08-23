@@ -1,4 +1,4 @@
-﻿const { ACCOUNTS_ACCESS_AUDIT_REPORT } = require('../../../reports/catalog');
+const { ACCOUNTS_ACCESS_AUDIT_REPORT } = require('../../../reports/catalog');
 const { buildAccountsAccessAuditPdf } = require('../../../reports/builders/accountsAccessAuditPdfBuilder');
 const { verifyAdminPassword } = require('../../adminAuthService');
 const {
