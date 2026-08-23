@@ -1,15 +1,15 @@
 const {
-  listReportCatalog,
-  DATE_RANGE_LABELS,
-  SOURCE_SCOPE_LABELS,
-  ACCOUNT_SCOPE_LABELS,
-  OUTPUT_MODE_LABELS
+  listReportCatalog
 } = require('../../reports/catalog');
 const {
   getAdminExportCount,
   listRecentReportExports
 } = require('../../repositories/reportRepository');
 const {
+  DATE_RANGE_LABELS,
+  SOURCE_SCOPE_LABELS,
+  ACCOUNT_SCOPE_LABELS,
+  OUTPUT_MODE_LABELS,
   shapeCatalogReport,
   shapeExportRow
 } = require('./reportShared');

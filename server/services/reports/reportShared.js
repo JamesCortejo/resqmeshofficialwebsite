@@ -1,4 +1,4 @@
-﻿const {
+const {
   listReportCatalog,
   ACCOUNTS_ACCESS_AUDIT_REPORT,
   MESH_DEVICE_SYNC_HEALTH_REPORT,
@@ -131,6 +131,10 @@ function decryptLeaderName(row, prefix = 'leader') {
 
 function parseCustomDateOnly(value, fieldName) {
   const normalized = String(value || '').trim();
+
+  if (!normalized) {
+    throw appError(`${fieldName} is required for custom date range.`);
+  }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
     throw appError(`${fieldName} must use YYYY-MM-DD format.`);

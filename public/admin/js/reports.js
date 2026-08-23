@@ -1,4 +1,4 @@
-﻿(function createReportsPage() {
+(function createReportsPage() {
   const RANGE_LABELS = {
     today: 'Today',
     '7d': 'Last 7 days',
@@ -203,6 +203,23 @@
     return '';
   }
 
+  function buildReportRequestPayload(confirmPassword) {
+    const payload = {
+      dateRange: dom.dateRangeInput.value,
+      sourceScope: dom.sourceScopeInput.value,
+      outputMode: 'briefing',
+      includeSections: Array.from(state.includeSections),
+      confirmPassword
+    };
+
+    if (payload.dateRange === 'custom') {
+      payload.customDateFrom = dom.customDateFromInput?.value || '';
+      payload.customDateTo = dom.customDateToInput?.value || '';
+    }
+
+    return payload;
+  }
+
   function selectedDateRangeLabel() {
     if (dom.dateRangeInput.value !== 'custom') {
       return RANGE_LABELS[dom.dateRangeInput.value] || 'Selected range';
@@ -378,7 +395,10 @@
     dom.previewSections.innerHTML = (selectedLabels.length
       ? selectedLabels
       : ['Select at least one PDF section']).map((label) => `<li>${escapeHtml(label)}</li>`).join('');
-    dom.generateButton.disabled = !report.available || state.generating || !state.includeSections.size;
+    dom.generateButton.disabled = !report.available
+      || state.generating
+      || !state.includeSections.size
+      || Boolean(customRangeError());
     dom.generateButton.querySelector('span').textContent = state.generating ? 'Generating PDF...' : 'Generate PDF';
   }
 
@@ -526,6 +546,16 @@
     if (!report || !report.available || state.generating || !state.includeSections.size) {
       return;
     }
+    const dateError = customRangeError();
+    if (dateError) {
+      if (state.passwordModalOpen) {
+        setPasswordMessage(dateError);
+      } else {
+        showFeedback(dateError);
+      }
+      return;
+    }
+
 
     const endpoint = GENERATE_ENDPOINTS[report.id];
     if (!endpoint) {
@@ -539,13 +569,7 @@
     try {
       const result = await fetchBinary(endpoint, {
         method: 'POST',
-        body: JSON.stringify({
-          dateRange: dom.dateRangeInput.value,
-          sourceScope: dom.sourceScopeInput.value,
-          outputMode: 'briefing',
-          includeSections: Array.from(state.includeSections),
-          confirmPassword
-        })
+        body: JSON.stringify(buildReportRequestPayload(confirmPassword))
       });
 
       downloadBlob(result.blob, result.filename);
