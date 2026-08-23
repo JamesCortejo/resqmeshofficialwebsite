@@ -1,11 +1,13 @@
-const { INCIDENT_SUMMARY_REPORT } = require('../../../reports/catalog');
-const { buildIncidentSummaryPdf } = require('../../../reports/builders/incidentSummaryPdfBuilder');
-const { verifyAdminPassword } = require('../../adminAuthService');
+const { INCIDENT_SUMMARY_REPORT } = require("../../../reports/catalog");
+const {
+  buildIncidentSummaryPdf,
+} = require("../../../reports/builders/incidentSummaryPdfBuilder");
+const { verifyAdminPassword } = require("../../adminAuthService");
 const {
   listIncidentSummaryRows,
   createReportExport,
-  updateReportExportStatus
-} = require('../../../repositories/reportRepository');
+  updateReportExportStatus,
+} = require("../../../repositories/reportRepository");
 const {
   SOURCE_SCOPE_LABELS,
   OUTPUT_MODE_LABELS,
@@ -13,42 +15,48 @@ const {
   getUtcRange,
   normalizeSectionIds,
   formatDateRangeLabel,
-  buildFilename
-} = require('../reportShared');
+  buildFilename,
+} = require("../reportShared");
 const {
   normalizeIncidentRows,
-  buildIncidentSummary
-} = require('../reportSummaries');
+  buildIncidentSummary,
+} = require("../reportSummaries");
 
 async function generateIncidentSummaryReport(adminUserId, payload = {}) {
   const reportDefinition = INCIDENT_SUMMARY_REPORT;
-  const dateRangeKind = String(payload.dateRange || '7d').trim();
-  const sourceScope = String(payload.sourceScope || 'all').trim();
-  const outputMode = String(payload.outputMode || 'briefing').trim();
-  const confirmPassword = String(payload.confirmPassword || '');
+  const dateRangeKind = String(payload.dateRange || "7d").trim();
+  const sourceScope = String(payload.sourceScope || "all").trim();
+  const outputMode = String(payload.outputMode || "briefing").trim();
+  const confirmPassword = String(payload.confirmPassword || "");
 
   if (!confirmPassword) {
-    throw appError('Confirm your admin password before generating a PDF.', 400);
+    throw appError("Confirm your admin password before generating a PDF.", 400);
   }
 
-  const passwordIsValid = await verifyAdminPassword(adminUserId, confirmPassword);
+  const passwordIsValid = await verifyAdminPassword(
+    adminUserId,
+    confirmPassword,
+  );
   if (!passwordIsValid) {
-    throw appError('Admin password confirmation failed.', 403);
+    throw appError("Admin password confirmation failed.", 403);
   }
 
   if (!reportDefinition.supportedDateRanges.includes(dateRangeKind)) {
-    throw appError('Unsupported date range for incident summary report.');
+    throw appError("Unsupported date range for incident summary report.");
   }
 
   if (!reportDefinition.supportedSourceScopes.includes(sourceScope)) {
-    throw appError('Unsupported source scope for incident summary report.');
+    throw appError("Unsupported source scope for incident summary report.");
   }
 
   if (!reportDefinition.supportedOutputModes.includes(outputMode)) {
-    throw appError('Unsupported output mode for incident summary report.');
+    throw appError("Unsupported output mode for incident summary report.");
   }
 
-  const sectionIds = normalizeSectionIds(reportDefinition, payload.includeSections);
+  const sectionIds = normalizeSectionIds(
+    reportDefinition,
+    payload.includeSections,
+  );
   const { start, end } = getUtcRange(dateRangeKind, payload);
   const rangeStartIso = start.toISOString();
   const rangeEndIso = end.toISOString();
@@ -62,13 +70,13 @@ async function generateIncidentSummaryReport(adminUserId, payload = {}) {
     outputMode,
     selectedSectionIdsJson: JSON.stringify(sectionIds),
     generatedByAdminUserId: adminUserId,
-    status: 'started',
+    status: "started",
     filename,
     byteSize: null,
     summaryMetadataJson: JSON.stringify({
-      reportName: reportDefinition.name
+      reportName: reportDefinition.name,
     }),
-    errorMessage: null
+    errorMessage: null,
   });
   const exportId = exportInsert.lastID;
 
@@ -76,7 +84,7 @@ async function generateIncidentSummaryReport(adminUserId, payload = {}) {
     const rawRows = await listIncidentSummaryRows({
       sourceScope,
       rangeStartIso,
-      rangeEndIso
+      rangeEndIso,
     });
     const incidents = normalizeIncidentRows(rawRows);
     const summary = buildIncidentSummary(incidents);
@@ -85,16 +93,20 @@ async function generateIncidentSummaryReport(adminUserId, payload = {}) {
       generatedAt: new Date().toISOString(),
       filters: {
         dateRangeKind,
-        dateRangeLabel: formatDateRangeLabel(dateRangeKind, rangeStartIso, rangeEndIso),
+        dateRangeLabel: formatDateRangeLabel(
+          dateRangeKind,
+          rangeStartIso,
+          rangeEndIso,
+        ),
         sourceScope,
         sourceScopeLabel: SOURCE_SCOPE_LABELS[sourceScope] || sourceScope,
         outputMode,
-        outputModeLabel: OUTPUT_MODE_LABELS[outputMode] || outputMode
+        outputModeLabel: OUTPUT_MODE_LABELS[outputMode] || outputMode,
       },
       sectionIds,
       summary,
       reasonBreakdown: summary.reasonBreakdown || [],
-      recentIncidents: incidents.slice(0, 18)
+      recentIncidents: incidents.slice(0, 18),
     };
 
     const pdfBuffer = await buildIncidentSummaryPdf(pdfPayload);
@@ -103,38 +115,38 @@ async function generateIncidentSummaryReport(adminUserId, payload = {}) {
       totalIncidents: summary.totals.totalIncidents,
       sourceScope,
       dateRangeKind,
-      sectionCount: sectionIds.length
+      sectionCount: sectionIds.length,
     };
 
     await updateReportExportStatus(exportId, {
-      status: 'generated',
+      status: "generated",
       filename,
       byteSize: pdfBuffer.length,
       summaryMetadataJson: JSON.stringify(summaryMetadata),
-      errorMessage: null
+      errorMessage: null,
     });
 
     return {
       exportId,
       filename,
-      contentType: 'application/pdf',
+      contentType: "application/pdf",
       buffer: pdfBuffer,
-      summary: summaryMetadata
+      summary: summaryMetadata,
     };
   } catch (error) {
     await updateReportExportStatus(exportId, {
-      status: 'failed',
+      status: "failed",
       filename,
       byteSize: null,
       summaryMetadataJson: JSON.stringify({
-        reportName: reportDefinition.name
+        reportName: reportDefinition.name,
       }),
-      errorMessage: error.message || 'Incident summary export failed.'
+      errorMessage: error.message || "Incident summary export failed.",
     });
     throw error;
   }
 }
 
 module.exports = {
-  generateIncidentSummaryReport
+  generateIncidentSummaryReport,
 };
