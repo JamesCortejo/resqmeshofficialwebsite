@@ -1,18 +1,14 @@
 const express = require('express');
 const deviceAuthController = require('../controllers/deviceAuthController');
 const deviceSyncController = require('../controllers/deviceSyncController');
-const {
-  createRateLimiter,
-  requireDeviceSyncSession
-} = require('../middleware/deviceSyncMiddleware');
+const { requireDeviceSyncSession } = require('../middleware/deviceSyncMiddleware');
+const { rateLimiters } = require('../middleware/rateLimitMiddleware');
 
 const router = express.Router();
-const authRateLimit = createRateLimiter(20, 60 * 1000);
-const syncRateLimit = createRateLimiter(180, 60 * 1000);
 
-router.post('/device-auth/token', authRateLimit, deviceAuthController.issueToken);
+router.post('/device-auth/token', rateLimiters.deviceAuth, deviceAuthController.issueToken);
 
-router.use('/device-sync', syncRateLimit, requireDeviceSyncSession);
+router.use('/device-sync', rateLimiters.deviceSync, requireDeviceSyncSession, rateLimiters.deviceSyncAuthenticated);
 router.get('/device-sync/users', deviceSyncController.listUsers);
 router.get('/device-sync/rescuers', deviceSyncController.listRescuers);
 router.get('/device-sync/rescue-teams', deviceSyncController.listRescueTeams);

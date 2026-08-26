@@ -18,10 +18,11 @@ const {
   departmentChatIconUpload,
   handleUploadErrors
 } = require('../middleware/uploadMiddleware');
+const { rateLimiters } = require('../middleware/rateLimitMiddleware');
 
 const router = express.Router();
 
-router.post('/login', adminAuthController.login);
+router.post('/login', rateLimiters.adminLogin, adminAuthController.login);
 router.use(requireAdminSession);
 router.get('/session', adminAuthController.getSession);
 router.use(requireAdminCsrf);
