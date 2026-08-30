@@ -26,7 +26,7 @@
         markup.updateFieldErrorDom(field);
       }
 
-      if (field === 'birthDate') {
+      if (field === 'birthDate' || field === 'idType') {
         markup.render();
       }
     }
