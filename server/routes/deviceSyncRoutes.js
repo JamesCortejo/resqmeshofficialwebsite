@@ -21,6 +21,7 @@ router.post('/device-sync/node-neighbors/batch', deviceSyncController.syncNodeNe
 router.post('/device-sync/distress-signals/batch', deviceSyncController.syncDistressSignalsBatch);
 router.post('/device-sync/messages/batch', deviceSyncController.syncMessagesBatch);
 router.post('/device-sync/audit-logs/batch', deviceSyncController.syncAuditLogsBatch);
+router.post('/device-sync/offline-assignment-actions/batch', deviceSyncController.syncOfflineAssignmentActions);
 router.post('/device-sync/mesh-commands/:id/ack', deviceSyncController.acknowledgeMeshCommand);
 
 module.exports = router;

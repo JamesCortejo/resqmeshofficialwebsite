@@ -27,7 +27,7 @@ function isOnlineVoiceRequest(req) {
 
 function isDeviceSyncRequest(req) {
   return req.method === 'POST'
-    && /^\/api\/device-sync\/(?:nodes|node-health|node-neighbors|distress-signals|messages|audit-logs)\/batch\/?$/i.test(req.path);
+    && /^\/api\/device-sync\/(?:nodes|node-health|node-neighbors|distress-signals|messages|audit-logs|offline-assignment-actions)\/batch\/?$/i.test(req.path);
 }
 
 function requestBodyParser(req, res, next) {

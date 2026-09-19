@@ -13,6 +13,7 @@ const {
   getMeshCommands,
   acknowledgeMeshCommand
 } = require('../services/deviceSyncService');
+const { syncOfflineAssignmentActions } = require('../services/offlineAssignmentActionService');
 
 function requestIp(req) {
   const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
@@ -148,6 +149,15 @@ exports.syncAuditLogsBatch = async (req, res) => {
     return res.json({ success: true, data: result });
   } catch (error) {
     return errorResponse(res, error, 'Unable to sync audit logs.');
+  }
+};
+
+exports.syncOfflineAssignmentActions = async (req, res) => {
+  try {
+    const result = await syncOfflineAssignmentActions(req.body || {}, req.syncDevice, requestIp(req));
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to sync offline assignment actions.');
   }
 };
 

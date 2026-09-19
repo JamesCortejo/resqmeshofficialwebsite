@@ -142,7 +142,7 @@ function parseDistressSourceKey(value) {
     : { source: null, id: null };
 }
 
-async function enqueueDistressCancelCommand(deployment) {
+async function enqueueDistressCommand(deployment, commandType) {
   if (!deployment?.originNodeId || !deployment?.originDistressId) {
     return;
   }
@@ -151,7 +151,7 @@ async function enqueueDistressCancelCommand(deployment) {
 
   await createMeshCommand({
     targetNodeId: deployment.originNodeId,
-    commandType: 'cancel_distress',
+    commandType,
     payloadJson: JSON.stringify({
       originNodeId: deployment.originNodeId,
       originDistressId: deployment.originDistressId,
@@ -382,7 +382,7 @@ async function deployDistressSignal(id, payload, adminUser) {
   return getDistressSignalDetails(isOnline ? `online:${distress.id}` : distress.id);
 }
 
-async function setDeploymentStatus(id, status) {
+async function setDeploymentStatus(id, status, options = {}) {
   const deployment = await getDeploymentById(id);
 
   if (!deployment) {
@@ -412,15 +412,15 @@ async function setDeploymentStatus(id, status) {
   if (status === DEPLOYMENT_STATUSES.CANCELED) {
     if (updated.distressSource === 'online' && updated.onlineDistressSignalId) {
       await updateOnlineDistressStatus(updated.onlineDistressSignalId, DEPLOYMENT_STATUSES.CANCELED, timestamp);
-    } else {
-      await enqueueDistressCancelCommand(updated);
+    } else if (!options.suppressMeshCommand) {
+      await enqueueDistressCommand(updated, 'cancel_distress');
     }
     await notifyDeploymentCanceled(updated);
   } else if (status === DEPLOYMENT_STATUSES.ACCOMPLISHED) {
     if (updated.distressSource === 'online' && updated.onlineDistressSignalId) {
       await updateOnlineDistressStatus(updated.onlineDistressSignalId, DEPLOYMENT_STATUSES.ACCOMPLISHED, timestamp);
-    } else {
-      await enqueueDistressCancelCommand(updated);
+    } else if (!options.suppressMeshCommand) {
+      await enqueueDistressCommand(updated, 'resolve_distress');
     }
     await notifyDeploymentAccomplished(updated);
   }
@@ -432,8 +432,8 @@ async function cancelDeployment(id) {
   return setDeploymentStatus(id, DEPLOYMENT_STATUSES.CANCELED);
 }
 
-async function accomplishDeployment(id) {
-  return setDeploymentStatus(id, DEPLOYMENT_STATUSES.ACCOMPLISHED);
+async function accomplishDeployment(id, options = {}) {
+  return setDeploymentStatus(id, DEPLOYMENT_STATUSES.ACCOMPLISHED, options);
 }
 
 module.exports = {
