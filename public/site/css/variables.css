@@ -23,7 +23,7 @@
   --font-heading: 'Outfit', system-ui, sans-serif;
 
   --max-width: 1180px;
-  --section-space: clamp(4.5rem, 8vw, 7.5rem);
+  --section-space: clamp(2rem, 4vw, 3.5rem);
   --container-pad: clamp(1.25rem, 4vw, 2rem);
 
   --radius-sm: 12px;

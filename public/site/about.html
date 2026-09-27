@@ -65,6 +65,46 @@
     </div>
   </section>
 
+  <!-- Purpose and capabilities -->
+  <section class="about-purpose" aria-label="Why ResQMesh exists and what it can do">
+    <div class="container">
+      <div class="about-purpose-panel">
+        <article class="about-purpose-story">
+          <span class="section-kicker"><span class="section-kicker-line"></span> The challenge</span>
+          <h2>Why ResQMesh Exists</h2>
+          <p>
+            Emergencies can happen when mobile data, internet service, or regular communication channels are weak or
+            unavailable. ResQMesh was created to give Valencia City a practical way to keep distress information,
+            location details, and responder communication moving through both connected services and nearby mesh nodes.
+          </p>
+          <p class="about-purpose-statement">Communication should not stop when connectivity does.</p>
+        </article>
+
+        <article class="about-capabilities">
+          <span class="about-capabilities-label">System capabilities</span>
+          <h2>What ResQMesh Can Do</h2>
+          <ul class="about-capability-list">
+            <li>
+              <span class="about-capability-icon" aria-hidden="true"><i class="fa-solid fa-location-crosshairs"></i></span>
+              <span><strong>Share distress and location</strong><small>Send emergency details with available GPS coordinates.</small></span>
+            </li>
+            <li>
+              <span class="about-capability-icon" aria-hidden="true"><i class="fa-solid fa-comments"></i></span>
+              <span><strong>Communicate in two modes</strong><small>Use online services or connect through a nearby mesh node.</small></span>
+            </li>
+            <li>
+              <span class="about-capability-icon" aria-hidden="true"><i class="fa-solid fa-truck-medical"></i></span>
+              <span><strong>Coordinate emergency response</strong><small>Help administrators monitor alerts and organize rescue deployments.</small></span>
+            </li>
+            <li>
+              <span class="about-capability-icon" aria-hidden="true"><i class="fa-solid fa-rotate"></i></span>
+              <span><strong>Synchronize after outages</strong><small>Move supported mesh records to the cloud when connectivity returns.</small></span>
+            </li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
   <!-- technology highlight -->
   <section class="container py-medium">
     <div class="tech-highlight">
@@ -89,35 +129,104 @@
           </div>
         </div>
 
-        <div class="mesh-flow-visual">
-          <div class="mesh-flow-node">
-            <span><i class="fa-solid fa-mobile-screen"></i></span>
-            <strong>Mobile App</strong>
-            <small>Civilians and rescuers</small>
-          </div>
+        <div class="connection-modes">
+          <article class="connection-lane connection-lane-online" aria-labelledby="online-flow-title">
+            <div class="connection-lane-header">
+              <span class="connection-mode-icon" aria-hidden="true"><i class="fa-solid fa-cloud"></i></span>
+              <div>
+                <span class="connection-mode-label">Internet available</span>
+                <h4 id="online-flow-title">Online Mode</h4>
+                <p>Direct cloud access while internet service is available.</p>
+              </div>
+            </div>
 
-          <div class="mesh-flow-node node-device">
-            <span><i class="fa-solid fa-tower-broadcast"></i></span>
-            <strong>Mesh Device</strong>
-            <small>Emergency fallback communication</small>
-          </div>
+            <ol class="connection-path connection-path-online" aria-label="Online mode connection path">
+              <li class="connection-node">
+                <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-mobile-screen"></i></span>
+                <strong>Mobile App</strong>
+                <small>Civilians and rescuers</small>
+              </li>
+              <li class="connection-link" aria-hidden="true">
+                <span class="connection-link-label">Internet</span>
+                <span class="connection-link-line"></span>
+              </li>
+              <li class="connection-node connection-node-accent">
+                <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-cloud"></i></span>
+                <strong>ResQMesh Cloud</strong>
+                <small>Connected services and records</small>
+              </li>
+              <li class="connection-link" aria-hidden="true">
+                <span class="connection-link-label">Secure web</span>
+                <span class="connection-link-line"></span>
+              </li>
+              <li class="connection-node">
+                <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-display"></i></span>
+                <strong>Admin Website</strong>
+                <small>Monitoring and response coordination</small>
+              </li>
+            </ol>
+          </article>
 
-          <div class="mesh-flow-node">
-            <span><i class="fa-solid fa-display"></i></span>
-            <strong>Admin Website</strong>
-            <small>Registration and deployments</small>
-          </div>
+          <article class="connection-lane connection-lane-mesh" aria-labelledby="mesh-flow-title">
+            <div class="connection-lane-header">
+              <span class="connection-mode-icon" aria-hidden="true"><i class="fa-solid fa-tower-broadcast"></i></span>
+              <div>
+                <span class="connection-mode-label">No internet required</span>
+                <h4 id="mesh-flow-title">Mesh Mode</h4>
+                <p>Local emergency communication through nearby ResQMesh nodes when internet is unavailable.</p>
+              </div>
+            </div>
 
-          <div class="mesh-flow-node">
-            <span><i class="fa-solid fa-truck-medical"></i></span>
-            <strong>Rescue Teams</strong>
-            <small>Respond to active emergencies</small>
-          </div>
-        </div>
+            <ol class="connection-path connection-path-mesh" aria-label="Mesh mode connection path">
+              <li class="connection-node">
+                <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-mobile-screen"></i></span>
+                <strong>Mobile App</strong>
+                <small>Civilians and rescuers</small>
+              </li>
+              <li class="connection-link" aria-hidden="true">
+                <span class="connection-link-label">Wi-Fi hotspot</span>
+                <span class="connection-link-line"></span>
+              </li>
+              <li class="connection-node connection-node-accent">
+                <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-tower-broadcast"></i></span>
+                <strong>Nearby Node</strong>
+                <small>Local firmware and services</small>
+              </li>
+              <li class="connection-link" aria-hidden="true">
+                <span class="connection-link-label">LoRa</span>
+                <span class="connection-link-line"></span>
+              </li>
+              <li class="connection-node">
+                <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-diagram-project"></i></span>
+                <strong>LoRa Mesh</strong>
+                <small>Node-to-node emergency traffic</small>
+              </li>
+              <li class="connection-link" aria-hidden="true">
+                <span class="connection-link-label">Mesh links</span>
+                <span class="connection-link-line"></span>
+              </li>
+              <li class="connection-node">
+                <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-people-group"></i></span>
+                <strong>Reachable Users</strong>
+                <small>Civilians and responders</small>
+              </li>
+            </ol>
+          </article>
 
-        <div class="mesh-diagram-note">
-          <i class="fa-solid fa-circle-info"></i>
-          <span>When internet is available, users can access ResQMesh online. When internet is unavailable, users connect through mesh devices, and key records sync back once connectivity returns.</span>
+          <div class="connection-sync" aria-label="Mesh records synchronize to the ResQMesh cloud when internet returns">
+            <div class="connection-sync-endpoint">
+              <i class="fa-solid fa-database" aria-hidden="true"></i>
+              <span>Mesh records</span>
+            </div>
+            <div class="connection-sync-link" aria-hidden="true">
+              <span>Deferred sync</span>
+              <i></i>
+            </div>
+            <div class="connection-sync-endpoint">
+              <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+              <span>ResQMesh Cloud</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -156,6 +265,37 @@
     </div>
   </section>
 
+  <!-- Routing and map data acknowledgement -->
+  <section class="routing-attribution" aria-labelledby="routing-attribution-title">
+    <div class="container">
+      <div class="routing-attribution-card">
+        <div class="routing-attribution-logos" aria-label="Routing technology providers">
+          <a href="https://openrouteservice.org/" target="_blank" rel="noopener noreferrer" aria-label="Visit openrouteservice">
+            <img src="/assets/orslogo.png" alt="openrouteservice">
+          </a>
+          <span class="routing-attribution-divider" aria-hidden="true"></span>
+          <a href="https://heigit.org/" target="_blank" rel="noopener noreferrer" aria-label="Visit HeiGIT">
+            <img src="/assets/HeiGIT_Logo_base.svg" alt="HeiGIT">
+          </a>
+        </div>
+
+        <div class="routing-attribution-content">
+          <h2 id="routing-attribution-title">Routing and Map Data</h2>
+          <p>
+            ResQMesh uses openrouteservice to calculate routes, travel distances, and estimated arrival information
+            for emergency response. openrouteservice is provided by the Heidelberg Institute for Geoinformation
+            Technology (HeiGIT), using map data contributed by OpenStreetMap.
+          </p>
+          <p class="routing-attribution-credit">
+            &copy; <a href="https://openrouteservice.org/" target="_blank" rel="noopener noreferrer">openrouteservice</a>
+            by <a href="https://heigit.org/" target="_blank" rel="noopener noreferrer">HeiGIT</a>
+            <span aria-hidden="true">|</span>
+            Data from <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
   <!-- Footer -->
   <footer class="footer">
     <div class="container">

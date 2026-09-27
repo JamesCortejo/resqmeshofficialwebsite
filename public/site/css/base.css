@@ -136,8 +136,8 @@ textarea {
 }
 
 .py-medium {
-  padding-bottom: clamp(3.5rem, 7vw, 5.5rem);
-  padding-top: clamp(3.5rem, 7vw, 5.5rem);
+  padding-bottom: var(--section-space);
+  padding-top: var(--section-space);
 }
 
 .my-medium {
