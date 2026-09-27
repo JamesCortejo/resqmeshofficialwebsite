@@ -5,8 +5,13 @@ const { convertAndEncryptIdImage } = require('../services/imageService');
 const { notifyPendingRegistrationCreated } = require('../services/notificationService');
 const { verifyRecaptcha } = require('../services/recaptchaService');
 const {
+  PRIVACY_POLICY_VERSION,
+  REGISTRATION_PRIVACY_CONSENT_TYPE,
+  PUBLIC_REGISTRATION_CONSENT_SOURCE
+} = require('../constants/privacyPolicy');
+const {
   generateUserCode,
-  createUser,
+  createUserWithPrivacyConsent,
   findByLookupHashes,
   listUserSummaries
 } = require('../repositories/userRepository');
@@ -182,7 +187,7 @@ exports.registerUser = async (req, res) => {
       convertAndEncryptIdImage(backIdImageFile, userCode, 'back')
     ]);
 
-    const createdUser = await createUser({
+    const createdUser = await createUserWithPrivacyConsent({
       userCode,
       firstNameEnc: encryptText(req.body.firstName),
       middleNameEnc: encryptText(req.body.middleName),
@@ -206,6 +211,10 @@ exports.registerUser = async (req, res) => {
       idNumberLookupHash,
       frontIdImage,
       backIdImage
+    }, {
+      policyVersion: PRIVACY_POLICY_VERSION,
+      consentType: REGISTRATION_PRIVACY_CONSENT_TYPE,
+      consentSource: PUBLIC_REGISTRATION_CONSENT_SOURCE
     });
 
     notifyPendingRegistrationCreated(createdUser);

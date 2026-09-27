@@ -1,4 +1,5 @@
 const { run, get, all, transaction } = require('../database/postgres');
+const { insertPrivacyPolicyConsent } = require('./privacyPolicyConsentRepository');
 
 function formatUserCode(value) {
   return `RMU${String(value).padStart(3, '0')}`;
@@ -15,8 +16,8 @@ async function generateUserCode() {
   });
 }
 
-async function createUser(user) {
-  const result = await run(`
+async function insertUser(db, user) {
+  const result = await db.run(`
     INSERT INTO users (
       user_code,
       first_name_enc,
@@ -87,7 +88,29 @@ async function createUser(user) {
     'pending'
   ]);
 
-  return getUserSummaryById(result.lastID);
+  return result.lastID;
+}
+
+async function createUser(user) {
+  const userId = await insertUser({ run }, user);
+  return getUserSummaryById(userId);
+}
+
+async function createUserWithPrivacyConsent(user, consent) {
+  const userId = await transaction(async (trx) => {
+    const createdUserId = await insertUser(trx, user);
+
+    await insertPrivacyPolicyConsent(trx, {
+      userId: createdUserId,
+      policyVersion: consent.policyVersion,
+      consentType: consent.consentType,
+      consentSource: consent.consentSource
+    });
+
+    return createdUserId;
+  });
+
+  return getUserSummaryById(userId);
 }
 
 function findByLookupHashes(usernameLookupHash, emailLookupHash, idNumberLookupHash) {
@@ -200,6 +223,7 @@ function findUserSessionPrincipalById(id) {
 module.exports = {
   generateUserCode,
   createUser,
+  createUserWithPrivacyConsent,
   findByLookupHashes,
   findApprovedCivilianByEmailLookupHash,
   updateUserPasswordHash,
