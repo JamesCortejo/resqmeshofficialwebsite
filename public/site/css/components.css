@@ -364,6 +364,8 @@ textarea.form-control {
 @media (prefers-reduced-motion: no-preference) {
   .hero-content,
   .hero-logo-panel,
+  .about-purpose-panel,
+  .routing-attribution-card,
   .flow-card,
   .tech-content,
   .mesh-diagram-card,
@@ -373,14 +375,18 @@ textarea.form-control {
   .download-copy,
   .download-card,
   .download-guide-card,
-  .register-card {
+  .register-card,
+  .password-reset-card,
+  .privacy-hero .container,
+  .privacy-card {
     animation: site-rise-in 520ms ease both;
   }
 
   .hero-logo-panel,
   .mesh-diagram-card,
   .contact-form-card,
-  .download-card {
+  .download-card,
+  .privacy-card {
     animation-delay: 80ms;
   }
 
