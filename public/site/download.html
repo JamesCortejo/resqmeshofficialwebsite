@@ -64,6 +64,9 @@
             Install ResQMesh before an emergency. Approved civilians and active rescuers can use the app for online messaging,
             distress alerts, and rescue route visibility, with mesh-supported access available when connectivity is disrupted.
           </p>
+        </div>
+
+        <div class="download-actions-panel">
           <div class="download-actions">
             <a href="/downloads/ResQMesh-V1.5.apk" class="btn btn-primary" data-secure-download download>
               <i class="fa-brands fa-android"></i>
@@ -72,45 +75,107 @@
             <a href="/register" class="btn btn-secondary">Register as Civilian</a>
           </div>
           <p class="download-security-status" id="downloadSecurityStatus" hidden></p>
+          <div class="download-release-panel" aria-label="Current ResQMesh app release">
+            <div class="download-app-meta" aria-label="Current app release details">
+              <div>
+                <small>Version</small>
+                <strong data-app-version>V1.5</strong>
+              </div>
+              <div>
+                <small>APK size</small>
+                <strong data-app-size>Upload pending</strong>
+              </div>
+            </div>
+            <div class="download-card-list">
+              <div>
+                <i class="fa-solid fa-comments"></i>
+                <span>Online and mesh-supported chat</span>
+              </div>
+              <div>
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Distress signal reporting</span>
+              </div>
+              <div>
+                <i class="fa-solid fa-route"></i>
+                <span>Rescue route updates</span>
+              </div>
+            </div>
+          </div>
           <p class="download-note">
             Android may ask you to allow installation from your browser or file manager. Only install the APK from this
             official ResQMesh website.
           </p>
         </div>
 
-        <div class="download-card" aria-label="ResQMesh app summary">
-          <div class="download-card-logo">
-            <img src="/assets/logo-full-bgremoved.png" alt="ResQMesh">
+        <section
+          class="download-card"
+          data-screenshot-carousel
+          tabindex="0"
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="ResQMesh mobile app screenshots"
+        >
+          <div class="download-showcase-header">
+            <div>
+              <span>App preview</span>
+              <strong>ResQMesh in action</strong>
+            </div>
+            <p class="download-slide-counter" aria-live="polite">
+              <span data-slide-current>1</span> / <span data-slide-total>7</span>
+            </p>
           </div>
-          <div class="download-card-status">
-            <span><i class="fa-solid fa-circle-check"></i> Online and outage-ready</span>
-            <span><i class="fa-solid fa-shield-halved"></i> Verified access</span>
+
+          <div class="download-screenshot-stage" data-screenshot-stage>
+            <button class="download-carousel-arrow is-previous" type="button" data-slide-previous aria-label="Show previous app screenshot">
+              <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+            </button>
+
+            <div class="download-screenshot-viewport" aria-live="polite">
+              <figure class="download-screenshot-slide" data-screenshot-slide aria-hidden="false">
+                <img src="/assets/app_screenshots/role_picker.jpg" alt="ResQMesh civilian and rescuer role selection screen" fetchpriority="high" decoding="async">
+                <figcaption><strong>Choose your role</strong><span>Enter ResQMesh as a civilian or rescuer.</span></figcaption>
+              </figure>
+              <figure class="download-screenshot-slide" data-screenshot-slide aria-hidden="true" hidden>
+                <img src="/assets/app_screenshots/civilian_login.jpg" alt="ResQMesh civilian login screen" loading="lazy" decoding="async">
+                <figcaption><strong>Civilian sign-in</strong><span>Access approved online, mesh, and saved offline sessions.</span></figcaption>
+              </figure>
+              <figure class="download-screenshot-slide" data-screenshot-slide aria-hidden="true" hidden>
+                <img src="/assets/app_screenshots/activated_distress_signal.jpg" alt="Active ResQMesh civilian distress signal screen" loading="lazy" decoding="async">
+                <figcaption><strong>Active distress signal</strong><span>Keep emergency status and response details visible.</span></figcaption>
+              </figure>
+              <figure class="download-screenshot-slide" data-screenshot-slide aria-hidden="true" hidden>
+                <img src="/assets/app_screenshots/map_live_route.jpg" alt="ResQMesh live emergency route map" loading="lazy" decoding="async">
+                <figcaption><strong>Live rescue route</strong><span>Follow active response routes and location updates.</span></figcaption>
+              </figure>
+              <figure class="download-screenshot-slide" data-screenshot-slide aria-hidden="true" hidden>
+                <img src="/assets/app_screenshots/mesh_mode_chat.jpg" alt="ResQMesh offline mesh mode chat screen" loading="lazy" decoding="async">
+                <figcaption><strong>Mesh mode chat</strong><span>Exchange emergency messages through nearby mesh nodes.</span></figcaption>
+              </figure>
+              <figure class="download-screenshot-slide" data-screenshot-slide aria-hidden="true" hidden>
+                <img src="/assets/app_screenshots/online_mode_chat.jpg" alt="ResQMesh online mode chat screen" loading="lazy" decoding="async">
+                <figcaption><strong>Online mode chat</strong><span>Reach emergency departments while internet service is available.</span></figcaption>
+              </figure>
+              <figure class="download-screenshot-slide" data-screenshot-slide aria-hidden="true" hidden>
+                <img src="/assets/app_screenshots/online_mode_chat2.jpg" alt="ResQMesh online emergency conversation screen" loading="lazy" decoding="async">
+                <figcaption><strong>Online conversation</strong><span>Continue coordinated text and voice communication.</span></figcaption>
+              </figure>
+            </div>
+
+            <button class="download-carousel-arrow is-next" type="button" data-slide-next aria-label="Show next app screenshot">
+              <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </button>
           </div>
-          <div class="download-app-meta" aria-label="Current app release details">
-            <div>
-              <small>Version</small>
-              <strong data-app-version>V1.5</strong>
-            </div>
-            <div>
-              <small>APK size</small>
-              <strong data-app-size>Upload pending</strong>
-            </div>
+
+          <div class="download-carousel-dots" role="group" aria-label="Choose an app screenshot">
+            <button type="button" data-slide-dot="0" class="is-active" aria-label="Show screenshot 1: Choose your role" aria-current="true"></button>
+            <button type="button" data-slide-dot="1" aria-label="Show screenshot 2: Civilian sign-in"></button>
+            <button type="button" data-slide-dot="2" aria-label="Show screenshot 3: Active distress signal"></button>
+            <button type="button" data-slide-dot="3" aria-label="Show screenshot 4: Live rescue route"></button>
+            <button type="button" data-slide-dot="4" aria-label="Show screenshot 5: Mesh mode chat"></button>
+            <button type="button" data-slide-dot="5" aria-label="Show screenshot 6: Online mode chat"></button>
+            <button type="button" data-slide-dot="6" aria-label="Show screenshot 7: Online conversation"></button>
           </div>
-          <div class="download-card-list">
-            <div>
-              <i class="fa-solid fa-comments"></i>
-              <span>Online and mesh-supported chat</span>
-            </div>
-            <div>
-              <i class="fa-solid fa-triangle-exclamation"></i>
-              <span>Distress signal reporting</span>
-            </div>
-            <div>
-              <i class="fa-solid fa-route"></i>
-              <span>Rescue route updates</span>
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </section>
 

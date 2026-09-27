@@ -174,3 +174,105 @@
 
   void loadAppInfo();
 }());
+
+(function initScreenshotCarousel() {
+  const carousel = document.querySelector('[data-screenshot-carousel]');
+  if (!carousel) return;
+
+  const slides = Array.from(carousel.querySelectorAll('[data-screenshot-slide]'));
+  const dots = Array.from(carousel.querySelectorAll('[data-slide-dot]'));
+  const previousButton = carousel.querySelector('[data-slide-previous]');
+  const nextButton = carousel.querySelector('[data-slide-next]');
+  const stage = carousel.querySelector('[data-screenshot-stage]');
+  const currentTarget = carousel.querySelector('[data-slide-current]');
+  const totalTarget = carousel.querySelector('[data-slide-total]');
+
+  if (!slides.length) return;
+
+  let activeIndex = Math.max(0, slides.findIndex((slide) => !slide.hidden));
+  let pointerStart = null;
+
+  if (totalTarget) {
+    totalTarget.textContent = String(slides.length);
+  }
+
+  function normalizeIndex(index) {
+    return (index + slides.length) % slides.length;
+  }
+
+  function showSlide(index) {
+    activeIndex = normalizeIndex(index);
+
+    slides.forEach((slide, slideIndex) => {
+      const isActive = slideIndex === activeIndex;
+      slide.hidden = !isActive;
+      slide.setAttribute('aria-hidden', String(!isActive));
+    });
+
+    dots.forEach((dot, dotIndex) => {
+      const isActive = dotIndex === activeIndex;
+      dot.classList.toggle('is-active', isActive);
+      if (isActive) {
+        dot.setAttribute('aria-current', 'true');
+      } else {
+        dot.removeAttribute('aria-current');
+      }
+    });
+
+    if (currentTarget) {
+      currentTarget.textContent = String(activeIndex + 1);
+    }
+  }
+
+  function moveSlide(direction) {
+    showSlide(activeIndex + direction);
+  }
+
+  previousButton?.addEventListener('click', () => moveSlide(-1));
+  nextButton?.addEventListener('click', () => moveSlide(1));
+
+  dots.forEach((dot) => {
+    dot.addEventListener('click', () => {
+      const requestedIndex = Number.parseInt(dot.dataset.slideDot || '', 10);
+      if (Number.isInteger(requestedIndex)) {
+        showSlide(requestedIndex);
+      }
+    });
+  });
+
+  carousel.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      moveSlide(-1);
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      moveSlide(1);
+    }
+  });
+
+  stage?.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse') return;
+    pointerStart = { x: event.clientX, y: event.clientY, id: event.pointerId };
+    stage.setPointerCapture?.(event.pointerId);
+  });
+
+  stage?.addEventListener('pointerup', (event) => {
+    if (!pointerStart || pointerStart.id !== event.pointerId) return;
+
+    const deltaX = event.clientX - pointerStart.x;
+    const deltaY = event.clientY - pointerStart.y;
+    pointerStart = null;
+
+    if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) {
+      return;
+    }
+
+    moveSlide(deltaX < 0 ? 1 : -1);
+  });
+
+  stage?.addEventListener('pointercancel', () => {
+    pointerStart = null;
+  });
+
+  showSlide(activeIndex);
+}());
