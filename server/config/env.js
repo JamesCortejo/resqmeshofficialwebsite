@@ -99,6 +99,7 @@ const config = {
     siteKey: optional(process.env.RECAPTCHA_SITE_KEY),
     secretKey: optional(process.env.RECAPTCHA_SECRET_KEY)
   },
+  mapTilerApiKey: optional(process.env.MAPTILER_API_KEY),
   openRouteServiceApiKey: optional(process.env.OPENROUTESERVICE_API_KEY),
   routeSync: {
     snapshotMaxAgeSeconds: parsePositiveInteger(process.env.ROUTE_SNAPSHOT_MAX_AGE_SECONDS, 10, 'ROUTE_SNAPSHOT_MAX_AGE_SECONDS'),

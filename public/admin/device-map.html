@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="/admin/css/device-map.css">
   <link rel="stylesheet" href="/admin/css/devices.css">
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
-  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/vendor/maptiler-sdk/maptiler-sdk.css">
 </head>
 
 <body class="admin-login-page admin-loading">
@@ -134,6 +134,7 @@
                 <div class="device-map-legend-item"><span class="device-map-legend-dot" data-status="route"></span><span>Active team route</span></div>
                 <div class="device-map-legend-item"><span class="device-map-legend-dot" data-status="shared-rescuer"></span><span>Shared rescuer</span></div>
               </div>
+              <div class="device-map-style-control-host" id="deviceMapStyleControlHost"></div>
             </section>
 
             <section class="device-map-unavailable device-map-overlay">
@@ -178,7 +179,7 @@
   <script src="/admin/js/admin-loader.js"></script>
   <script src="/admin/js/admin-auth.js"></script>
   <script src="/admin/js/admin-notifications.js"></script>
-  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/vendor/maptiler-sdk/maptiler-sdk.umd.min.js"></script>
   <script src="/admin/js/device-map-shared.js"></script>
   <script src="/admin/js/device-manager-view.js"></script>
   <script src="/admin/js/device-map.js"></script>

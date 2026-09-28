@@ -46,13 +46,20 @@ function securityHeaders() {
         baseUri: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
-        imgSrc: ["'self'", 'data:', 'blob:', 'https://tile.openstreetmap.org'],
+        imgSrc: [
+          "'self'",
+          'data:',
+          'blob:',
+          'https://tile.openstreetmap.org',
+          'https://api.maptiler.com'
+        ],
         mediaSrc: ["'self'", 'blob:', 'data:'],
         scriptSrc: ["'self'", "'unsafe-inline'", 'https://www.google.com', 'https://www.gstatic.com'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
         frameSrc: ["'self'", 'https://www.google.com', 'https://recaptcha.google.com'],
-        connectSrc: ["'self'", 'https://www.google.com', 'https://www.gstatic.com'],
+        connectSrc: ["'self'", 'https://www.google.com', 'https://www.gstatic.com', 'https://api.maptiler.com'],
+        workerSrc: ["'self'", 'blob:'],
         upgradeInsecureRequests: null
       }
     },

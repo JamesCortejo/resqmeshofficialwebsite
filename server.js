@@ -48,7 +48,8 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.get('/api/public-config', (req, res) => {
   res.json({
     success: true,
-    recaptchaSiteKey: config.recaptcha.siteKey || ''
+    recaptchaSiteKey: config.recaptcha.siteKey || '',
+    mapTilerApiKey: config.mapTilerApiKey || ''
   });
 });
 

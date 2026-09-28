@@ -1,32 +1,345 @@
 (function initDeviceMap() {
   const context = window.ResQMeshDeviceMap.createContext();
   const { dom, state, helpers, ui, constants } = context;
+  const MAP_PREFERENCES_KEY = 'resqmesh.admin.deviceMap.maptiler.v2';
+  const MAP_PREFERENCES_VERSION = 2;
+  const DEFAULT_CENTER = [125.0948, 7.9067];
+  const DEFAULT_ZOOM = 13;
+  const MAX_ZOOM = 19;
+  const THREE_D_PITCH = 55;
+  const LINKS_SOURCE_ID = 'resqmesh-mesh-links';
+  const LINKS_LAYER_ID = 'resqmesh-mesh-links-line';
+  const ROUTES_SOURCE_ID = 'resqmesh-rescue-routes';
+  const ROUTES_LAYER_ID = 'resqmesh-rescue-routes-line';
+  const CUSTOM_BUILDINGS_LAYER_ID = 'resqmesh-3d-buildings';
+  const STYLE_DEFINITIONS = Object.freeze({
+    streets: { label: 'Streets', resolve: () => maptilersdk.MapStyle.STREETS },
+    openstreetmap: { label: 'OpenStreetMap', resolve: () => maptilersdk.MapStyle.OPENSTREETMAP },
+    satellite: { label: 'Satellite', resolve: () => maptilersdk.MapStyle.HYBRID },
+    topographic: { label: 'Topographic', resolve: () => maptilersdk.MapStyle.TOPO }
+  });
   let mapRequestInFlight = false;
+  let publicMapConfigPromise = null;
+  let mapTilerApiKey = '';
+  let mapProviderWarning = '';
+  let mapEventsBound = false;
+  let currentLinkPopups = new Map();
+  let currentRoutesById = new Map();
 
   window.ResQMeshDeviceManagerView.init(context);
 
-  function initializeMap() {
-    if (!dom.deviceMapCanvas || state.map) {
+  function createDefaultMapPreferences() {
+    return {
+      version: MAP_PREFERENCES_VERSION,
+      style: 'streets',
+      is3D: false
+    };
+  }
+
+  function loadMapPreferences() {
+    const defaults = createDefaultMapPreferences();
+
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(MAP_PREFERENCES_KEY) || 'null');
+      const validStyle = typeof parsed?.style === 'string' && Boolean(STYLE_DEFINITIONS[parsed.style]);
+
+      if (parsed?.version !== MAP_PREFERENCES_VERSION || !validStyle || typeof parsed.is3D !== 'boolean') {
+        return defaults;
+      }
+
+      return {
+        version: MAP_PREFERENCES_VERSION,
+        style: parsed.style,
+        is3D: parsed.is3D
+      };
+    } catch (error) {
+      return defaults;
+    }
+  }
+
+  function saveMapPreferences() {
+    if (!state.layerPreferences) {
       return;
     }
 
-    state.map = L.map(dom.deviceMapCanvas, {
-      zoomControl: true,
-      attributionControl: true
-    }).setView([7.9067, 125.0948], 13);
-
-    state.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    });
-    state.tileLayer.addTo(state.map);
-    state.connectionsLayer = L.layerGroup().addTo(state.map);
-    state.routesLayer = L.layerGroup().addTo(state.map);
-    state.onlineDistressLayer = L.layerGroup().addTo(state.map);
-    state.sharedRescuersLayer = L.layerGroup().addTo(state.map);
-    state.markersLayer = L.layerGroup().addTo(state.map);
+    try {
+      window.localStorage.setItem(MAP_PREFERENCES_KEY, JSON.stringify(state.layerPreferences));
+    } catch (error) {
+      // The map remains usable when browser storage is unavailable.
+    }
   }
 
+  function loadPublicMapConfiguration() {
+    if (!publicMapConfigPromise) {
+      publicMapConfigPromise = fetch('/api/public-config', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' }
+      })
+        .then((response) => response.ok ? response.json() : null)
+        .then((result) => {
+          mapTilerApiKey = result?.success && typeof result.mapTilerApiKey === 'string'
+            ? result.mapTilerApiKey.trim()
+            : '';
+
+          if (!mapTilerApiKey) {
+            state.mapUnavailableReason = 'Map service configuration is unavailable. Device records will continue to refresh.';
+          }
+        })
+        .catch(() => {
+          mapTilerApiKey = '';
+          state.mapUnavailableReason = 'The map service could not be initialized. Device records will continue to refresh.';
+        });
+    }
+
+    return publicMapConfigPromise;
+  }
+
+  function setMapFeedback(message) {
+    mapProviderWarning = message || '';
+    ui.setFeedback(mapProviderWarning, mapProviderWarning ? 'warning' : 'error');
+  }
+
+  function mountStyleControl() {
+    const host = document.getElementById('deviceMapStyleControlHost');
+    if (!host) return;
+
+    const container = document.createElement('div');
+    const label = document.createElement('label');
+    const select = document.createElement('select');
+
+    container.className = 'device-map-style-control';
+    label.className = 'device-map-control-label';
+    label.textContent = 'Map style';
+    label.htmlFor = 'deviceMapStyleSelect';
+    select.id = 'deviceMapStyleSelect';
+    select.className = 'device-map-style-select';
+    select.setAttribute('aria-label', 'Map style');
+
+    Object.entries(STYLE_DEFINITIONS).forEach(([id, definition]) => {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = definition.label;
+      select.appendChild(option);
+    });
+
+    select.value = state.layerPreferences.style;
+    select.addEventListener('change', () => selectMapStyle(select.value));
+    container.append(label, select);
+    container.addEventListener('mousedown', (event) => event.stopPropagation());
+    container.addEventListener('dblclick', (event) => event.stopPropagation());
+    state.styleControl = { container, select };
+    host.replaceChildren(container);
+  }
+
+  function createDimensionControl() {
+    return {
+      onAdd() {
+        const container = document.createElement('div');
+        const button = document.createElement('button');
+
+        container.className = 'maplibregl-ctrl maplibregl-ctrl-group device-map-dimension-control';
+        button.type = 'button';
+        button.className = 'device-map-dimension-button';
+        button.addEventListener('click', () => {
+          state.layerPreferences.is3D = !state.layerPreferences.is3D;
+          saveMapPreferences();
+          applyDimensionMode(true);
+        });
+        container.appendChild(button);
+        state.dimensionControl = { container, button };
+        syncDimensionControl();
+        return container;
+      },
+      onRemove() {
+        state.dimensionControl?.container?.remove();
+        state.dimensionControl = null;
+      }
+    };
+  }
+
+  function syncDimensionControl() {
+    const button = state.dimensionControl?.button;
+    if (!button) return;
+
+    const is3D = Boolean(state.layerPreferences?.is3D);
+    button.textContent = is3D ? '2D' : '3D';
+    button.setAttribute('aria-pressed', String(is3D));
+    button.setAttribute('aria-label', is3D ? 'Switch to two-dimensional map' : 'Switch to three-dimensional buildings');
+    button.title = is3D ? 'Switch to 2D' : 'Show 3D buildings';
+  }
+
+  function selectMapStyle(styleId) {
+    const definition = STYLE_DEFINITIONS[styleId];
+    if (!definition || !state.map || styleId === state.layerPreferences.style) {
+      return;
+    }
+
+    state.layerPreferences.style = styleId;
+    state.mapStyleReady = false;
+    setMapFeedback('');
+    saveMapPreferences();
+    state.map.setStyle(definition.resolve());
+  }
+
+  function getBuildingExtrusionLayerIds() {
+    const layers = state.map?.getStyle()?.layers || [];
+    return layers
+      .filter((layer) => layer.type === 'fill-extrusion' && (
+        layer.id === CUSTOM_BUILDINGS_LAYER_ID
+        || /building/i.test(layer.id)
+        || /building/i.test(layer['source-layer'] || '')
+      ))
+      .map((layer) => layer.id);
+  }
+
+  function ensureBuildingExtrusionLayer() {
+    if (!state.map || state.map.getLayer(CUSTOM_BUILDINGS_LAYER_ID)) {
+      return;
+    }
+
+    const layers = state.map.getStyle()?.layers || [];
+    const hasBuildingExtrusion = layers.some((layer) =>
+      layer.type === 'fill-extrusion' && (
+        /building/i.test(layer.id)
+        || /building/i.test(layer['source-layer'] || '')
+      )
+    );
+
+    if (hasBuildingExtrusion) {
+      return;
+    }
+
+    const buildingLayer = layers.find((layer) =>
+      layer.type === 'fill' && layer['source-layer'] === 'building' && layer.source
+    );
+    const vectorSources = state.map.getStyle()?.sources || {};
+    const fallbackSourceId = Object.keys(vectorSources).find((sourceId) =>
+      vectorSources[sourceId]?.type === 'vector' && /planet|openmaptiles/i.test(sourceId)
+    );
+    const buildingSourceId = buildingLayer?.source || fallbackSourceId;
+
+    if (!buildingSourceId) {
+      return;
+    }
+
+    const usesCurrentPlanetSchema = String(buildingSourceId).includes('v4');
+    const heightProperty = usesCurrentPlanetSchema ? 'height' : 'render_height';
+    const baseProperty = usesCurrentPlanetSchema ? 'height_min' : 'render_min_height';
+    const firstSymbolLayer = layers.find((layer) => layer.type === 'symbol');
+
+    state.map.addLayer({
+      id: CUSTOM_BUILDINGS_LAYER_ID,
+      type: 'fill-extrusion',
+      source: buildingSourceId,
+      'source-layer': 'building',
+      minzoom: 15,
+      layout: { visibility: 'none' },
+      paint: {
+        'fill-extrusion-base': ['coalesce', ['get', baseProperty], 0],
+        'fill-extrusion-color': '#d4cbc0',
+        'fill-extrusion-height': ['coalesce', ['get', heightProperty], 0],
+        'fill-extrusion-opacity': 0.72,
+        'fill-extrusion-vertical-gradient': true
+      }
+    }, firstSymbolLayer?.id);
+  }
+
+  function applyDimensionMode(animate) {
+    if (!state.map || !state.mapStyleReady) {
+      syncDimensionControl();
+      return;
+    }
+
+    ensureBuildingExtrusionLayer();
+    const is3D = Boolean(state.layerPreferences.is3D);
+    const duration = animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 450 : 0;
+
+    getBuildingExtrusionLayerIds().forEach((layerId) => {
+      if (state.map.getLayer(layerId)) {
+        state.map.setLayoutProperty(layerId, 'visibility', is3D ? 'visible' : 'none');
+      }
+    });
+
+    state.map.easeTo({
+      pitch: is3D ? THREE_D_PITCH : 0,
+      zoom: is3D && animate ? Math.max(state.map.getZoom(), 15) : state.map.getZoom(),
+      bearing: state.map.getBearing(),
+      duration
+    });
+    syncDimensionControl();
+  }
+
+  function handleMapProviderError(event) {
+    const message = String(event?.error?.message || '');
+    if (!message || /cancel/i.test(message)) {
+      return;
+    }
+
+    setMapFeedback('MapTiler could not load part of the map. Operational records will continue to refresh.');
+  }
+
+  function initializeMap() {
+    if (!dom.deviceMapCanvas || state.map || state.mapUnavailableReason) {
+      return;
+    }
+
+    if (!mapTilerApiKey) {
+      state.mapUnavailableReason = 'Map service configuration is unavailable. Device records will continue to refresh.';
+      return;
+    }
+
+    const webGlSupportError = window.maptilersdk && typeof maptilersdk.getWebGLSupportError === 'function'
+      ? maptilersdk.getWebGLSupportError()
+      : null;
+
+    if (!window.maptilersdk || webGlSupportError) {
+      state.mapUnavailableReason = 'This browser cannot display the WebGL map. Device records will continue to refresh.';
+      return;
+    }
+
+    state.layerPreferences = loadMapPreferences();
+    maptilersdk.config.apiKey = mapTilerApiKey;
+
+    try {
+      state.map = new maptilersdk.Map({
+        container: dom.deviceMapCanvas,
+        style: STYLE_DEFINITIONS[state.layerPreferences.style].resolve(),
+        center: DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
+        maxZoom: MAX_ZOOM,
+        pitch: state.layerPreferences.is3D ? THREE_D_PITCH : 0,
+        bearing: 0,
+        navigationControl: false,
+        terrain: false,
+        maptilerLogo: true,
+        attributionControl: true
+      });
+    } catch (error) {
+      state.map = null;
+      state.mapUnavailableReason = 'The WebGL map could not be initialized. Device records will continue to refresh.';
+      return;
+    }
+
+    const fullscreenContainer = dom.deviceMapCanvas.closest('.device-map-canvas-wrap');
+
+    state.map.addControl(new maptilersdk.NavigationControl({ visualizePitch: true }), 'top-left');
+    if (fullscreenContainer && typeof maptilersdk.FullscreenControl === 'function') {
+      state.map.addControl(new maptilersdk.FullscreenControl({ container: fullscreenContainer }), 'top-left');
+    }
+    state.map.addControl(createDimensionControl(), 'top-left');
+    mountStyleControl();
+    state.map.on('error', handleMapProviderError);
+    state.map.on('load', () => {
+      state.mapLoaded = true;
+    });
+    state.map.on('style.load', () => {
+      state.mapStyleReady = true;
+      ensureOperationalLayers();
+      applyDimensionMode(false);
+      renderMap({ preserveViewport: state.hasInitializedViewport });
+    });
+    bindMapInteractionEvents();
+  }
   function deriveMapStatus(device) {
     if (device.hasActiveDistress) {
       return 'distressed';
@@ -249,24 +562,189 @@
     `;
   }
 
-  function createMarker(device) {
+  function emptyFeatureCollection() {
+    return { type: 'FeatureCollection', features: [] };
+  }
+
+  function numericLngLat(latitudeValue, longitudeValue) {
+    const latitude = Number(latitudeValue);
+    const longitude = Number(longitudeValue);
+
+    return Number.isFinite(latitude) && Number.isFinite(longitude) && latitude !== 0 && longitude !== 0
+      ? [longitude, latitude]
+      : null;
+  }
+
+  function coordinateLngLat(coordinate) {
+    if (!Array.isArray(coordinate) || coordinate.length < 2) {
+      return null;
+    }
+
+    const longitude = Number(coordinate[0]);
+    const latitude = Number(coordinate[1]);
+    return Number.isFinite(latitude) && Number.isFinite(longitude) && latitude !== 0 && longitude !== 0
+      ? [longitude, latitude]
+      : null;
+  }
+
+  function routeMarkerLngLat(route) {
+    const firstCoordinate = Array.isArray(route.coordinates) ? route.coordinates[0] : null;
+    return coordinateLngLat(firstCoordinate) || numericLngLat(route.leaderLatitude, route.leaderLongitude);
+  }
+
+  function routeDistressLngLat(route) {
+    return numericLngLat(route.distressLatitude, route.distressLongitude);
+  }
+
+  function routeBoundsLngLats(route) {
+    const coordinates = [];
+    const leaderLngLat = routeMarkerLngLat(route);
+    const distressLngLat = routeDistressLngLat(route);
+
+    if (leaderLngLat) coordinates.push(leaderLngLat);
+    if (distressLngLat) coordinates.push(distressLngLat);
+
+    if (Array.isArray(route.coordinates)) {
+      route.coordinates.forEach((coordinate) => {
+        const lngLat = coordinateLngLat(coordinate);
+        if (lngLat) coordinates.push(lngLat);
+      });
+    }
+
+    return coordinates;
+  }
+
+  function hasRenderableRoute(route) {
+    return Array.isArray(route.coordinates)
+      && route.coordinates.filter(coordinateLngLat).length >= 2;
+  }
+
+  function setGeoJsonSourceData(sourceId, data) {
+    const source = state.map?.getSource(sourceId);
+    if (source && typeof source.setData === 'function') {
+      source.setData(data);
+    }
+  }
+
+  function ensureOperationalLayers() {
+    if (!state.map || !state.mapStyleReady) {
+      return;
+    }
+
+    if (!state.map.getSource(LINKS_SOURCE_ID)) {
+      state.map.addSource(LINKS_SOURCE_ID, { type: 'geojson', data: emptyFeatureCollection() });
+    }
+
+    if (!state.map.getLayer(LINKS_LAYER_ID)) {
+      state.map.addLayer({
+        id: LINKS_LAYER_ID,
+        type: 'line',
+        source: LINKS_SOURCE_ID,
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round'
+        },
+        paint: {
+          'line-color': ['coalesce', ['get', 'color'], '#e74b32'],
+          'line-width': ['coalesce', ['get', 'width'], 3],
+          'line-opacity': ['coalesce', ['get', 'opacity'], 0.56],
+          'line-dasharray': [2.5, 2]
+        }
+      });
+    }
+
+    if (!state.map.getSource(ROUTES_SOURCE_ID)) {
+      state.map.addSource(ROUTES_SOURCE_ID, { type: 'geojson', data: emptyFeatureCollection() });
+    }
+
+    if (!state.map.getLayer(ROUTES_LAYER_ID)) {
+      state.map.addLayer({
+        id: ROUTES_LAYER_ID,
+        type: 'line',
+        source: ROUTES_SOURCE_ID,
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round'
+        },
+        paint: {
+          'line-color': ['case', ['==', ['get', 'selected'], true], '#c93f29', '#f26441'],
+          'line-width': ['case', ['==', ['get', 'selected'], true], 6, 4],
+          'line-opacity': ['case', ['==', ['get', 'selected'], true], 0.94, 0.72]
+        }
+      });
+    }
+  }
+
+  function createMarkerElement(wrapperClass, markerClass, isSelected = false) {
+    const wrapper = document.createElement('div');
+    const marker = document.createElement('div');
+    wrapper.className = wrapperClass;
+    marker.className = markerClass + (isSelected ? ' is-selected' : '');
+    wrapper.appendChild(marker);
+    return wrapper;
+  }
+
+  function addDomMarker({ key, lngLat, element, popupHtml, popupClass = 'device-map-popup', onClick, zIndex = 300 }) {
+    if (!state.map || !lngLat) {
+      return null;
+    }
+
+    element.style.zIndex = String(zIndex);
+    const popup = popupHtml
+      ? new maptilersdk.Popup({
+          className: popupClass,
+          closeButton: true,
+          closeOnClick: true,
+          maxWidth: '360px',
+          offset: 18
+        }).setHTML(popupHtml)
+      : null;
+    const marker = new maptilersdk.Marker({ element, anchor: 'center' }).setLngLat(lngLat);
+
+    if (popup) marker.setPopup(popup);
+    if (onClick) element.addEventListener('click', onClick);
+    marker.addTo(state.map);
+    state.mapMarkers.push({ key, marker });
+    return marker;
+  }
+
+  function clearMapMarkers() {
+    state.mapMarkers.forEach(({ marker }) => marker.remove());
+    state.mapMarkers = [];
+  }
+
+  function openMarkerPopup(key) {
+    window.setTimeout(() => {
+      const entry = state.mapMarkers.find((candidate) => candidate.key === key);
+      const popup = entry?.marker?.getPopup?.();
+      if (entry && popup && !popup.isOpen()) entry.marker.togglePopup();
+    }, 0);
+  }
+
+  function openMapPopup(html, lngLat, className = 'device-map-popup') {
+    if (!state.map || !html || !lngLat) return;
+    state.mapPopup?.remove();
+    state.mapPopup = new maptilersdk.Popup({
+      className,
+      closeButton: true,
+      closeOnClick: true,
+      maxWidth: '360px'
+    }).setLngLat(lngLat).setHTML(html).addTo(state.map);
+  }
+
+  function createDeviceMarker(device) {
     const status = deriveMapStatus(device);
     const distressedClass = device.hasActiveDistress ? ' is-flashing' : '';
-    const icon = L.divIcon({
-      className: 'device-map-marker-icon',
-      html: `
-        <div class="device-map-marker${distressedClass}" data-status="${helpers.escapeHtml(status)}">
-        </div>
-      `,
-      iconSize: [24, 24],
-      iconAnchor: [12, 12],
-      popupAnchor: [0, -12]
-    });
+    const element = createMarkerElement('device-map-marker-icon', `device-map-marker${distressedClass}`);
+    element.firstElementChild.dataset.status = status;
 
-    return L.marker([Number(device.latitude), Number(device.longitude)], { icon })
-      .bindPopup(popupMarkup(device, status), {
-        className: 'device-map-popup'
-      });
+    return addDomMarker({
+      key: `device:${device.nodeId || device.id}`,
+      lngLat: numericLngLat(device.latitude, device.longitude),
+      element,
+      popupHtml: popupMarkup(device, status),
+      zIndex: 400
+    });
   }
 
   function calculateDistance(a, b) {
@@ -274,7 +752,6 @@
     const lngA = Number(a.longitude);
     const latB = Number(b.latitude);
     const lngB = Number(b.longitude);
-
     return ((latA - latB) ** 2) + ((lngA - lngB) ** 2);
   }
 
@@ -282,32 +759,40 @@
     const links = new Map();
 
     devices.forEach((device) => {
-      const nearestDevices = devices
+      devices
         .filter((candidate) => candidate.id !== device.id)
         .sort((left, right) => calculateDistance(device, left) - calculateDistance(device, right))
-        .slice(0, 2);
-
-      nearestDevices.forEach((candidate) => {
-        const [startId, endId] = [String(device.id), String(candidate.id)].sort();
-        const key = `${startId}:${endId}`;
-
-        if (!links.has(key)) {
-          links.set(key, [device, candidate]);
-        }
-      });
+        .slice(0, 2)
+        .forEach((candidate) => {
+          const [startId, endId] = [String(device.id), String(candidate.id)].sort();
+          const key = `${startId}:${endId}`;
+          if (!links.has(key)) links.set(key, [device, candidate]);
+        });
     });
 
     return Array.from(links.values());
   }
 
-  function renderConnections(devices) {
-    if (!state.connectionsLayer) {
-      return;
-    }
+  function meshLinkPopupMarkup(link) {
+    return `
+      <div class="device-map-popup-card">
+        <h3>Mesh Link</h3>
+        <div class="device-map-popup-meta">
+          <div class="device-map-popup-row"><span>From</span><strong>${helpers.escapeHtml(link.sourceNodeName || link.reportingNodeId)}</strong></div>
+          <div class="device-map-popup-row"><span>To</span><strong>${helpers.escapeHtml(link.targetNodeName || link.neighborNodeId)}</strong></div>
+          <div class="device-map-popup-row"><span>RSSI</span><strong>${helpers.escapeHtml(link.rssi != null ? `${link.rssi} dBm` : 'Not available')}</strong></div>
+          <div class="device-map-popup-row"><span>Last seen</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(link.lastSeenAt))}</strong></div>
+        </div>
+      </div>
+    `;
+  }
 
-    state.connectionsLayer.clearLayers();
+  function renderConnections(devices) {
+    const features = [];
+    currentLinkPopups = new Map();
 
     if (devices.length < 2) {
+      setGeoJsonSourceData(LINKS_SOURCE_ID, emptyFeatureCollection());
       return;
     }
 
@@ -317,223 +802,108 @@
     );
 
     if (realLinks.length) {
-      realLinks.forEach((link) => {
-        L.polyline([
-          [Number(link.sourceLatitude), Number(link.sourceLongitude)],
-          [Number(link.targetLatitude), Number(link.targetLongitude)]
-        ], {
-          className: 'device-map-link',
-          color: '#e74b32',
-          weight: 3,
-          opacity: 0.56,
-          dashArray: '8 7',
-          lineCap: 'round'
-        }).bindPopup(`
-          <div class="device-map-popup-card">
-            <h3>Mesh Link</h3>
-            <div class="device-map-popup-meta">
-              <div class="device-map-popup-row"><span>From</span><strong>${helpers.escapeHtml(link.sourceNodeName || link.reportingNodeId)}</strong></div>
-              <div class="device-map-popup-row"><span>To</span><strong>${helpers.escapeHtml(link.targetNodeName || link.neighborNodeId)}</strong></div>
-              <div class="device-map-popup-row"><span>RSSI</span><strong>${helpers.escapeHtml(link.rssi != null ? `${link.rssi} dBm` : 'Not available')}</strong></div>
-              <div class="device-map-popup-row"><span>Last seen</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(link.lastSeenAt))}</strong></div>
-            </div>
-          </div>
-        `, { className: 'device-map-popup' }).addTo(state.connectionsLayer);
+      realLinks.forEach((link, index) => {
+        const source = numericLngLat(link.sourceLatitude, link.sourceLongitude);
+        const target = numericLngLat(link.targetLatitude, link.targetLongitude);
+        if (!source || !target) return;
+
+        const popupKey = `mesh-link:${index}`;
+        currentLinkPopups.set(popupKey, meshLinkPopupMarkup(link));
+        features.push({
+          type: 'Feature',
+          properties: { popupKey, color: '#e74b32', width: 3, opacity: 0.56 },
+          geometry: { type: 'LineString', coordinates: [source, target] }
+        });
       });
-      return;
-    }
+    } else {
+      buildConnectionPairs(devices).forEach(([firstDevice, secondDevice]) => {
+        const source = numericLngLat(firstDevice.latitude, firstDevice.longitude);
+        const target = numericLngLat(secondDevice.latitude, secondDevice.longitude);
+        if (!source || !target) return;
 
-    buildConnectionPairs(devices).forEach(([firstDevice, secondDevice]) => {
-      const isDistressed = firstDevice.hasActiveDistress || secondDevice.hasActiveDistress;
-      const lineClassName = isDistressed ? 'device-map-link is-distressed' : 'device-map-link';
-
-      L.polyline([
-        [Number(firstDevice.latitude), Number(firstDevice.longitude)],
-        [Number(secondDevice.latitude), Number(secondDevice.longitude)]
-      ], {
-        className: lineClassName,
-        color: isDistressed ? '#b22929' : '#e74b32',
-        weight: isDistressed ? 4 : 3,
-        opacity: isDistressed ? 0.72 : 0.48,
-        dashArray: isDistressed ? '5 7' : '10 8',
-        lineCap: 'round'
-      }).addTo(state.connectionsLayer);
-    });
-  }
-
-  function hasRenderableRoute(route) {
-    return Array.isArray(route.coordinates) && route.coordinates.length >= 2;
-  }
-
-  function numericLatLng(latitudeValue, longitudeValue) {
-    const latitude = Number(latitudeValue);
-    const longitude = Number(longitudeValue);
-
-    return Number.isFinite(latitude) && Number.isFinite(longitude) && latitude !== 0 && longitude !== 0
-      ? [latitude, longitude]
-      : null;
-  }
-
-  function coordinateLatLng(coordinate) {
-    if (!Array.isArray(coordinate) || coordinate.length < 2) {
-      return null;
-    }
-
-    return numericLatLng(coordinate[1], coordinate[0]);
-  }
-
-  function routeMarkerLatLng(route) {
-    const firstCoordinate = Array.isArray(route.coordinates) ? route.coordinates[0] : null;
-    const routeStartLatLng = coordinateLatLng(firstCoordinate);
-
-    return routeStartLatLng || numericLatLng(route.leaderLatitude, route.leaderLongitude);
-  }
-
-  function routeDistressLatLng(route) {
-    return numericLatLng(route.distressLatitude, route.distressLongitude);
-  }
-
-  function routeBoundsLatLngs(route) {
-    const bounds = [];
-    const leaderLatLng = routeMarkerLatLng(route);
-    const distressLatLng = routeDistressLatLng(route);
-
-    if (leaderLatLng) {
-      bounds.push(leaderLatLng);
-    }
-
-    if (distressLatLng) {
-      bounds.push(distressLatLng);
-    }
-
-    if (Array.isArray(route.coordinates)) {
-      route.coordinates.forEach((coordinate) => {
-        const latLng = coordinateLatLng(coordinate);
-
-        if (latLng) {
-          bounds.push(latLng);
-        }
+        const isDistressed = firstDevice.hasActiveDistress || secondDevice.hasActiveDistress;
+        features.push({
+          type: 'Feature',
+          properties: {
+            color: isDistressed ? '#b22929' : '#e74b32',
+            width: isDistressed ? 4 : 3,
+            opacity: isDistressed ? 0.72 : 0.48
+          },
+          geometry: { type: 'LineString', coordinates: [source, target] }
+        });
       });
     }
 
-    return bounds;
-  }
-
-  function openRoutePopupAfterRender(route, latlng, layerType = 'polyline') {
-    window.setTimeout(() => {
-      state.routesLayer?.eachLayer((layer) => {
-        if (layer.__routeDeploymentId === route.deploymentId && layer.__routeLayerType === layerType) {
-          layer.openPopup(latlng);
-        }
-      });
-    }, 0);
+    setGeoJsonSourceData(LINKS_SOURCE_ID, { type: 'FeatureCollection', features });
   }
 
   function renderRoutes() {
-    if (!state.routesLayer) {
-      return;
-    }
+    const features = [];
+    currentRoutesById = new Map();
 
-    state.routesLayer.clearLayers();
-
-    if (!state.routes.some((route) => route.deploymentId === state.selectedRouteDeploymentId)) {
+    if (!state.routes.some((route) => String(route.deploymentId) === String(state.selectedRouteDeploymentId))) {
       state.selectedRouteDeploymentId = null;
     }
 
     state.routes.forEach((route) => {
-      const isSelected = state.selectedRouteDeploymentId === route.deploymentId;
+      const deploymentId = String(route.deploymentId);
+      const isSelected = String(state.selectedRouteDeploymentId) === deploymentId;
+      currentRoutesById.set(deploymentId, route);
 
       if (hasRenderableRoute(route)) {
-        const polyline = L.polyline(
-          route.coordinates.map((coordinate) => [Number(coordinate[1]), Number(coordinate[0])]),
-          {
-            className: `device-map-route${isSelected ? ' is-selected' : ''}`,
-            color: isSelected ? '#c93f29' : '#f26441',
-            weight: isSelected ? 6 : 4,
-            opacity: isSelected ? 0.94 : 0.66,
-            lineCap: 'round',
-            lineJoin: 'round'
+        features.push({
+          type: 'Feature',
+          properties: { deploymentId, selected: isSelected },
+          geometry: {
+            type: 'LineString',
+            coordinates: route.coordinates.map(coordinateLngLat).filter(Boolean)
           }
-        ).bindPopup(routePopupMarkup(route), {
-          className: 'device-map-popup device-map-route-popup'
         });
-
-        polyline.on('click', (event) => {
-          state.selectedRouteDeploymentId = route.deploymentId;
-          renderMap({ preserveViewport: true });
-          openRoutePopupAfterRender(route, event.latlng, 'polyline');
-        });
-
-        polyline.__routeDeploymentId = route.deploymentId;
-        polyline.__routeLayerType = 'polyline';
-        polyline.addTo(state.routesLayer);
       }
 
-      const markerLatLng = routeMarkerLatLng(route);
-
-      if (markerLatLng) {
-        const marker = L.marker(markerLatLng, {
-          zIndexOffset: 350,
-          icon: L.divIcon({
-            className: 'device-map-route-team-marker-icon',
-            html: `<div class="device-map-route-team-marker${isSelected ? ' is-selected' : ''}"></div>`,
-            iconSize: [34, 34],
-            iconAnchor: [17, 17],
-            popupAnchor: [0, -16]
-          })
-        }).bindPopup(routePopupMarkup(route), {
-          className: 'device-map-popup device-map-route-popup'
+      const teamLngLat = routeMarkerLngLat(route);
+      if (teamLngLat) {
+        const markerKey = `route-team:${deploymentId}`;
+        addDomMarker({
+          key: markerKey,
+          lngLat: teamLngLat,
+          element: createMarkerElement('device-map-route-team-marker-icon', 'device-map-route-team-marker', isSelected),
+          popupHtml: routePopupMarkup(route),
+          popupClass: 'device-map-popup device-map-route-popup',
+          zIndex: 350,
+          onClick: () => {
+            state.selectedRouteDeploymentId = route.deploymentId;
+            renderMap({ preserveViewport: true });
+            openMarkerPopup(markerKey);
+          }
         });
-
-        marker.on('click', (event) => {
-          state.selectedRouteDeploymentId = route.deploymentId;
-          renderMap({ preserveViewport: true });
-          openRoutePopupAfterRender(route, event.latlng, 'marker');
-        });
-
-        marker.__routeDeploymentId = route.deploymentId;
-        marker.__routeLayerType = 'marker';
-        marker.addTo(state.routesLayer);
       }
 
       if (route.distressSource === 'online') {
-        const distressLatLng = routeDistressLatLng(route);
-
-        if (distressLatLng) {
-          const distressMarker = L.marker(distressLatLng, {
-            zIndexOffset: 320,
-            icon: L.divIcon({
-              className: 'device-map-online-distress-marker-icon',
-              html: `<div class="device-map-online-distress-marker${isSelected ? ' is-selected' : ''}"></div>`,
-              iconSize: [30, 30],
-              iconAnchor: [15, 15],
-              popupAnchor: [0, -14]
-            })
-          }).bindPopup(routeDistressPopupMarkup(route), {
-            className: 'device-map-popup device-map-route-popup'
+        const distressLngLat = routeDistressLngLat(route);
+        if (distressLngLat) {
+          const markerKey = `route-distress:${deploymentId}`;
+          addDomMarker({
+            key: markerKey,
+            lngLat: distressLngLat,
+            element: createMarkerElement('device-map-online-distress-marker-icon', 'device-map-online-distress-marker', isSelected),
+            popupHtml: routeDistressPopupMarkup(route),
+            popupClass: 'device-map-popup device-map-route-popup',
+            zIndex: 330,
+            onClick: () => {
+              state.selectedRouteDeploymentId = route.deploymentId;
+              renderMap({ preserveViewport: true });
+              openMarkerPopup(markerKey);
+            }
           });
-
-          distressMarker.on('click', (event) => {
-            state.selectedRouteDeploymentId = route.deploymentId;
-            renderMap({ preserveViewport: true });
-            openRoutePopupAfterRender(route, event.latlng, 'distress-marker');
-          });
-
-          distressMarker.__routeDeploymentId = route.deploymentId;
-          distressMarker.__routeLayerType = 'distress-marker';
-          distressMarker.addTo(state.routesLayer);
         }
       }
     });
+
+    setGeoJsonSourceData(ROUTES_SOURCE_ID, { type: 'FeatureCollection', features });
   }
 
   function renderOnlineDistressMarkers() {
-    if (!state.onlineDistressLayer) {
-      return;
-    }
-
-    state.onlineDistressLayer.clearLayers();
-
     const routeDistressIds = new Set(
       state.routes
         .filter((route) => route.distressSource === 'online')
@@ -543,138 +913,133 @@
     state.onlineDistress
       .filter((distress) => !routeDistressIds.has(String(distress.id)))
       .forEach((distress) => {
-        const latLng = numericLatLng(distress.latitude, distress.longitude);
-        if (!latLng) return;
+        const lngLat = numericLngLat(distress.latitude, distress.longitude);
+        if (!lngLat) return;
 
-        L.marker(latLng, {
-          zIndexOffset: 300,
-          icon: L.divIcon({
-            className: 'device-map-online-distress-marker-icon',
-            html: '<div class="device-map-online-distress-marker"></div>',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15],
-            popupAnchor: [0, -14]
-          })
-        }).bindPopup(distressCivilianPopupMarkup(distress, {
-          isDeployed: distress.isDeployed,
-          deploymentCode: distress.deploymentCode,
-          teamName: distress.teamName
-        }), {
-          className: 'device-map-popup device-map-route-popup'
-        }).addTo(state.onlineDistressLayer);
+        addDomMarker({
+          key: `online-distress:${distress.id}`,
+          lngLat,
+          element: createMarkerElement('device-map-online-distress-marker-icon', 'device-map-online-distress-marker'),
+          popupHtml: distressCivilianPopupMarkup(distress, {
+            isDeployed: distress.isDeployed,
+            deploymentCode: distress.deploymentCode,
+            teamName: distress.teamName
+          }),
+          popupClass: 'device-map-popup device-map-route-popup',
+          zIndex: 320
+        });
       });
   }
 
   function renderSharedRescuerMarkers() {
-    if (!state.sharedRescuersLayer) {
-      return;
-    }
-
-    state.sharedRescuersLayer.clearLayers();
-
     state.sharedRescuers.forEach((rescuer) => {
-      const latLng = numericLatLng(rescuer.latitude, rescuer.longitude);
-      if (!latLng) return;
+      const lngLat = numericLngLat(rescuer.latitude, rescuer.longitude);
+      if (!lngLat) return;
 
-      L.marker(latLng, {
-        zIndexOffset: 280,
-        icon: L.divIcon({
-          className: 'device-map-shared-rescuer-marker-icon',
-          html: '<div class="device-map-shared-rescuer-marker"></div>',
-          iconSize: [30, 30],
-          iconAnchor: [15, 15],
-          popupAnchor: [0, -14]
-        })
-      }).bindPopup(sharedRescuerPopupMarkup(rescuer), {
-        className: 'device-map-popup'
-      }).addTo(state.sharedRescuersLayer);
+      addDomMarker({
+        key: `shared-rescuer:${rescuer.id || rescuer.rescuerCode}`,
+        lngLat,
+        element: createMarkerElement('device-map-shared-rescuer-marker-icon', 'device-map-shared-rescuer-marker'),
+        popupHtml: sharedRescuerPopupMarkup(rescuer),
+        zIndex: 310
+      });
+    });
+  }
+
+  function bindMapInteractionEvents() {
+    if (!state.map || mapEventsBound) return;
+    mapEventsBound = true;
+
+    state.map.on('click', (event) => {
+      if (!state.mapStyleReady) return;
+      const layerIds = [ROUTES_LAYER_ID, LINKS_LAYER_ID].filter((id) => state.map.getLayer(id));
+      if (!layerIds.length) return;
+
+      const feature = state.map.queryRenderedFeatures(event.point, { layers: layerIds })[0];
+      if (!feature) return;
+
+      if (feature.layer.id === ROUTES_LAYER_ID) {
+        const route = currentRoutesById.get(String(feature.properties?.deploymentId));
+        if (!route) return;
+        state.selectedRouteDeploymentId = route.deploymentId;
+        renderMap({ preserveViewport: true });
+        openMapPopup(routePopupMarkup(route), event.lngLat, 'device-map-popup device-map-route-popup');
+        return;
+      }
+
+      const popupHtml = currentLinkPopups.get(String(feature.properties?.popupKey || ''));
+      if (popupHtml) openMapPopup(popupHtml, event.lngLat);
+    });
+
+    state.map.on('mousemove', (event) => {
+      if (!state.mapStyleReady) return;
+      const layerIds = [ROUTES_LAYER_ID, LINKS_LAYER_ID].filter((id) => state.map.getLayer(id));
+      const hasInteractiveFeature = layerIds.length
+        && state.map.queryRenderedFeatures(event.point, { layers: layerIds }).length > 0;
+      state.map.getCanvas().style.cursor = hasInteractiveFeature ? 'pointer' : '';
     });
   }
 
   function renderMap(options = {}) {
     const { preserveViewport = false } = options;
-
     initializeMap();
-
-    if (
-      !state.map
-      || !state.markersLayer
-      || !state.connectionsLayer
-      || !state.routesLayer
-      || !state.onlineDistressLayer
-      || !state.sharedRescuersLayer
-    ) {
-      return;
-    }
-
-    state.connectionsLayer.clearLayers();
-    state.routesLayer.clearLayers();
-    state.onlineDistressLayer.clearLayers();
-    state.sharedRescuersLayer.clearLayers();
-    state.markersLayer.clearLayers();
 
     const visibleDevices = state.filteredDevices.filter(hasValidCoordinates);
     const unavailableDevices = state.filteredDevices.filter((device) => !hasValidCoordinates(device));
-    const hasOverlayContent = state.routes.length > 0 || state.onlineDistress.length > 0 || state.sharedRescuers.length > 0;
-
     renderUnavailableList(unavailableDevices);
 
-    setMapEmptyState(visibleDevices.length === 0 && !hasOverlayContent, 'No map markers with valid coordinates are available right now.');
+    if (state.mapUnavailableReason) {
+      setMapEmptyState(true, state.mapUnavailableReason);
+      return;
+    }
 
-    const bounds = [];
+    if (!state.map || !state.mapStyleReady) {
+      setMapEmptyState(false);
+      return;
+    }
+
+    const hasVisibleMapContent = (
+      visibleDevices.length > 0
+      || state.routes.length > 0
+      || state.onlineDistress.length > 0
+      || state.sharedRescuers.length > 0
+    );
+    setMapEmptyState(!hasVisibleMapContent, 'No map data currently has a visible location.');
+
+    ensureOperationalLayers();
+    clearMapMarkers();
+    state.mapPopup?.remove();
+    state.mapPopup = null;
 
     renderConnections(visibleDevices);
-    renderRoutes();
     renderOnlineDistressMarkers();
+    renderRoutes();
     renderSharedRescuerMarkers();
+    visibleDevices.forEach(createDeviceMarker);
 
-    visibleDevices.forEach((device) => {
-      const marker = createMarker(device);
-      marker.addTo(state.markersLayer);
-      bounds.push([Number(device.latitude), Number(device.longitude)]);
-    });
+    const bounds = new maptilersdk.LngLatBounds();
+    let boundsCount = 0;
+    const extendBounds = (lngLat) => {
+      if (!lngLat) return;
+      bounds.extend(lngLat);
+      boundsCount += 1;
+    };
 
-    state.routes.forEach((route) => {
-      routeBoundsLatLngs(route).forEach((latLng) => {
-        bounds.push(latLng);
-      });
-    });
+    visibleDevices.forEach((device) => extendBounds(numericLngLat(device.latitude, device.longitude)));
+    state.routes.forEach((route) => routeBoundsLngLats(route).forEach(extendBounds));
+    state.onlineDistress.forEach((distress) => extendBounds(numericLngLat(distress.latitude, distress.longitude)));
+    state.sharedRescuers.forEach((rescuer) => extendBounds(numericLngLat(rescuer.latitude, rescuer.longitude)));
 
-    state.onlineDistress.forEach((distress) => {
-      const latLng = numericLatLng(distress.latitude, distress.longitude);
-      if (latLng) bounds.push(latLng);
-    });
+    state.map.resize();
+    if (!boundsCount || preserveViewport || state.hasInitializedViewport) return;
 
-    state.sharedRescuers.forEach((rescuer) => {
-      const latLng = numericLatLng(rescuer.latitude, rescuer.longitude);
-      if (latLng) bounds.push(latLng);
-    });
-
-    if (!bounds.length) {
-      setTimeout(() => state.map?.invalidateSize?.(), 0);
-      return;
+    if (boundsCount === 1) {
+      state.map.jumpTo({ center: bounds.getCenter(), zoom: 15 });
+    } else {
+      state.map.fitBounds(bounds, { padding: 36, maxZoom: 15, duration: 0 });
     }
-
-    if (preserveViewport || state.hasInitializedViewport) {
-      setTimeout(() => state.map?.invalidateSize?.(), 0);
-      return;
-    }
-
-    if (bounds.length === 1) {
-      state.map.setView(bounds[0], 15);
-      state.hasInitializedViewport = true;
-      return;
-    }
-
-    state.map.fitBounds(bounds, {
-      padding: [36, 36],
-      maxZoom: 15
-    });
     state.hasInitializedViewport = true;
-
-    setTimeout(() => state.map?.invalidateSize?.(), 0);
   }
-
   async function loadMapDevices(options = {}) {
     const { background = false } = options;
 
@@ -686,10 +1051,12 @@
 
     if (!background) {
       state.loading = true;
-      renderMap();
     }
 
     try {
+      await loadPublicMapConfiguration();
+      renderMap();
+
       const [
         devicesResult,
         routesResult,
@@ -734,7 +1101,7 @@
         state.meshLinks = [];
       }
 
-      ui.setFeedback('');
+      ui.setFeedback(mapProviderWarning, mapProviderWarning ? 'warning' : 'error');
       applyFilters();
       return true;
     } catch (error) {
@@ -788,6 +1155,9 @@
     if (!document.hidden) {
       refreshNow();
     }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    window.requestAnimationFrame(() => state.map?.resize());
   });
   window.addEventListener('beforeunload', stopLiveRefresh);
 
