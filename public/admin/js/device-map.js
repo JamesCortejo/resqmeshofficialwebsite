@@ -310,6 +310,7 @@
         pitch: state.layerPreferences.is3D ? THREE_D_PITCH : 0,
         bearing: 0,
         navigationControl: false,
+        geolocateControl: false,
         terrain: false,
         maptilerLogo: true,
         attributionControl: true
