@@ -84,41 +84,140 @@
         </div>
       </div>
       <div class="hero-logo-panel" aria-label="ResQMesh brand">
+        <div class="hero-signal-stage" aria-hidden="true">
+          <span class="hero-signal-glow"></span>
+          <span class="hero-signal-ring hero-signal-ring-primary"></span>
+          <span class="hero-signal-ring hero-signal-ring-secondary"></span>
+        </div>
         <img src="/assets/logo-full-bgremoved.png" alt="ResQMesh" class="hero-brand-logo">
       </div>
     </div>
   </header>
 
-  <!-- System Summary Section -->
-  <section class="system-flow-section" id="system-flow" aria-labelledby="system-flow-title">
-    <div class="container">
-      <div class="section-kicker">
-        <span class="section-kicker-line"></span>
-        How the system works
-      </div>
-      <div class="system-flow-header">
-        <h2 id="system-flow-title">Built around the way emergencies actually move</h2>
+  <!-- System Overview and Connection Flow -->
+  <section class="system-overview-section container py-medium" aria-labelledby="system-overview-title">
+    <div class="tech-highlight">
+      <div class="tech-content">
+        <span class="section-kicker"><span class="section-kicker-line"></span> System overview</span>
+        <h2 id="system-overview-title">Designed for online access, emergency fallback communication, and rescue
+          coordination.</h2>
         <p>
-          The public website prepares verified access, online services keep people connected when internet is available,
-          and mesh devices provide emergency fallback communication during outages.
+          The website is the control point for registration, approvals, devices, rescue teams, distress signals, and
+          deployments. Online services support connected access when internet is available, while mesh devices keep
+          local communication available when internet or mobile networks are weak.
+        </p>
+        <p>
+          The mobile app connects civilians and rescuers to the system in both modes. When internet is available, users
+          can work through connected online services. When internet is unavailable, nearby mesh devices keep critical
+          access and activity moving.
         </p>
       </div>
+    </div>
 
-      <div class="flow-grid">
-        <article class="flow-card">
-          <span class="flow-icon"><i class="fa-solid fa-user-check"></i></span>
-          <h3>Verified access</h3>
-          <p>Civilians register through the website and wait for admin approval before using ResQMesh services.</p>
+    <div class="mesh-diagram-card" aria-label="ResQMesh system connection overview">
+      <div class="mesh-diagram-header">
+        <div>
+          <h3>ResQMesh Connection Flow</h3>
+          <p>How the website, mobile app, mesh devices, and rescue teams work together.</p>
+        </div>
+      </div>
+
+      <div class="connection-modes">
+        <article class="connection-lane connection-lane-online" aria-labelledby="online-flow-title">
+          <div class="connection-lane-header">
+            <div>
+              <span class="connection-mode-label">Internet available</span>
+              <h4 id="online-flow-title">Online Mode</h4>
+              <p>Direct cloud access while internet service is available.</p>
+            </div>
+          </div>
+
+          <ol class="connection-path connection-path-online" aria-label="Online mode connection path">
+            <li class="connection-node">
+              <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-mobile-screen"></i></span>
+              <strong>Mobile App</strong>
+              <small>Civilians and rescuers</small>
+            </li>
+            <li class="connection-link" aria-hidden="true">
+              <span class="connection-link-label">Internet</span>
+              <span class="connection-link-line"></span>
+            </li>
+            <li class="connection-node connection-node-accent">
+              <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-cloud"></i></span>
+              <strong>ResQMesh Cloud</strong>
+              <small>Connected services and records</small>
+            </li>
+            <li class="connection-link" aria-hidden="true">
+              <span class="connection-link-label">Secure web</span>
+              <span class="connection-link-line"></span>
+            </li>
+            <li class="connection-node">
+              <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-display"></i></span>
+              <strong>Admin Website</strong>
+              <small>Monitoring and response coordination</small>
+            </li>
+          </ol>
         </article>
-        <article class="flow-card">
-          <span class="flow-icon"><i class="fa-solid fa-tower-broadcast"></i></span>
-          <h3>Online and offline access</h3>
-          <p>Users can access ResQMesh online during normal conditions, while mesh devices keep local messaging available when internet or cellular service is unreliable.</p>
-        </article>
-        <article class="flow-card">
-          <span class="flow-icon"><i class="fa-solid fa-truck-medical"></i></span>
-          <h3>Rescue coordination</h3>
-          <p>Admins monitor reports, manage teams, and coordinate response through the ResQMesh admin website.</p>
+
+        <article class="connection-lane connection-lane-mesh" aria-labelledby="mesh-flow-title">
+          <div class="connection-lane-header">
+            <div>
+              <span class="connection-mode-label">No internet required</span>
+              <h4 id="mesh-flow-title">Mesh Mode</h4>
+              <p>Local emergency communication through nearby ResQMesh nodes when internet is unavailable.</p>
+            </div>
+          </div>
+
+          <ol class="connection-path connection-path-mesh" aria-label="Mesh mode connection path">
+            <li class="connection-node">
+              <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-mobile-screen"></i></span>
+              <strong>Mobile App</strong>
+              <small>Civilians and rescuers</small>
+            </li>
+            <li class="connection-link" aria-hidden="true">
+              <span class="connection-link-label">Wi-Fi hotspot</span>
+              <span class="connection-link-line"></span>
+            </li>
+            <li class="connection-node connection-node-accent">
+              <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-tower-broadcast"></i></span>
+              <strong>Nearby Node</strong>
+              <small>Local firmware and services</small>
+            </li>
+            <li class="connection-link" aria-hidden="true">
+              <span class="connection-link-label">LoRa</span>
+              <span class="connection-link-line"></span>
+            </li>
+            <li class="connection-node">
+              <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-diagram-project"></i></span>
+              <strong>LoRa Mesh</strong>
+              <small>Node-to-node emergency traffic</small>
+            </li>
+            <li class="connection-link" aria-hidden="true">
+              <span class="connection-link-label">Mesh links</span>
+              <span class="connection-link-line"></span>
+            </li>
+            <li class="connection-node">
+              <span class="connection-node-icon" aria-hidden="true"><i class="fa-solid fa-people-group"></i></span>
+              <strong>Reachable Users</strong>
+              <small>Civilians and responders</small>
+            </li>
+          </ol>
+
+          <div class="connection-sync"
+            aria-label="Mesh records synchronize to the ResQMesh cloud when internet returns">
+            <div class="connection-sync-endpoint">
+              <i class="fa-solid fa-database" aria-hidden="true"></i>
+              <span>Mesh records</span>
+            </div>
+            <div class="connection-sync-link" aria-hidden="true">
+              <span>Deferred sync</span>
+              <i></i>
+            </div>
+            <div class="connection-sync-endpoint">
+              <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+              <span>ResQMesh Cloud</span>
+            </div>
+          </div>
         </article>
       </div>
     </div>
@@ -130,7 +229,8 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <img src="/assets/logo-full.png" alt="ResQMesh Full Logo" class="footer-logo-img">
-          <p class="footer-desc">Supporting online and offline emergency communication, mesh-supported resilience, and coordinated response
+          <p class="footer-desc">Supporting online and offline emergency communication, mesh-supported resilience, and
+            coordinated response
             for Valencia City, Bukidnon.</p>
         </div>
         <div>
@@ -153,7 +253,8 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p class="footer-copyright">&copy; 2026 ResQMesh. Emergency communication network for Valencia City, Bukidnon.</p>
+        <p class="footer-copyright">&copy; 2026 ResQMesh. Emergency communication network for Valencia City, Bukidnon.
+        </p>
       </div>
     </div>
   </footer>

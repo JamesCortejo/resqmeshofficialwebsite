@@ -72,13 +72,26 @@
         return;
       }
 
-      state.submitError = '';
-      const stepErrors = validation.validateStep3();
-
-      if (Object.keys(stepErrors).length > 0) {
-        markup.setErrors(stepErrors);
-        validation.showValidationErrors(stepErrors, 3);
+      if (state.currentStep !== 4) {
         return;
+      }
+
+      state.submitError = '';
+      const validationSteps = [
+        [1, validation.validateStep1],
+        [2, validation.validateStep2],
+        [3, validation.validateStep3]
+      ];
+
+      for (const [step, validate] of validationSteps) {
+        const stepErrors = validate();
+
+        if (Object.keys(stepErrors).length > 0) {
+          state.currentStep = step;
+          markup.setErrors(stepErrors);
+          validation.showValidationErrors(stepErrors, step);
+          return;
+        }
       }
 
       const payload = buildRegistrationPayload();

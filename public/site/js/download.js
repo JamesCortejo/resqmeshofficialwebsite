@@ -6,8 +6,23 @@
   const status = document.getElementById('downloadSecurityStatus');
   const versionTarget = document.querySelector('[data-app-version]');
   const sizeTarget = document.querySelector('[data-app-size]');
+  const updatedTarget = document.querySelector('[data-app-updated]');
   let cooldownUntil = 0;
   let cooldownTimer = null;
+
+  function formatUpdatedDate(value) {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  }
 
   async function loadAppInfo() {
     try {
@@ -29,6 +44,11 @@
 
       if (sizeTarget && data.sizeLabel) {
         sizeTarget.textContent = data.sizeLabel;
+      }
+
+      const updatedLabel = formatUpdatedDate(data.updatedAt);
+      if (updatedTarget && updatedLabel) {
+        updatedTarget.textContent = updatedLabel;
       }
 
       buttons.forEach((button) => {

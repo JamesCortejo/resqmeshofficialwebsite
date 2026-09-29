@@ -177,6 +177,7 @@ function getDownloadInfo() {
     version: getApkVersion(APK_FILENAME),
     sizeBytes: stats ? stats.size : null,
     sizeLabel: stats ? formatFileSize(stats.size) : 'Upload pending',
+    updatedAt: stats ? stats.mtime.toISOString() : null,
     available: exists
   };
 }

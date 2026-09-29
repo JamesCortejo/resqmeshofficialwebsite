@@ -59,13 +59,9 @@
 }
 
 .download-note {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid var(--color-border);
-  border-radius: 18px;
   color: var(--color-muted) !important;
   font-size: 0.9rem !important;
   margin-top: 1.2rem;
-  padding: 0.95rem 1rem;
 }
 
 .download-recaptcha-notice {
@@ -113,26 +109,6 @@
   padding: clamp(1rem, 2vw, 1.35rem);
 }
 
-.download-card-list div {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--color-border);
-  border-radius: 15px;
-  color: var(--color-ink);
-  display: flex;
-  font-size: 0.82rem;
-  font-weight: 850;
-  gap: 0.55rem;
-  line-height: 1.35;
-  min-width: 0;
-  padding: 0.72rem;
-}
-
-.download-card-list i {
-  color: var(--color-primary);
-  flex: 0 0 auto;
-}
-
 .download-app-meta {
   display: grid;
   gap: 0.65rem;
@@ -140,10 +116,7 @@
 }
 
 .download-app-meta div {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--color-border);
-  border-radius: 15px;
-  padding: 0.78rem 0.9rem;
+  min-width: 0;
 }
 
 .download-app-meta small {
@@ -163,10 +136,8 @@
   font-weight: 900;
 }
 
-.download-card-list {
-  display: grid;
-  gap: 0.6rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.download-app-meta > div:last-child {
+  grid-column: 1 / -1;
 }
 
 .download-card {
@@ -414,7 +385,9 @@
   border: 1px solid var(--color-border);
   border-radius: 26px;
   box-shadow: var(--shadow-soft);
-  padding: 1.55rem;
+  isolation: isolate;
+  padding: 2.35rem 1.55rem 1.55rem;
+  position: relative;
 }
 
 .download-guide-card span {
@@ -427,8 +400,14 @@
   font-weight: 900;
   height: 46px;
   justify-content: center;
-  margin-bottom: 1.15rem;
+  left: -14px;
+  position: absolute;
+  top: -18px;
   width: 46px;
+  z-index: 2;
+  box-shadow:
+    0 10px 22px rgba(237, 66, 47, 0.18),
+    0 3px 8px rgba(16, 24, 40, 0.08);
 }
 
 .download-guide-card h3 {
@@ -452,6 +431,7 @@
   }
 
   .download-guide-grid {
+    gap: 2.25rem;
     grid-template-columns: 1fr;
   }
 
@@ -478,6 +458,10 @@
 }
 
 @media (max-width: 520px) {
+  .download-guide-card {
+    margin-inline: 1rem;
+  }
+
   .download-release-panel {
     border-radius: 18px;
     gap: 0.65rem;
@@ -490,11 +474,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .download-app-meta div {
-    border-radius: 12px;
-    padding: 0.62rem 0.7rem;
-  }
-
   .download-app-meta small {
     font-size: 0.6rem;
     letter-spacing: 0.08em;
@@ -503,27 +482,6 @@
   .download-app-meta strong {
     font-size: 0.88rem;
     overflow-wrap: anywhere;
-  }
-
-  .download-card-list {
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-    gap: 0;
-    grid-template-columns: 1fr;
-    overflow: hidden;
-  }
-
-  .download-card-list div {
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    font-size: 0.76rem;
-    padding: 0.58rem 0.7rem;
-  }
-
-  .download-card-list div + div {
-    border-top: 1px solid var(--color-border);
   }
 
   .download-card {

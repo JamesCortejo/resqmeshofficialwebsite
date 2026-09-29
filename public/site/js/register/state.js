@@ -11,6 +11,10 @@
       toast: null,
       uploadProgress: null,
       errors: {},
+      passwordVisibility: {
+        password: false,
+        confirmPassword: false
+      },
       formData: {
         firstName: '',
         middleName: '',
