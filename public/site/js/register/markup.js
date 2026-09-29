@@ -709,6 +709,8 @@
               <div class="register-account-help">
                 <span>Already registered?</span>
                 <a href="/download">Download the app to sign in.</a>
+                <span class="register-account-divider" aria-hidden="true">&bull;</span>
+                <a href="/forgot-password">Forgot your password?</a>
               </div>
             </form>
           </div>

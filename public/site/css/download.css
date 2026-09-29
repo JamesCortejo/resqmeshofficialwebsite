@@ -58,6 +58,25 @@
   margin-top: 0;
 }
 
+.download-account-help {
+  color: var(--color-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  gap: 0.25rem 0.4rem;
+  margin: 0.75rem 0 0;
+}
+
+.download-account-help a {
+  color: var(--color-primary-strong);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.download-account-help a:hover {
+  text-decoration: underline;
+}
+
 .download-note {
   color: var(--color-muted) !important;
   font-size: 0.9rem !important;

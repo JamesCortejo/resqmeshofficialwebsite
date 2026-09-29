@@ -909,6 +909,15 @@
   text-decoration: none;
 }
 
+.register-account-help a:hover {
+  text-decoration: underline;
+}
+
+.register-account-divider {
+  color: var(--color-border-strong);
+  margin: 0 0.15rem;
+}
+
 @media (max-width: 768px) {
   .register-toast {
     left: 1rem;
