@@ -7,6 +7,7 @@
     "start": "node server.js",
     "seed:pending": "node server/scripts/seedPendingAccounts.js",
     "seed:reports": "node server/scripts/seedIncidentReportData.js",
+    "demo:map": "node server/scripts/demoMapData.js",
     "audit:users": "node server/scripts/auditUsers.js",
     "admin:create": "node server/scripts/createAdmin.js",
     "device:upsert": "node server/scripts/upsertSyncDevice.js"
