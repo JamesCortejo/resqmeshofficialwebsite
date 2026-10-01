@@ -313,7 +313,11 @@
         geolocateControl: false,
         terrain: false,
         maptilerLogo: true,
-        attributionControl: true
+        attributionControl: {
+          customAttribution: [
+            '<a href="https://openrouteservice.org/" target="_blank" rel="noopener noreferrer">&copy; openrouteservice</a> by <a href="https://heigit.org/" target="_blank" rel="noopener noreferrer">HeiGIT</a> | Data from <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
+          ]
+        }
       });
     } catch (error) {
       state.map = null;
