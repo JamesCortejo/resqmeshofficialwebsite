@@ -860,6 +860,15 @@ async function rollbackDemo(force) {
       )
     `);
     await trx.run(`
+      UPDATE rescuer_locations_current
+      SET deployment_id = NULL
+      WHERE deployment_id IN (
+        SELECT id FROM distress_deployments
+        WHERE deployment_code IN ('DEMO-DPL-VAL-001', 'DEMO-DPL-VAL-002')
+      )
+        AND node_id = ?
+    `, [state.locationTag]);
+    await trx.run(`
       DELETE FROM distress_deployments
       WHERE deployment_code IN ('DEMO-DPL-VAL-001', 'DEMO-DPL-VAL-002')
     `);
