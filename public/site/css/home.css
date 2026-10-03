@@ -1044,6 +1044,17 @@
     width: min(100%, 76vw);
   }
 
+  .device-capabilities {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .device-capabilities li {
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 0;
+    text-align: center;
+  }
+
   .device-feature-content h2 {
     font-size: clamp(2rem, 8.5vw, 3rem);
   }
