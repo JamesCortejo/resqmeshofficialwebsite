@@ -612,3 +612,183 @@
     width: 100%;
   }
 }
+/* Reports visual consistency polish; layout rules intentionally unchanged. */
+.reports-catalog-panel,
+.reports-builder-panel,
+.reports-preview-panel {
+  border-color: var(--admin-border);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.reports-pane-header h3 {
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.reports-summary-label,
+.reports-pane-kicker,
+.reports-preview-sections-label,
+.reports-preview-meta-item span,
+.reports-field span {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.reports-catalog-card {
+  border-color: var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  box-shadow: none;
+  transform: none;
+}
+
+.reports-catalog-card:hover:not(:disabled) {
+  border-color: var(--admin-border-strong);
+  background: #f9fbfd;
+  box-shadow: none;
+  transform: none;
+}
+
+.reports-catalog-card.is-active {
+  border-color: rgba(231, 75, 50, 0.38);
+  background: var(--admin-soft);
+  box-shadow: inset 3px 0 0 var(--admin-primary);
+}
+
+.reports-catalog-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.reports-catalog-desc {
+  color: var(--admin-muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.reports-catalog-icon {
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-soft);
+}
+
+.reports-field select,
+.reports-field input {
+  min-height: 42px;
+  border-color: var(--admin-border-strong);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 500;
+  padding-block: 0.58rem;
+}
+
+.reports-field select:focus,
+.reports-field input:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
+}
+
+.reports-include-panel,
+.reports-preview-card,
+.reports-recent-card {
+  border-color: var(--admin-border);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.reports-checkbox-card {
+  border-color: var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.reports-checkbox-card:hover {
+  border-color: var(--admin-border-strong);
+  background: #f9fbfd;
+  box-shadow: none;
+  transform: none;
+}
+
+.reports-checkbox-card:has(input:checked) {
+  border-color: rgba(231, 75, 50, 0.34);
+  background: var(--admin-soft);
+}
+
+.reports-checkbox-card:focus-within {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(231, 75, 50, 0.12);
+}
+
+.reports-checkbox-copy strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.reports-checkbox-copy p {
+  font-size: 0.76rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.reports-preview-badge {
+  border-color: rgba(231, 75, 50, 0.26);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-soft);
+  color: var(--admin-primary-hover);
+  font-weight: 700;
+}
+
+.reports-preview-head strong {
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.reports-preview-head p,
+.reports-recent-item span {
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.reports-preview-meta-item,
+.reports-recent-item {
+  border-color: var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: #f9fbfd;
+  box-shadow: none;
+}
+
+.reports-preview-meta-item strong,
+.reports-preview-sections li,
+.reports-recent-item strong {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.reports-primary-button {
+  min-height: 42px;
+  border-color: var(--admin-primary);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-primary);
+  box-shadow: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding-block: 0.58rem;
+  transform: none;
+}
+
+.reports-primary-button:hover:not(:disabled) {
+  border-color: var(--admin-primary-hover);
+  background: var(--admin-primary-hover);
+  box-shadow: 0 6px 16px rgba(207, 60, 37, 0.18);
+  transform: none;
+}
+
+.reports-feedback,
+.reports-password-message {
+  border-radius: var(--admin-radius-md);
+  box-shadow: none;
+}
