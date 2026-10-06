@@ -10,6 +10,7 @@ const {
   ADMIN_ACTIONS,
   AUDIT_RESULTS,
   getErrorStatusCode,
+  executeAuditedAdminAction,
   logAdminAction
 } = require('../services/adminActionAuditService');
 
@@ -152,20 +153,33 @@ exports.getIdImage = async (req, res) => {
 };
 
 exports.updateStatus = async (req, res) => {
-  try {
-    const id = parseId(req.params.id);
+  let id = null;
+  const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
+  const reason = req.body && req.body.reason ? String(req.body.reason) : '';
+  const action = status === 'approved'
+    ? ADMIN_ACTIONS.CIVILIAN_ACCOUNT_APPROVED
+    : ADMIN_ACTIONS.CIVILIAN_ACCOUNT_DECLINED;
 
+  try {
+    id = parseId(req.params.id);
     if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid account id.'
-      });
+      const error = new Error('Invalid account id.');
+      error.statusCode = 400;
+      throw error;
     }
 
-    const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
-    const reason = req.body && req.body.reason ? String(req.body.reason) : '';
-    const account = await updateAccountReviewStatus(id, status, reason, req.adminUser?.id || null);
-
+    const account = await executeAuditedAdminAction(
+      req,
+      () => updateAccountReviewStatus(id, status, reason, req.adminUser?.id || null),
+      (updated) => ({
+        action,
+        targetType: 'civilian_account',
+        targetId: id,
+        targetCode: updated.userCode,
+        statusCode: 200,
+        metadata: { requestedStatus: status, requestedReason: reason || null }
+      })
+    );
     return res.json({
       success: true,
       message: `Account ${account.userCode} has been ${account.status}.`,
@@ -173,10 +187,18 @@ exports.updateStatus = async (req, res) => {
       data: account
     });
   } catch (error) {
+    await logAdminAction(req, {
+      action,
+      targetType: 'civilian_account',
+      targetId: id || req.params.id,
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message,
+      metadata: { requestedStatus: status || null, requestedReason: reason || null }
+    });
     return errorResponse(res, error, 'Unable to update account status.');
   }
 };
-
 exports.updateAccessStatus = async (req, res) => {
   let id = null;
   let status = '';
@@ -237,22 +259,24 @@ exports.updateAccessStatus = async (req, res) => {
       });
     }
 
-    const account = await updateAccountAccessReviewStatus(id, status, reason, req.adminUser?.id || null, adminPassword);
-    const action = account.status === 'suspended' ? 'suspended' : 'activated';
-
-    await auditAccountAccessAttempt(req, {
-      id,
-      status,
-      targetCode: account.userCode,
-      result: AUDIT_RESULTS.SUCCESS,
-      statusCode: 200,
-      reason: reason || null,
-      requestedReason: reason
-    });
+    const account = await executeAuditedAdminAction(
+      req,
+      () => updateAccountAccessReviewStatus(id, status, reason, req.adminUser?.id || null, adminPassword),
+      (updated) => ({
+        action: getAccountAccessAuditAction(status),
+        targetType: 'civilian_account',
+        targetId: id,
+        targetCode: updated.userCode,
+        statusCode: 200,
+        reason: reason || null,
+        metadata: { requestedStatus: status, requestedReason: reason || null }
+      })
+    );
+    const actionLabel = account.status === 'suspended' ? 'suspended' : 'activated';
 
     return res.json({
       success: true,
-      message: `Account ${account.userCode} has been ${action}.`,
+      message: `Account ${account.userCode} has been ${actionLabel}.`,
       warning: account.emailWarning || '',
       data: account
     });

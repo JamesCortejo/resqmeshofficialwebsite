@@ -225,7 +225,6 @@
           `
           : `
             <button type="button" class="account-approve-button" data-modal-action="approved">
-              <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
               <span>Activate Account</span>
             </button>
           `;

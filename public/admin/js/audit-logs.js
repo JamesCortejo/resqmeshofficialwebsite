@@ -2,18 +2,27 @@
   'use strict';
 
   var ACTION_OPTIONS = [
+    ['admin_login_failed', 'Admin login failed'],
+    ['admin_login_succeeded', 'Admin login succeeded'],
+    ['admin_logout', 'Admin logout'],
+    ['civilian_account_approved', 'Civilian account approved'],
+    ['civilian_account_declined', 'Civilian account declined'],
     ['civilian_account_suspended', 'Civilian account suspended'],
     ['civilian_account_activated', 'Civilian account activated'],
+    ['rescuer_created', 'Rescuer created'],
     ['rescuer_archived', 'Rescuer archived'],
     ['rescuer_activated', 'Rescuer activated'],
     ['rescuer_password_reset', 'Rescuer password reset'],
     ['rescuer_operational_status_changed', 'Rescuer status changed'],
     ['report_export_generated', 'Report export generated'],
+    ['deployment_created', 'Deployment created'],
     ['deployment_canceled', 'Deployment canceled'],
     ['deployment_accomplished', 'Deployment accomplished'],
     ['department_chat_created', 'Department chat created'],
     ['department_chat_updated', 'Department chat updated'],
     ['department_chat_archived', 'Department chat archived'],
+    ['admin_message_sent', 'Admin message sent'],
+    ['admin_announcement_sent', 'Admin announcement sent'],
     ['rescue_team_created', 'Rescue team created'],
     ['rescue_team_updated', 'Rescue team updated'],
     ['admin_session_required_failed', 'Admin session required failed'],
@@ -28,6 +37,8 @@
     ['report_export', 'Report export'],
     ['deployment', 'Deployment'],
     ['department_chat', 'Department chat'],
+    ['online_chat_conversation', 'Online chat conversation'],
+    ['online_chat_global', 'Global announcements'],
     ['rescue_team', 'Rescue team'],
     ['admin_permission', 'Admin permission'],
     ['admin_session', 'Admin session'],
@@ -40,7 +51,9 @@
     total: 0,
     totalPages: 1,
     logs: [],
-    loading: false
+    loading: false,
+    requestId: 0,
+    abortController: null
   };
 
   var dom = {};
@@ -127,7 +140,8 @@
 
     return new Intl.DateTimeFormat('en-PH', {
       dateStyle: 'medium',
-      timeStyle: 'short'
+      timeStyle: 'short',
+      timeZone: 'Asia/Manila'
     }).format(date);
   }
 
@@ -268,15 +282,21 @@
   }
 
   async function loadLogs(page) {
-    if (state.loading) {
-      return;
+    state.requestId += 1;
+    var requestId = state.requestId;
+    if (state.abortController) {
+      state.abortController.abort();
     }
+    state.abortController = new AbortController();
 
     setLoading(true);
     setFeedback('', 'info');
 
     try {
-      var payload = await adminFetch('/api/admin/audit-logs?' + readFilters(page || 1).toString());
+      var payload = await adminFetch('/api/admin/audit-logs?' + readFilters(page || 1).toString(), { signal: state.abortController.signal });
+      if (requestId !== state.requestId) {
+        return;
+      }
       state.logs = Array.isArray(payload.data) ? payload.data : [];
       state.page = Number(payload.page) || 1;
       state.limit = Number(payload.limit) || 50;
@@ -284,12 +304,24 @@
       state.totalPages = Number(payload.totalPages) || 1;
       renderLogs();
     } catch (error) {
+      if (error && error.name === 'AbortError') {
+        return;
+      }
       state.logs = [];
       renderLogs();
       setFeedback(error.message || 'Unable to load audit logs.', 'error');
     } finally {
-      setLoading(false);
+      if (requestId === state.requestId) {
+        setLoading(false);
+      }
     }
+  }
+
+  function persistenceBadge(status) {
+    if (status !== 'pending') {
+      return '';
+    }
+    return '<span class="audit-log-badge audit-log-badge-pending">Pending</span>';
   }
 
   function resultBadge(result) {
@@ -314,13 +346,13 @@
       var row = document.createElement('tr');
       row.className = 'audit-log-row';
       row.tabIndex = 0;
-      row.dataset.logId = String(log.id || '');
+      row.dataset.logId = String(log.eventKey || log.id || '');
       row.innerHTML = [
         '<td><span class="audit-log-time">' + escapeHtml(formatDate(log.createdAt)) + '</span></td>',
         '<td><strong>' + escapeHtml(safeText(log.adminUserCode, 'Unknown admin')) + '</strong></td>',
         '<td><span class="audit-log-action">' + escapeHtml(formatAction(log.action)) + '</span><small>' + escapeHtml(log.action || '') + '</small></td>',
         '<td><span>' + escapeHtml(formatTargetType(log.targetType)) + '</span><small>' + escapeHtml(safeText(log.targetCode || log.targetId, 'No target')) + '</small></td>',
-        '<td>' + resultBadge(log.result) + '</td>',
+        '<td><span class="audit-log-result-stack">' + resultBadge(log.result) + persistenceBadge(log.persistenceStatus) + '</span></td>',
         '<td>' + escapeHtml(formatStatusCode(log.statusCode)) + '</td>',
         '<td>' + escapeHtml(safeText(log.ipAddress, 'N/A')) + '</td>',
         '<td><span class="audit-log-reason">' + escapeHtml(safeText(log.reason, 'No reason')) + '</span><small>' + escapeHtml(metadataPreview(log.metadata)) + '</small></td>'
@@ -339,7 +371,7 @@
 
   function findLogById(logId) {
     return state.logs.find(function findLog(log) {
-      return String(log.id) === String(logId);
+      return String(log.eventKey || log.id) === String(logId);
     });
   }
 
@@ -361,6 +393,8 @@
       detailRow('Action', formatAction(log.action) + ' (' + safeText(log.action, 'unknown') + ')'),
       detailRow('Target', formatTargetType(log.targetType) + ' - ' + safeText(log.targetCode || log.targetId, 'No target')),
       detailRow('Result', titleize(log.result || 'unknown')),
+      detailRow('Persistence', titleize(log.persistenceStatus || 'recorded')),
+      detailRow('Source', titleize(log.source || 'action')),
       detailRow('Status code', formatStatusCode(log.statusCode)),
       detailRow('IP address', log.ipAddress || 'N/A'),
       detailRow('User agent', log.userAgent || 'N/A'),

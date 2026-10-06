@@ -11,6 +11,7 @@ const {
   ADMIN_ACTIONS,
   AUDIT_RESULTS,
   getErrorStatusCode,
+  executeAuditedAdminAction,
   logAdminAction
 } = require('../services/adminActionAuditService');
 
@@ -57,14 +58,23 @@ async function auditReportExport(req, reportType, details) {
 
 async function generateReport(req, res, reportType, generator, fallbackMessage) {
   try {
-    const result = await generator(req.adminUser.id, req.body || {});
-
-    await auditReportExport(req, reportType, {
-      result: AUDIT_RESULTS.SUCCESS,
-      statusCode: 200,
-      exportId: result.exportId,
-      filename: result.filename
-    });
+    const result = await executeAuditedAdminAction(
+      req,
+      () => generator(req.adminUser.id, req.body || {}),
+      (generated) => ({
+        action: ADMIN_ACTIONS.REPORT_EXPORT_GENERATED,
+        targetType: 'report_export',
+        targetId: generated.exportId || null,
+        targetCode: generated.filename || reportType,
+        statusCode: 200,
+        metadata: {
+          reportType,
+          exportId: generated.exportId || null,
+          filename: generated.filename || null,
+          options: req.body || {}
+        }
+      })
+    );
 
     return sendReportResponse(res, result);
   } catch (error) {

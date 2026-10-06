@@ -388,3 +388,6 @@
 
 
 
+
+.audit-log-result-stack { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; }
+.audit-log-badge-pending { background: #fff7dd; border-color: #e7bd4d; color: #795500; }

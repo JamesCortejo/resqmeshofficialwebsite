@@ -10,6 +10,7 @@ const {
   ADMIN_ACTIONS,
   AUDIT_RESULTS,
   getErrorStatusCode,
+  executeAuditedAdminAction,
   logAdminAction
 } = require('../services/adminActionAuditService');
 
@@ -109,13 +110,35 @@ exports.getDistressSignalDetails = async (req, res) => {
 exports.deployDistressSignal = async (req, res) => {
   try {
     if (!isValidDistressKey(req.params.id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid distress signal id.'
+      await auditDeploymentAction(req, {
+        action: ADMIN_ACTIONS.DEPLOYMENT_CREATED,
+        id: req.params.id,
+        result: AUDIT_RESULTS.FAILURE,
+        statusCode: 400,
+        reason: 'Invalid distress signal id.'
       });
+      return res.status(400).json({ success: false, message: 'Invalid distress signal id.' });
     }
 
-    const signal = await deployDistressSignal(req.params.id, req.body || {}, req.adminUser);
+    const signal = await executeAuditedAdminAction(
+      req,
+      () => deployDistressSignal(req.params.id, req.body || {}, req.adminUser),
+      (createdSignal) => {
+        const deployment = createdSignal.deployment || {};
+        return {
+          action: ADMIN_ACTIONS.DEPLOYMENT_CREATED,
+          targetType: 'deployment',
+          targetId: deployment.id || req.params.id,
+          targetCode: deployment.deploymentCode || null,
+          statusCode: 201,
+          metadata: {
+            deploymentStatus: deployment.status || 'deployed',
+            distressSource: createdSignal.source || deployment.distressSource || null,
+            distressCode: createdSignal.distressCode || null
+          }
+        };
+      }
+    );
 
     return res.status(201).json({
       success: true,
@@ -123,10 +146,16 @@ exports.deployDistressSignal = async (req, res) => {
       data: signal
     });
   } catch (error) {
+    await auditDeploymentAction(req, {
+      action: ADMIN_ACTIONS.DEPLOYMENT_CREATED,
+      id: req.params.id,
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message
+    });
     return errorResponse(res, error, 'Unable to deploy rescue team.');
   }
 };
-
 exports.cancelDeployment = async (req, res) => {
   let id = null;
 
@@ -148,18 +177,18 @@ exports.cancelDeployment = async (req, res) => {
       });
     }
 
-    const deployment = await cancelDeployment(id);
-
-    await auditDeploymentAction(req, {
+    const deployment = await executeAuditedAdminAction(req, () => cancelDeployment(id), (updated) => ({
       action: ADMIN_ACTIONS.DEPLOYMENT_CANCELED,
-      id,
-      targetCode: deployment.deploymentCode,
-      result: AUDIT_RESULTS.SUCCESS,
+      targetType: 'deployment',
+      targetId: id,
+      targetCode: updated.deploymentCode,
       statusCode: 200,
-      deploymentStatus: deployment.status,
-      distressSource: deployment.distressSource,
-      distressCode: deployment.distressCode
-    });
+      metadata: {
+        deploymentStatus: updated.status,
+        distressSource: updated.distressSource,
+        distressCode: updated.distressCode
+      }
+    }));
 
     return res.json({
       success: true,
@@ -200,18 +229,18 @@ exports.accomplishDeployment = async (req, res) => {
       });
     }
 
-    const deployment = await accomplishDeployment(id);
-
-    await auditDeploymentAction(req, {
+    const deployment = await executeAuditedAdminAction(req, () => accomplishDeployment(id), (updated) => ({
       action: ADMIN_ACTIONS.DEPLOYMENT_ACCOMPLISHED,
-      id,
-      targetCode: deployment.deploymentCode,
-      result: AUDIT_RESULTS.SUCCESS,
+      targetType: 'deployment',
+      targetId: id,
+      targetCode: updated.deploymentCode,
       statusCode: 200,
-      deploymentStatus: deployment.status,
-      distressSource: deployment.distressSource,
-      distressCode: deployment.distressCode
-    });
+      metadata: {
+        deploymentStatus: updated.status,
+        distressSource: updated.distressSource,
+        distressCode: updated.distressCode
+      }
+    }));
 
     return res.json({
       success: true,

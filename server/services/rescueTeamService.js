@@ -278,7 +278,7 @@ async function createRescueTeamProfile(payload) {
   }
 
   const response = await fetchTeamDetail(result.lastID);
-  notifyRescueTeamCreated(response);
+  await notifyRescueTeamCreated(response);
 
   return response;
 }
@@ -323,8 +323,8 @@ async function updateRescueTeamProfile(id, payload) {
   const response = await fetchTeamDetail(id);
   const rosterChanged = idsChanged(currentMemberIds, validated.rescuerIds);
 
-  notifyRescueTeamUpdated(response);
-  notifyRescueTeamRosterChanged(response, rosterChanged);
+  await notifyRescueTeamUpdated(response);
+  await notifyRescueTeamRosterChanged(response, rosterChanged);
 
   return {
     message: `Rescue team ${response.teamCode} updated successfully.`,

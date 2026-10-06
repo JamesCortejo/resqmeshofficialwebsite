@@ -16,6 +16,7 @@ const {
   ADMIN_ACTIONS,
   AUDIT_RESULTS,
   getErrorStatusCode,
+  executeAuditedAdminAction,
   logAdminAction
 } = require('../services/adminActionAuditService');
 
@@ -56,8 +57,8 @@ function getDepartmentAuditMetadata(req, department = null) {
   };
 }
 
-async function auditDepartmentChatAction(req, details) {
-  await logAdminAction(req, {
+function departmentAuditEntry(req, details) {
+  return {
     action: details.action,
     targetType: 'department_chat',
     targetId: details.id,
@@ -66,7 +67,11 @@ async function auditDepartmentChatAction(req, details) {
     statusCode: details.statusCode,
     reason: details.reason,
     metadata: getDepartmentAuditMetadata(req, details.department)
-  });
+  };
+}
+
+async function auditDepartmentChatAction(req, details) {
+  await logAdminAction(req, departmentAuditEntry(req, details));
 }
 
 exports.listDepartments = async (req, res) => {
@@ -87,16 +92,13 @@ exports.listDepartments = async (req, res) => {
 
 exports.createDepartment = async (req, res) => {
   try {
-    const department = await createDepartmentChat(req.body || {}, req.file || null);
-
-    await auditDepartmentChatAction(req, {
+    const department = await executeAuditedAdminAction(req, () => createDepartmentChat(req.body || {}, req.file || null), (created) => departmentAuditEntry(req, {
       action: ADMIN_ACTIONS.DEPARTMENT_CHAT_CREATED,
-      id: department.id,
-      targetCode: getDepartmentTargetCode(department),
-      department,
-      result: AUDIT_RESULTS.SUCCESS,
+      id: created.id,
+      targetCode: getDepartmentTargetCode(created),
+      department: created,
       statusCode: 201
-    });
+    }));
 
     return res.status(201).json({
       success: true,
@@ -136,16 +138,13 @@ exports.updateDepartment = async (req, res) => {
       });
     }
 
-    const department = await updateDepartmentChat(id, req.body || {}, req.file || null);
-
-    await auditDepartmentChatAction(req, {
+    const department = await executeAuditedAdminAction(req, () => updateDepartmentChat(id, req.body || {}, req.file || null), (updated) => departmentAuditEntry(req, {
       action: ADMIN_ACTIONS.DEPARTMENT_CHAT_UPDATED,
       id,
-      targetCode: getDepartmentTargetCode(department),
-      department,
-      result: AUDIT_RESULTS.SUCCESS,
+      targetCode: getDepartmentTargetCode(updated),
+      department: updated,
       statusCode: 200
-    });
+    }));
 
     return res.json({
       success: true,
@@ -186,16 +185,13 @@ exports.archiveDepartment = async (req, res) => {
       });
     }
 
-    const department = await archiveDepartmentChat(id);
-
-    await auditDepartmentChatAction(req, {
+    const department = await executeAuditedAdminAction(req, () => archiveDepartmentChat(id), (archived) => departmentAuditEntry(req, {
       action: ADMIN_ACTIONS.DEPARTMENT_CHAT_ARCHIVED,
       id,
-      targetCode: getDepartmentTargetCode(department),
-      department,
-      result: AUDIT_RESULTS.SUCCESS,
+      targetCode: getDepartmentTargetCode(archived),
+      department: archived,
       statusCode: 200
-    });
+    }));
 
     return res.json({
       success: true,
@@ -292,28 +288,45 @@ exports.listMessages = async (req, res) => {
 };
 
 exports.sendMessage = async (req, res) => {
+  const conversationId = parseId(req.params.id);
   try {
-    const conversationId = parseId(req.params.id);
-
     if (!conversationId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid conversation id.'
-      });
+      const error = new Error('Invalid conversation id.');
+      error.statusCode = 400;
+      throw error;
     }
 
-    const message = await sendAdminMessage(conversationId, req.adminUser.id, req.body?.body);
+    const message = await executeAuditedAdminAction(
+      req,
+      () => sendAdminMessage(conversationId, req.adminUser.id, req.body?.body),
+      (created) => ({
+        action: ADMIN_ACTIONS.ADMIN_MESSAGE_SENT,
+        targetType: 'online_chat_conversation',
+        targetId: conversationId,
+        targetCode: created.id || null,
+        statusCode: 201,
+        metadata: {
+          messageId: created.id || null,
+          messageType: created.messageType || 'text',
+          characterCount: String(req.body?.body || '').length
+        }
+      })
+    );
 
-    return res.status(201).json({
-      success: true,
-      message: 'Message sent.',
-      data: message
-    });
+    return res.status(201).json({ success: true, message: 'Message sent.', data: message });
   } catch (error) {
+    await logAdminAction(req, {
+      action: ADMIN_ACTIONS.ADMIN_MESSAGE_SENT,
+      targetType: 'online_chat_conversation',
+      targetId: conversationId || req.params.id,
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message,
+      metadata: { characterCount: String(req.body?.body || '').length }
+    });
     return errorResponse(res, error, 'Unable to send message.');
   }
 };
-
 exports.getVoiceClip = async (req, res) => {
   try {
     const messageId = parseId(req.params.id);
@@ -341,18 +354,36 @@ exports.getVoiceClip = async (req, res) => {
 
 exports.sendGlobalMessage = async (req, res) => {
   try {
-    const message = await sendGlobalAnnouncement(req.adminUser.id, req.body?.body);
+    const message = await executeAuditedAdminAction(
+      req,
+      () => sendGlobalAnnouncement(req.adminUser.id, req.body?.body),
+      (created) => ({
+        action: ADMIN_ACTIONS.ADMIN_ANNOUNCEMENT_SENT,
+        targetType: 'online_chat_global',
+        targetId: created.departmentId || null,
+        targetCode: created.id || null,
+        statusCode: 201,
+        metadata: {
+          messageId: created.id || null,
+          messageType: created.messageType || 'text',
+          characterCount: String(req.body?.body || '').length
+        }
+      })
+    );
 
-    return res.status(201).json({
-      success: true,
-      message: 'Announcement sent.',
-      data: message
-    });
+    return res.status(201).json({ success: true, message: 'Announcement sent.', data: message });
   } catch (error) {
+    await logAdminAction(req, {
+      action: ADMIN_ACTIONS.ADMIN_ANNOUNCEMENT_SENT,
+      targetType: 'online_chat_global',
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message,
+      metadata: { characterCount: String(req.body?.body || '').length }
+    });
     return errorResponse(res, error, 'Unable to send announcement.');
   }
 };
-
 exports.markRead = async (req, res) => {
   try {
     const conversationId = parseId(req.params.id);

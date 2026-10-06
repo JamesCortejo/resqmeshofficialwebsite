@@ -9,6 +9,7 @@ const {
   ADMIN_ACTIONS,
   AUDIT_RESULTS,
   getErrorStatusCode,
+  executeAuditedAdminAction,
   logAdminAction
 } = require('../services/adminActionAuditService');
 
@@ -42,8 +43,8 @@ function countRequestedRescuers(body) {
   return null;
 }
 
-async function auditRescueTeamAction(req, details) {
-  await logAdminAction(req, {
+function rescueTeamAuditEntry(req, details) {
+  return {
     action: details.action,
     targetType: 'rescue_team',
     targetId: details.id,
@@ -59,7 +60,11 @@ async function auditRescueTeamAction(req, details) {
       rescuerCount: Array.isArray(details.team?.members) ? details.team.members.length : countRequestedRescuers(req.body || {}),
       rosterChanged: details.rosterChanged ?? null
     }
-  });
+  };
+}
+
+async function auditRescueTeamAction(req, details) {
+  await logAdminAction(req, rescueTeamAuditEntry(req, details));
 }
 
 exports.listRescueTeams = async (req, res) => {
@@ -78,17 +83,14 @@ exports.listRescueTeams = async (req, res) => {
 
 exports.createRescueTeam = async (req, res) => {
   try {
-    const team = await createRescueTeamProfile(req.body || {});
-
-    await auditRescueTeamAction(req, {
+    const team = await executeAuditedAdminAction(req, () => createRescueTeamProfile(req.body || {}), (created) => rescueTeamAuditEntry(req, {
       action: ADMIN_ACTIONS.RESCUE_TEAM_CREATED,
-      id: team.id,
-      targetCode: team.teamCode,
-      team,
-      result: AUDIT_RESULTS.SUCCESS,
+      id: created.id,
+      targetCode: created.teamCode,
+      team: created,
       statusCode: 201,
-      rosterChanged: Array.isArray(team.members) && team.members.length > 0
-    });
+      rosterChanged: Array.isArray(created.members) && created.members.length > 0
+    }));
 
     return res.status(201).json({
       success: true,
@@ -157,17 +159,14 @@ exports.updateRescueTeam = async (req, res) => {
       });
     }
 
-    const result = await updateRescueTeamProfile(id, req.body || {});
-
-    await auditRescueTeamAction(req, {
+    const result = await executeAuditedAdminAction(req, () => updateRescueTeamProfile(id, req.body || {}), (updated) => rescueTeamAuditEntry(req, {
       action: ADMIN_ACTIONS.RESCUE_TEAM_UPDATED,
       id,
-      targetCode: result.team?.teamCode,
-      team: result.team,
-      result: AUDIT_RESULTS.SUCCESS,
+      targetCode: updated.team?.teamCode,
+      team: updated.team,
       statusCode: 200,
-      rosterChanged: result.rosterChanged
-    });
+      rosterChanged: updated.rosterChanged
+    }));
 
     return res.json({
       success: true,

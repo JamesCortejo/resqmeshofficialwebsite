@@ -238,10 +238,10 @@
 
 .account-status-pill {
   display: inline-flex;
-  border: 1px solid rgba(231, 75, 50, 0.2);
+  border: 1px solid rgba(14, 139, 112, 0.32);
   border-radius: 999px;
-  background: var(--admin-soft);
-  color: var(--admin-primary-hover);
+  background: rgba(14, 139, 112, 0.12);
+  color: #08634f;
   font-size: 0.76rem;
   font-weight: 900;
   line-height: 1;
@@ -249,10 +249,23 @@
   text-transform: uppercase;
 }
 
-.account-status-pill[data-status="suspended"] {
-  border-color: rgba(215, 51, 51, 0.24);
-  background: #fff2f2;
-  color: var(--admin-error);
+.account-status-pill[data-status="pending"] {
+  border-color: rgba(180, 94, 6, 0.34);
+  background: rgba(245, 158, 11, 0.14);
+  color: #8a4b08;
+}
+
+.account-status-pill[data-status="suspended"],
+.account-status-pill[data-status="declined"] {
+  border-color: rgba(190, 38, 38, 0.32);
+  background: rgba(220, 38, 38, 0.1);
+  color: #a51d1d;
+}
+
+.account-status-pill[data-status="admin"] {
+  border-color: rgba(37, 99, 235, 0.3);
+  background: rgba(59, 130, 246, 0.11);
+  color: #1d4eac;
 }
 
 .accounts-action-heading,

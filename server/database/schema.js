@@ -575,6 +575,31 @@ async function initializeSchema(db) {
       ip_address TEXT,
       user_agent TEXT,
       metadata_json JSONB,
+      event_uuid UUID,
+      source_type TEXT,
+      source_id TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_audit_outbox (
+      event_uuid UUID PRIMARY KEY,
+      admin_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      admin_user_code TEXT,
+      action TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id TEXT,
+      target_code TEXT,
+      result TEXT NOT NULL CHECK (result IN ('success', 'failure')),
+      status_code INTEGER,
+      reason TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      metadata_json JSONB,
+      source_type TEXT,
+      source_id TEXT,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_error TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -767,6 +792,8 @@ async function initializeSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_admin_action_audit_target ON admin_action_audit_logs (target_type, target_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_admin_action_audit_result ON admin_action_audit_logs (result, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_admin_action_audit_created_at ON admin_action_audit_logs (created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_admin_audit_outbox_ready
+      ON admin_audit_outbox (next_attempt_at, created_at);
     CREATE INDEX IF NOT EXISTS idx_mesh_audit_logs_event_timestamp ON mesh_audit_logs (event_timestamp);
     CREATE INDEX IF NOT EXISTS idx_mesh_commands_target_status ON mesh_commands (target_node_id, status);
     CREATE INDEX IF NOT EXISTS idx_device_offline_actions_deployment

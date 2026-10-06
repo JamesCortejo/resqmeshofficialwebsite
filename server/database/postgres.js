@@ -14,6 +14,7 @@ const {
 } = require('./bootstrap');
 
 const db = {
+  afterCommit: client.afterCommit,
   run: client.run,
   get: client.get,
   all: client.all,
@@ -33,6 +34,7 @@ async function initializeDatabase() {
 }
 
 module.exports = {
+  afterCommit: client.afterCommit,
   run: client.run,
   get: client.get,
   all: client.all,

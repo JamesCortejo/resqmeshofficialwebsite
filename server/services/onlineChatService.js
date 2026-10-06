@@ -1,3 +1,4 @@
+const { afterCommit } = require('../database/postgres');
 const {
   enforceCivilianMessageSecurity,
   enforceRescuerMessageSecurity,
@@ -489,12 +490,12 @@ async function sendOnlineVoiceMessage(conversationId, actor, payload) {
     const formattedConversation = formatConversation(conversation);
     const formattedDepartment = formatDepartmentFromConversation(conversation);
 
-    await pushOnlineChatMessageNotification({
+    await afterCommit(() => pushOnlineChatMessageNotification({
       conversation: formattedConversation,
       department: formattedDepartment,
       civilian: formattedConversation.civilian,
       message: formattedMessage,
-    });
+    }));
 
     return formattedMessage;
   } catch (error) {
@@ -571,12 +572,12 @@ async function sendAdminMessage(conversationId, adminUserId, bodyValue) {
     updatedAt: conversation.departmentUpdatedAt
   });
 
-  await pushOnlineChatMessageNotification({
+  await afterCommit(() => pushOnlineChatMessageNotification({
     conversation: formattedConversation,
     department: formattedDepartment,
     civilian: formattedConversation.civilian,
     message: formattedMessage,
-  });
+  }));
 
   return formattedMessage;
 }
@@ -642,12 +643,12 @@ async function sendCivilianMessage(conversationId, civilianUserId, bodyValue) {
     updatedAt: conversation.departmentUpdatedAt
   });
 
-  await pushOnlineChatMessageNotification({
+  await afterCommit(() => pushOnlineChatMessageNotification({
     conversation: formattedConversation,
     department: formattedDepartment,
     civilian: formattedConversation.civilian,
     message: formattedMessage,
-  });
+  }));
 
   return formattedMessage;
 }
@@ -710,12 +711,12 @@ async function sendRescuerMessage(conversationId, rescuer, bodyValue) {
     updatedAt: conversation.departmentUpdatedAt
   });
 
-  await pushOnlineChatMessageNotification({
+  await afterCommit(() => pushOnlineChatMessageNotification({
     conversation: formattedConversation,
     department: formattedDepartment,
     civilian: formattedConversation.civilian,
     message: formattedMessage,
-  });
+  }));
 
   return formattedMessage;
 }
@@ -752,10 +753,10 @@ async function sendGlobalAnnouncement(adminUserId, bodyValue) {
 
   await markGlobalRead(department.id, 'admin', adminUserId);
   const formattedMessage = formatMessage(await getGlobalMessageById(result.lastID));
-  await pushGlobalAnnouncementNotification({
+  await afterCommit(() => pushGlobalAnnouncementNotification({
     department: formatDepartment(department),
     message: formattedMessage,
-  });
+  }));
   return formattedMessage;
 }
 

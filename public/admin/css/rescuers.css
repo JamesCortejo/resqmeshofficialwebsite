@@ -274,10 +274,10 @@
 
 .rescuers-status-pill {
   display: inline-flex;
-  border: 1px solid rgba(231, 75, 50, 0.2);
+  border: 1px solid rgba(14, 139, 112, 0.32);
   border-radius: 999px;
-  background: var(--admin-soft);
-  color: var(--admin-primary-hover);
+  background: rgba(14, 139, 112, 0.12);
+  color: #08634f;
   font-size: 0.76rem;
   font-weight: 900;
   line-height: 1;
@@ -286,21 +286,21 @@
 }
 
 .rescuers-status-pill[data-status="dispatched"] {
-  border-color: rgba(187, 114, 14, 0.22);
-  background: rgba(187, 114, 14, 0.08);
-  color: #9a5d08;
+  border-color: rgba(180, 94, 6, 0.34);
+  background: rgba(245, 158, 11, 0.14);
+  color: #8a4b08;
 }
 
 .rescuers-status-pill[data-status="unavailable"] {
-  border-color: rgba(100, 113, 127, 0.24);
-  background: #f8fafc;
-  color: var(--admin-muted);
+  border-color: rgba(190, 38, 38, 0.32);
+  background: rgba(220, 38, 38, 0.1);
+  color: #a51d1d;
 }
 
 .rescuers-status-pill[data-status="archived"] {
-  border-color: rgba(100, 113, 127, 0.24);
-  background: rgba(100, 113, 127, 0.08);
-  color: var(--admin-muted);
+  border-color: rgba(71, 85, 105, 0.32);
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
 }
 
 .rescuers-view-button {

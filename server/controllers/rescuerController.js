@@ -11,6 +11,7 @@ const {
   ADMIN_ACTIONS,
   AUDIT_RESULTS,
   getErrorStatusCode,
+  executeAuditedAdminAction,
   logAdminAction
 } = require('../services/adminActionAuditService');
 
@@ -106,18 +107,38 @@ async function auditRescuerPasswordAttempt(req, details) {
 
 exports.createRescuer = async (req, res) => {
   try {
-    const rescuer = await createRescuerProfile(req.body || {}, req.adminUser?.id || null);
-
+    const rescuer = await executeAuditedAdminAction(
+      req,
+      () => createRescuerProfile(req.body || {}, req.adminUser?.id || null),
+      (created) => ({
+        action: ADMIN_ACTIONS.RESCUER_CREATED,
+        targetType: 'rescuer',
+        targetId: created.id,
+        targetCode: created.rescuerCode,
+        statusCode: 201,
+        metadata: { agency: created.agency || null, teamId: created.team?.id || null }
+      })
+    );
     return res.status(201).json({
       success: true,
       message: `Rescuer ${rescuer.rescuerCode} created successfully.`,
       data: rescuer
     });
   } catch (error) {
+    await logAdminAction(req, {
+      action: ADMIN_ACTIONS.RESCUER_CREATED,
+      targetType: 'rescuer',
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: getErrorStatusCode(error),
+      reason: error.message,
+      metadata: {
+        agency: req.body?.agency || null,
+        teamId: req.body?.teamId || null
+      }
+    });
     return errorResponse(res, error, 'Unable to create rescuer.');
   }
 };
-
 exports.listRescuers = async (req, res) => {
   try {
     const rescuers = await getRescuerSummaries();
@@ -183,17 +204,18 @@ exports.updateAccessStatus = async (req, res) => {
       });
     }
 
-    const result = await setRescuerAccessStatus(id, req.body || {}, req.adminUser?.id || null);
-
-    await auditRescuerAccessAttempt(req, {
-      id,
-      status,
-      targetCode: result.rescuer?.rescuerCode,
-      result: AUDIT_RESULTS.SUCCESS,
-      statusCode: 200,
-      reason: null,
-      warning: result.warning || null
-    });
+    const result = await executeAuditedAdminAction(
+      req,
+      () => setRescuerAccessStatus(id, req.body || {}, req.adminUser?.id || null),
+      (updated) => ({
+        action: getRescuerAccessAuditAction(status),
+        targetType: 'rescuer',
+        targetId: id,
+        targetCode: updated.rescuer?.rescuerCode,
+        statusCode: 200,
+        metadata: { requestedStatus: status, warning: updated.warning || null }
+      })
+    );
 
     return res.json({
       success: true,
@@ -236,16 +258,14 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    const result = await updateRescuerOperationalStatus(id, status);
-
-    await auditRescuerOperationalStatusAttempt(req, {
-      id,
-      targetCode: result.rescuer?.rescuerCode,
-      requestedStatus: status,
-      currentStatus: result.rescuer?.status,
-      result: AUDIT_RESULTS.SUCCESS,
-      statusCode: 200
-    });
+    const result = await executeAuditedAdminAction(req, () => updateRescuerOperationalStatus(id, status), (updated) => ({
+      action: ADMIN_ACTIONS.RESCUER_OPERATIONAL_STATUS_CHANGED,
+      targetType: 'rescuer',
+      targetId: id,
+      targetCode: updated.rescuer?.rescuerCode,
+      statusCode: 200,
+      metadata: { requestedStatus: status, currentStatus: updated.rescuer?.status }
+    }));
 
     return res.json({
       success: true,
@@ -285,15 +305,18 @@ exports.updatePassword = async (req, res) => {
       });
     }
 
-    const result = await resetRescuerPassword(id, req.body || {}, req.adminUser?.id || null);
-
-    await auditRescuerPasswordAttempt(req, {
-      id,
-      targetCode: result.rescuer?.rescuerCode,
-      result: AUDIT_RESULTS.SUCCESS,
+    const result = await executeAuditedAdminAction(req, () => resetRescuerPassword(id, req.body || {}, req.adminUser?.id || null), (updated) => ({
+      action: ADMIN_ACTIONS.RESCUER_PASSWORD_RESET,
+      targetType: 'rescuer',
+      targetId: id,
+      targetCode: updated.rescuer?.rescuerCode,
       statusCode: 200,
-      reason: null
-    });
+      metadata: {
+        passwordProvided: Boolean(req.body?.password),
+        confirmPasswordProvided: Boolean(req.body?.confirmPassword),
+        adminPasswordProvided: Boolean(req.body?.adminPassword)
+      }
+    }));
 
     return res.json({
       success: true,

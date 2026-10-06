@@ -27,19 +27,28 @@
 }
 
 .distress-signals-summary-card {
+  display: grid;
+  grid-template-rows: minmax(2.1em, auto) auto;
+  align-content: center;
+  justify-items: center;
+  min-height: 94px;
   border: 1px solid rgba(220, 227, 234, 0.9);
   border-radius: var(--admin-radius-md);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 245, 0.94));
   box-shadow: 0 16px 36px rgba(23, 33, 43, 0.08);
-  padding: 0.95rem 1rem;
+  padding: 0.85rem 1rem;
+  text-align: center;
 }
 
 .distress-signals-summary-label {
-  display: block;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   color: var(--admin-muted);
-  font: 800 0.76rem 'Inter', system-ui, -apple-system, sans-serif;
+  font: 800 0.76rem/1.35 'Inter', system-ui, -apple-system, sans-serif;
   letter-spacing: 0.06em;
+  text-align: center;
   text-transform: uppercase;
 }
 

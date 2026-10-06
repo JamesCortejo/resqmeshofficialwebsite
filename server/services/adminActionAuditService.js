@@ -1,21 +1,32 @@
+const { randomUUID } = require('crypto');
+const { transaction } = require('../database/postgres');
 const {
   countAdminActionAuditLogs,
-  createAdminActionAuditLog,
+  enqueueAdminAuditEvent,
   listAdminActionAuditLogs
 } = require('../repositories/adminActionAuditRepository');
 
 const ADMIN_ACTIONS = Object.freeze({
+  ADMIN_LOGIN_FAILED: 'admin_login_failed',
+  ADMIN_LOGIN_SUCCEEDED: 'admin_login_succeeded',
+  ADMIN_LOGOUT: 'admin_logout',
+  CIVILIAN_ACCOUNT_APPROVED: 'civilian_account_approved',
+  CIVILIAN_ACCOUNT_DECLINED: 'civilian_account_declined',
   CIVILIAN_ACCOUNT_SUSPENDED: 'civilian_account_suspended',
   CIVILIAN_ACCOUNT_ACTIVATED: 'civilian_account_activated',
+  RESCUER_CREATED: 'rescuer_created',
   RESCUER_ARCHIVED: 'rescuer_archived',
   RESCUER_ACTIVATED: 'rescuer_activated',
   RESCUER_PASSWORD_RESET: 'rescuer_password_reset',
   REPORT_EXPORT_GENERATED: 'report_export_generated',
+  DEPLOYMENT_CREATED: 'deployment_created',
   DEPLOYMENT_CANCELED: 'deployment_canceled',
   DEPLOYMENT_ACCOMPLISHED: 'deployment_accomplished',
   DEPARTMENT_CHAT_CREATED: 'department_chat_created',
   DEPARTMENT_CHAT_UPDATED: 'department_chat_updated',
   DEPARTMENT_CHAT_ARCHIVED: 'department_chat_archived',
+  ADMIN_MESSAGE_SENT: 'admin_message_sent',
+  ADMIN_ANNOUNCEMENT_SENT: 'admin_announcement_sent',
   RESCUE_TEAM_CREATED: 'rescue_team_created',
   RESCUE_TEAM_UPDATED: 'rescue_team_updated',
   RESCUER_OPERATIONAL_STATUS_CHANGED: 'rescuer_operational_status_changed',
@@ -83,12 +94,6 @@ function sanitizeMetadata(value, depth = 0) {
 }
 
 function getRequestIpAddress(req) {
-  const forwardedFor = req.headers && req.headers['x-forwarded-for'];
-
-  if (forwardedFor) {
-    return cleanString(String(forwardedFor).split(',')[0], 128);
-  }
-
   return cleanString(req.ip || req.socket?.remoteAddress || req.connection?.remoteAddress || '', 128) || null;
 }
 
@@ -138,7 +143,10 @@ function parseDateFilter(value, fieldName, endOfDay = false) {
   }
 
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(normalized);
-  const date = new Date(dateOnly && endOfDay ? `${normalized}T23:59:59.999Z` : normalized);
+  const zonedValue = dateOnly
+    ? `${normalized}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}+08:00`
+    : normalized;
+  const date = new Date(zonedValue);
 
   if (Number.isNaN(date.getTime())) {
     throw appError(`${fieldName} must be a valid date.`);
@@ -196,7 +204,10 @@ function parseMetadataValue(value) {
 
 function auditLogResponse(row) {
   return {
-    id: Number(row.id),
+    id: row.id === null || row.id === undefined ? null : Number(row.id),
+    eventKey: row.eventKey || (row.id ? 'action-id:' + row.id : null),
+    source: row.source || 'action',
+    persistenceStatus: row.persistenceStatus || 'recorded',
     adminUserId: row.adminUserId === null || row.adminUserId === undefined ? null : Number(row.adminUserId),
     adminUserCode: row.adminUserCode || null,
     action: row.action,
@@ -215,50 +226,75 @@ function auditLogResponse(row) {
 
 async function getAdminActionAuditLogPage(query = {}) {
   const normalized = normalizeAuditListQuery(query);
-  const [rows, total] = await Promise.all([
-    listAdminActionAuditLogs(normalized),
-    countAdminActionAuditLogs(normalized.filters)
-  ]);
+  const total = await countAdminActionAuditLogs(normalized.filters);
   const totalPages = Math.max(1, Math.ceil(total / normalized.limit));
+  const page = Math.min(normalized.page, totalPages);
+  const rows = await listAdminActionAuditLogs({
+    ...normalized,
+    page,
+    offset: (page - 1) * normalized.limit
+  });
 
   return {
     count: rows.length,
     total,
-    page: normalized.page,
+    page,
     limit: normalized.limit,
     totalPages,
     data: rows.map(auditLogResponse)
   };
 }
+function buildAdminActionEntry(req, details) {
+  if (!details || !details.action || !details.targetType) {
+    throw appError('Audit action and target type are required.', 500);
+  }
+
+  const adminUser = req.adminUser || {};
+  const metadata = details.metadata === undefined ? null : sanitizeMetadata(details.metadata);
+  return {
+    eventUuid: details.eventUuid || randomUUID(),
+    adminUserId: details.adminUserId || adminUser.id || null,
+    adminUserCode: cleanString(details.adminUserCode || getAdminUserCode(adminUser), 120) || null,
+    action: cleanString(details.action, 120),
+    targetType: cleanString(details.targetType, 80),
+    targetId: details.targetId === undefined || details.targetId === null ? null : cleanString(details.targetId, 120),
+    targetCode: details.targetCode === undefined || details.targetCode === null ? null : cleanString(details.targetCode, 120),
+    result: normalizeResult(details.result),
+    statusCode: normalizeStatusCode(details.statusCode),
+    reason: details.reason ? cleanString(details.reason, 500) : null,
+    ipAddress: getRequestIpAddress(req),
+    userAgent: cleanString(req.headers?.['user-agent'] || '', 500) || null,
+    metadataJson: metadata === null ? null : JSON.stringify(metadata),
+    sourceType: details.sourceType || null,
+    sourceId: details.sourceId === undefined || details.sourceId === null ? null : cleanString(details.sourceId, 120),
+    createdAt: details.createdAt || new Date().toISOString()
+  };
+}
+
+async function enqueueAdminAction(req, details) {
+  return enqueueAdminAuditEvent(buildAdminActionEntry(req, details));
+}
+
+async function executeAuditedAdminAction(req, operation, buildDetails) {
+  return transaction(async () => {
+    const result = await operation();
+    const details = typeof buildDetails === 'function' ? buildDetails(result) : buildDetails;
+    await enqueueAdminAction(req, {
+      ...details,
+      result: AUDIT_RESULTS.SUCCESS
+    });
+    return result;
+  });
+}
+
 async function logAdminAction(req, details) {
   try {
-    if (!details || !details.action || !details.targetType) {
-      return null;
-    }
-
-    const adminUser = req.adminUser || {};
-    const metadata = details.metadata === undefined ? null : sanitizeMetadata(details.metadata);
-
-    return await createAdminActionAuditLog({
-      adminUserId: details.adminUserId || adminUser.id || null,
-      adminUserCode: cleanString(details.adminUserCode || getAdminUserCode(adminUser), 120) || null,
-      action: cleanString(details.action, 120),
-      targetType: cleanString(details.targetType, 80),
-      targetId: details.targetId === undefined || details.targetId === null ? null : cleanString(details.targetId, 120),
-      targetCode: details.targetCode === undefined || details.targetCode === null ? null : cleanString(details.targetCode, 120),
-      result: normalizeResult(details.result),
-      statusCode: normalizeStatusCode(details.statusCode),
-      reason: details.reason ? cleanString(details.reason, 500) : null,
-      ipAddress: getRequestIpAddress(req),
-      userAgent: cleanString(req.headers?.['user-agent'] || '', 500) || null,
-      metadataJson: metadata === null ? null : JSON.stringify(metadata)
-    });
+    return await enqueueAdminAction(req, details);
   } catch (error) {
-    console.error('Unable to write admin action audit log:', error);
+    console.error('Unable to enqueue admin action audit log:', error);
     return null;
   }
 }
-
 function getErrorStatusCode(error) {
   return normalizeStatusCode(error?.statusCode) || 500;
 }
@@ -268,6 +304,7 @@ module.exports = {
   AUDIT_RESULTS,
   getAdminActionAuditLogPage,
   getErrorStatusCode,
+  executeAuditedAdminAction,
   logAdminAction,
   sanitizeMetadata
 };

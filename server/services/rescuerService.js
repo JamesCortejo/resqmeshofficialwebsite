@@ -320,7 +320,7 @@ async function createRescuerProfile(payload, actorAdminUserId = null) {
     accessStatus: response.accessStatus,
     teamId: response.team?.id || null
   });
-  notifyRescuerCreated(response);
+  await notifyRescuerCreated(response);
   return response;
 }
 
@@ -415,7 +415,7 @@ async function setRescuerAccessStatus(id, nextStatus, actorAdminUserId = null) {
       teamRestoreSkipped: Boolean(result.restoreSkipped)
     }
   );
-  notifyRescuerAccessChanged(response, normalizedStatus);
+  await notifyRescuerAccessChanged(response, normalizedStatus);
 
   const activationRestoreWarning = normalizedStatus === RESCUER_ACCESS_STATUSES.ACTIVE && result.restoreSkipped
     ? 'Previous team is already full, so assign this rescuer to a team manually.'
@@ -480,7 +480,7 @@ async function updateRescuerOperationalStatus(id, nextStatus) {
 
   const updated = await getRescuerById(id);
   const response = rescuerDetailResponse(updated);
-  notifyRescuerStatusChanged(response);
+  await notifyRescuerStatusChanged(response);
 
   return {
     message: `Rescuer ${response.rescuerCode} status updated to ${normalizedStatus}.`,
@@ -538,7 +538,7 @@ async function resetRescuerPassword(id, payload, actorAdminUserId = null) {
   await recordRescuerAudit(response, 'password_changed', actorAdminUserId, {
     resetByAdmin: true
   });
-  notifyRescuerPasswordReset(response);
+  await notifyRescuerPasswordReset(response);
 
   return {
     message: `Password reset for ${response.rescuerCode} completed successfully.`,

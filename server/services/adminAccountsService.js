@@ -1,6 +1,7 @@
 const fs = require('fs/promises');
 const path = require('path');
 const config = require('../config/env');
+const { afterCommit } = require('../database/postgres');
 const { USER_STATUSES } = require('../models/userModel');
 const { decryptBuffer, decryptText, encryptText } = require('./encryptionService');
 const {
@@ -276,25 +277,22 @@ async function updateAccountReviewStatus(id, status, reason = '', actorAdminUser
     );
 
     const emailUser = reviewEmailUser(pendingAccount);
-    let emailWarning = '';
-
-    try {
-      if (status === USER_STATUSES.APPROVED) {
-        await sendApprovalEmail(emailUser);
-      } else {
-        await sendDeclineEmail(emailUser, normalizedReason);
+    const response = { ...account, emailWarning: '' };
+    await afterCommit(async () => {
+      try {
+        if (status === USER_STATUSES.APPROVED) {
+          await sendApprovalEmail(emailUser);
+        } else {
+          await sendDeclineEmail(emailUser, normalizedReason);
+        }
+      } catch (error) {
+        console.error('Review email failed:', error);
+        response.emailWarning = 'Account status was updated, but the email notification could not be sent.';
       }
-    } catch (error) {
-      console.error('Review email failed:', error);
-      emailWarning = 'Account status was updated, but the email notification could not be sent.';
-    }
+    });
 
     notifyRegistrationReviewed(account, status);
-
-    return {
-      ...account,
-      emailWarning
-    };
+    return response;
   }
 
   const existing = await getAccountStatusById(id);
@@ -392,18 +390,19 @@ async function updateAccountAccessReviewStatus(id, status, reason = '', actorAdm
   );
 
   const emailUser = reviewEmailUser(existing);
-  let emailWarning = '';
-
-  try {
-    if (status === USER_STATUSES.SUSPENDED) {
-      await sendSuspensionEmail(emailUser, normalizedReason);
-    } else {
-      await sendReactivationEmail(emailUser);
+  const response = { ...account, emailWarning: '' };
+  await afterCommit(async () => {
+    try {
+      if (status === USER_STATUSES.SUSPENDED) {
+        await sendSuspensionEmail(emailUser, normalizedReason);
+      } else {
+        await sendReactivationEmail(emailUser);
+      }
+    } catch (error) {
+      console.error('Access status email failed:', error);
+      response.emailWarning = 'Account access status was updated, but the email notification could not be sent.';
     }
-  } catch (error) {
-    console.error('Access status email failed:', error);
-    emailWarning = 'Account access status was updated, but the email notification could not be sent.';
-  }
+  });
 
   if (status === USER_STATUSES.SUSPENDED) {
     await notifyAccountSuspended(account);
@@ -411,10 +410,7 @@ async function updateAccountAccessReviewStatus(id, status, reason = '', actorAdm
     await notifyAccountActivated(account);
   }
 
-  return {
-    ...account,
-    emailWarning
-  };
+  return response;
 }
 
 module.exports = {

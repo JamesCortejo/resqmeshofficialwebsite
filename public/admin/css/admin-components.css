@@ -1247,3 +1247,27 @@
   box-shadow: none;
   transform: none;
 }
+/* Account access actions use the same compact primary treatment as other admin actions. */
+.account-action-buttons[data-mode='access'] .account-approve-button {
+  min-width: 132px;
+  height: 42px;
+  min-height: 42px;
+  border: 1px solid var(--admin-primary);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-primary);
+  color: #ffffff;
+  box-shadow: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.15;
+  padding: 0.58rem 0.8rem;
+  transform: none;
+}
+
+.account-action-buttons[data-mode='access'] .account-approve-button:hover:not(:disabled) {
+  border-color: var(--admin-primary-hover);
+  background: var(--admin-primary-hover);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(207, 60, 37, 0.18);
+  transform: none;
+}

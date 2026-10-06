@@ -1,3 +1,4 @@
+const { AsyncLocalStorage } = require('async_hooks');
 const { Pool, types } = require('pg');
 const config = require('../config/env');
 const { prepareSql } = require('./sqlCompat');
@@ -6,6 +7,8 @@ types.setTypeParser(1082, (value) => value);
 types.setTypeParser(1114, (value) => new Date(`${value}Z`).toISOString());
 types.setTypeParser(1184, (value) => new Date(value).toISOString());
 types.setTypeParser(20, (value) => Number(value));
+
+const transactionStorage = new AsyncLocalStorage();
 
 const pool = new Pool({
   connectionString: config.databaseUrl,
@@ -60,30 +63,46 @@ async function withClient(callback) {
 }
 
 async function run(sql, params = []) {
-  return withClient((client) => createHelpers(client).run(sql, params));
+  const current = transactionStorage.getStore();
+  return current ? current.helpers.run(sql, params) : withClient((client) => createHelpers(client).run(sql, params));
 }
 
 async function get(sql, params = []) {
-  return withClient((client) => createHelpers(client).get(sql, params));
+  const current = transactionStorage.getStore();
+  return current ? current.helpers.get(sql, params) : withClient((client) => createHelpers(client).get(sql, params));
 }
 
 async function all(sql, params = []) {
-  return withClient((client) => createHelpers(client).all(sql, params));
+  const current = transactionStorage.getStore();
+  return current ? current.helpers.all(sql, params) : withClient((client) => createHelpers(client).all(sql, params));
 }
 
 async function exec(sql) {
-  return withClient((client) => createHelpers(client).exec(sql));
+  const current = transactionStorage.getStore();
+  return current ? current.helpers.exec(sql) : withClient((client) => createHelpers(client).exec(sql));
 }
 
 async function transaction(callback) {
+  const current = transactionStorage.getStore();
+  if (current) {
+    return callback(current.helpers);
+  }
+
   return withClient(async (client) => {
     const helpers = createHelpers(client);
-
+    const context = { helpers, afterCommitCallbacks: [] };
     await client.query('BEGIN');
 
     try {
-      const result = await callback(helpers);
+      const result = await transactionStorage.run(context, () => callback(helpers));
       await client.query('COMMIT');
+      for (const afterCommitCallback of context.afterCommitCallbacks) {
+        try {
+          await afterCommitCallback();
+        } catch (error) {
+          console.error('Post-commit callback failed:', error);
+        }
+      }
       return result;
     } catch (error) {
       await client.query('ROLLBACK');
@@ -92,11 +111,25 @@ async function transaction(callback) {
   });
 }
 
+async function afterCommit(callback) {
+  if (typeof callback !== 'function') {
+    return;
+  }
+
+  const current = transactionStorage.getStore();
+  if (current) {
+    current.afterCommitCallbacks.push(callback);
+    return;
+  }
+
+  await callback();
+}
 async function close() {
   await pool.end();
 }
 
 module.exports = {
+  afterCommit,
   run,
   get,
   all,

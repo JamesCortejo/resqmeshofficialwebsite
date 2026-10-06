@@ -7,20 +7,20 @@
       let currentPage = 1;
 
       function updateSummaryCards() {
-        const activeCount = state.signals.filter((signal) => ['unassigned', 'deployed'].includes(signal.accessState)).length;
-        const canceledCount = state.signals.filter((signal) => signal.accessState === 'canceled').length;
+        const unassignedCount = state.signals.filter((signal) => signal.accessState === 'unassigned').length;
+        const deployedCount = state.signals.filter((signal) => signal.accessState === 'deployed').length;
         const accomplishedCount = state.signals.filter((signal) => signal.accessState === 'accomplished').length;
 
-        if (dom.distressSignalsSummaryActive) {
-          dom.distressSignalsSummaryActive.textContent = String(activeCount);
-        }
-
-        if (dom.distressSignalsSummaryAssigned) {
-          dom.distressSignalsSummaryAssigned.textContent = String(canceledCount);
+        if (dom.distressSignalsSummaryUnassigned) {
+          dom.distressSignalsSummaryUnassigned.textContent = String(unassignedCount);
         }
 
         if (dom.distressSignalsSummaryDeployed) {
-          dom.distressSignalsSummaryDeployed.textContent = String(accomplishedCount);
+          dom.distressSignalsSummaryDeployed.textContent = String(deployedCount);
+        }
+
+        if (dom.distressSignalsSummaryAccomplished) {
+          dom.distressSignalsSummaryAccomplished.textContent = String(accomplishedCount);
         }
       }
 

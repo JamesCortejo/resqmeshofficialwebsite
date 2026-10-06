@@ -9,6 +9,12 @@ const {
   toAdminSessionPayload
 } = require('../services/adminAuthService');
 const { logAdminLoginAttempt } = require('../services/adminLoginAuditService');
+const {
+  ADMIN_ACTIONS,
+  AUDIT_RESULTS,
+  executeAuditedAdminAction,
+  logAdminAction
+} = require('../services/adminActionAuditService');
 const { verifyRecaptcha } = require('../services/recaptchaService');
 
 function invalidCredentials(res) {
@@ -23,6 +29,19 @@ exports.login = async (req, res) => {
   const audit = async (details) => {
     auditLogged = true;
     await logAdminLoginAttempt(req, details);
+    if (!details.databaseAudited) {
+      await logAdminAction(req, {
+      action: details.result === 'success' ? ADMIN_ACTIONS.ADMIN_LOGIN_SUCCEEDED : ADMIN_ACTIONS.ADMIN_LOGIN_FAILED,
+      targetType: 'admin_session',
+      targetCode: details.username || null,
+      adminUserId: details.adminUserId || null,
+      adminUserCode: details.adminUserCode || details.username || null,
+      result: details.result === 'success' ? AUDIT_RESULTS.SUCCESS : AUDIT_RESULTS.FAILURE,
+      statusCode: details.result === 'success' ? 200 : (details.result === 'server_error' ? 500 : 401),
+      reason: details.reason || null,
+      metadata: { loginResult: details.result || 'unknown' }
+      });
+    }
   };
 
   try {
@@ -64,13 +83,29 @@ exports.login = async (req, res) => {
       return invalidCredentials(res);
     }
 
-    const adminSession = await createAdminWebSession(admin, req);
+    const adminSession = await executeAuditedAdminAction(
+      req,
+      () => createAdminWebSession(admin, req),
+      (session) => ({
+        action: ADMIN_ACTIONS.ADMIN_LOGIN_SUCCEEDED,
+        targetType: 'admin_session',
+        targetId: session.sessionId,
+        targetCode: admin.userCode || admin.user_code || username,
+        adminUserId: admin.id,
+        adminUserCode: admin.userCode || admin.user_code || username,
+        statusCode: 200,
+        metadata: { loginResult: 'success' }
+      })
+    );
     res.setHeader('Set-Cookie', buildSessionCookie(adminSession.sessionToken, req));
 
     await audit({
       username,
       result: 'success',
-      reason: 'session_created'
+      reason: 'session_created',
+      adminUserId: admin.id,
+      adminUserCode: admin.userCode || admin.user_code || username,
+      databaseAudited: true
     });
 
     return res.json({
@@ -103,23 +138,37 @@ exports.login = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
+  const sessionId = req.adminSession?.session?.id || null;
   try {
-    await revokeAuthenticatedSession(req.adminSession?.session?.id);
+    await executeAuditedAdminAction(
+      req,
+      async () => {
+        await revokeAuthenticatedSession(sessionId);
+        return sessionId;
+      },
+      () => ({
+        action: ADMIN_ACTIONS.ADMIN_LOGOUT,
+        targetType: 'admin_session',
+        targetId: sessionId,
+        statusCode: 200
+      })
+    );
     res.setHeader('Set-Cookie', buildClearedSessionCookie(req));
 
-    return res.json({
-      success: true,
-      message: 'Admin session ended.'
-    });
+    return res.json({ success: true, message: 'Admin session ended.' });
   } catch (error) {
-    console.error('Admin logout error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Unable to end admin session.'
+    await logAdminAction(req, {
+      action: ADMIN_ACTIONS.ADMIN_LOGOUT,
+      targetType: 'admin_session',
+      targetId: sessionId,
+      result: AUDIT_RESULTS.FAILURE,
+      statusCode: 500,
+      reason: error.message
     });
+    console.error('Admin logout error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to end admin session.' });
   }
 };
-
 exports.getSession = async (req, res) => {
   return res.json({
     success: true,
