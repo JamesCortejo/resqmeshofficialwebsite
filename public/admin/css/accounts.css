@@ -501,21 +501,6 @@
   padding: 1.35rem;
 }
 
-.account-confirm-close {
-  position: absolute;
-  top: 0.9rem;
-  right: 0.9rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border: 1px solid rgba(220, 227, 234, 0.9);
-  border-radius: 999px;
-  background: #ffffff;
-  color: var(--admin-muted);
-  cursor: pointer;
-}
 
 .account-confirm-kicker {
   color: var(--admin-primary);
@@ -642,8 +627,7 @@
   background: var(--admin-error);
 }
 
-.account-confirm-primary-button:disabled,
-.account-confirm-close:disabled {
+.account-confirm-primary-button:disabled {
   cursor: wait;
   opacity: 0.65;
 }

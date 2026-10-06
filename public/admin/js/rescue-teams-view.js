@@ -64,7 +64,7 @@
         }
 
         return `
-          <article class="rescue-team-selected-item">
+          <article class="rescue-team-selected-item is-selected">
             <div class="rescue-team-selected-copy">
               <strong>${helpers.escapeHtml(rescuer.fullName)}</strong>
               <span>${helpers.escapeHtml(`${rescuer.rescuerCode} - ${helpers.getAgencyDisplay(rescuer.agency)}`)}</span>
@@ -99,7 +99,7 @@
         }
 
         return `
-          <article class="rescue-team-search-result${disabled ? ' is-disabled' : ''}">
+          <article class="rescue-team-search-result${isSelected ? ' is-selected' : ''}${disabled ? ' is-disabled' : ''}${isLocked ? ' is-locked' : ''}">
             <div class="rescue-team-search-result-copy">
               <strong>${helpers.escapeHtml(rescuer.fullName)}</strong>
               <span>${helpers.escapeHtml(`${rescuer.rescuerCode} - ${helpers.getAgencyDisplay(rescuer.agency)}`)}</span>
@@ -109,6 +109,7 @@
               type="button"
               class="rescue-team-search-add"
               data-add-view-rescuer-id="${helpers.escapeHtml(rescuer.id)}"
+              aria-pressed="${isSelected ? 'true' : 'false'}"
               ${disabled ? 'disabled' : ''}
             >
               <i class="fa-solid fa-plus" aria-hidden="true"></i>
@@ -255,11 +256,14 @@
                   <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                   <input type="search" id="rescueTeamEditRescuerSearchInput" placeholder="Search rescuer name, code, agency, or current team" ${isLocked ? 'disabled' : ''}>
                 </label>
-                <div class="rescue-team-picker-results" id="rescueTeamEditRosterResults"></div>
-                <div class="rescue-team-selected">
-                  <h4>Selected rescuers</h4>
+                <section class="rescue-team-picker-group" aria-labelledby="rescueTeamEditAvailableRescuersTitle">
+                  <h4 id="rescueTeamEditAvailableRescuersTitle">Available rescuers</h4>
+                  <div class="rescue-team-picker-results" id="rescueTeamEditRosterResults"></div>
+                </section>
+                <section class="rescue-team-selected" aria-labelledby="rescueTeamEditSelectedRescuersTitle">
+                  <h4 id="rescueTeamEditSelectedRescuersTitle">Selected rescuers</h4>
                   <div class="rescue-team-selected-list" id="rescueTeamEditSelectedList"></div>
-                </div>
+                </section>
               </div>
             </section>
 

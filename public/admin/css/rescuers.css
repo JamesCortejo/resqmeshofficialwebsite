@@ -845,7 +845,7 @@
 .rescuer-view-danger-button:disabled,
 .rescuer-view-secondary-button:disabled,
 .rescuer-inline-save-button:disabled,
-.rescuer-confirm-close:disabled,
+
 .rescuer-confirm-button:disabled {
   cursor: not-allowed;
   opacity: 0.68;
@@ -912,26 +912,6 @@
   line-height: 1.1;
 }
 
-.rescuer-confirm-close {
-  position: absolute;
-  top: 0.9rem;
-  right: 0.9rem;
-  display: inline-flex;
-  width: 42px;
-  height: 42px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(220, 227, 234, 0.9);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--admin-muted);
-  cursor: pointer;
-}
-
-.rescuer-confirm-close:hover {
-  color: var(--admin-primary-hover);
-  background: var(--admin-soft);
-}
 
 .rescuer-confirm-body {
   display: grid;

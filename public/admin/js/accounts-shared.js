@@ -221,7 +221,6 @@
         actionButtons.innerHTML = account.status === 'approved'
           ? `
             <button type="button" class="account-decline-button" data-modal-action="suspended">
-              <i class="fa-solid fa-ban" aria-hidden="true"></i>
               <span>Suspend Account</span>
             </button>
           `

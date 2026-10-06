@@ -194,10 +194,37 @@
 
 .department-chats-table {
   width: 100%;
+  min-width: 56.25rem;
+  table-layout: fixed;
   border-collapse: collapse;
   color: var(--admin-ink);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 0.92rem;
+}
+
+.department-chats-table :is(th, td):nth-child(1) {
+  width: 18%;
+}
+
+.department-chats-table :is(th, td):nth-child(2) {
+  width: 21%;
+}
+
+.department-chats-table :is(th, td):nth-child(3) {
+  width: 15%;
+}
+
+.department-chats-table :is(th, td):nth-child(4) {
+  width: 8%;
+}
+
+.department-chats-table :is(th, td):nth-child(5),
+.department-chats-table :is(th, td):nth-child(6) {
+  width: 10%;
+}
+
+.department-chats-table :is(th, td):nth-child(7) {
+  width: 18%;
 }
 
 .department-chats-table th,
@@ -293,6 +320,12 @@
   font-size: 0.82rem;
 }
 
+.department-chats-table td:nth-child(2) .department-chats-muted-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .department-chats-status-pill,
 .department-chats-color-pill {
   display: inline-flex;
@@ -353,8 +386,13 @@
 .department-chats-action-stack {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  flex-wrap: wrap;
+  gap: 0.45rem;
+  flex-wrap: nowrap;
+}
+
+.department-chats-action-stack .department-chat-action-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .department-chat-action-button[data-action="archive"] {
@@ -640,22 +678,6 @@
     linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 247, 244, 0.98));
   box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
   padding: 1.35rem;
-}
-
-.department-chat-confirm-close {
-  position: absolute;
-  top: 0.9rem;
-  right: 0.9rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border: 1px solid rgba(220, 227, 234, 0.9);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--admin-muted);
-  cursor: pointer;
 }
 
 .department-chat-confirm-icon {

@@ -251,7 +251,7 @@
           </span>
         </td>
         <td>
-          <span class="department-chats-muted-text">${escapeHtml(room.subtitle || '')}</span>
+          <span class="department-chats-muted-text" title="${escapeHtml(room.subtitle || '')}">${escapeHtml(room.subtitle || '')}</span>
           ${room.readOnly ? '<span class="department-chats-muted-text">Read-only</span>' : ''}
         </td>
         <td>
@@ -534,6 +534,20 @@
 
     document.querySelectorAll('[data-close-department-chat-archive]').forEach((button) => {
       button.addEventListener('click', closeArchiveModal);
+    });
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      if (dom.saveConfirmModal?.classList.contains('is-open')) {
+        closeSaveConfirm();
+      } else if (dom.archiveModal?.classList.contains('is-open')) {
+        closeArchiveModal();
+      } else if (dom.formModal?.classList.contains('is-open')) {
+        closeFormModal();
+      }
     });
 
     dom.tableBody.addEventListener('click', (event) => {

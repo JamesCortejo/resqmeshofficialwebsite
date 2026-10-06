@@ -8,12 +8,13 @@
   <title>Rescue Teams - ResQMesh</title>
   <link rel="icon" type="image/png" href="/assets/logo-icon.png">
 
-  <link rel="stylesheet" href="/admin/css/login.css">
+  <link rel="stylesheet" href="/admin/css/admin-base.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
   <link rel="stylesheet" href="/admin/css/app-shell.css">
   <link rel="stylesheet" href="/admin/css/admin-notifications.css">
   <link rel="stylesheet" href="/admin/css/rescue-teams.css">
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="/admin/css/admin-components.css">
 </head>
 
 <body class="admin-login-page admin-loading">
@@ -38,54 +39,71 @@
           </div>
         </a>
 
-        <div class="admin-sidebar-group">
-          <span class="admin-sidebar-label">Navigation</span>
-          <nav class="admin-nav">
-            <a href="/resqmeshadmin/overview" class="admin-nav-link">
-              <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
-              <span>Overview</span>
-            </a>
-            <a href="/resqmeshadmin/device-map" class="admin-nav-link">
-              <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
-              <span>Mesh Node Map</span>
-            </a>
-            <a href="/resqmeshadmin/accounts" class="admin-nav-link">
-              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
-              <span>Accounts Manager</span>
-            </a>
-            <a href="/resqmeshadmin/rescuers" class="admin-nav-link">
-              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
-              <span>Rescuer Manager</span>
-            </a>
-            <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link is-active" aria-current="page">
-              <i class="fa-solid fa-people-group" aria-hidden="true"></i>
-              <span>Rescue Teams</span>
-            </a>
-            <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
-              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-              <span>Distress Signals</span>
-            </a>
-            <a href="/resqmeshadmin/messages" class="admin-nav-link">
-              <i class="fa-regular fa-comments" aria-hidden="true"></i>
-              <span>Messages Manager</span>
-            </a>
-            <a href="/resqmeshadmin/devices" class="admin-nav-link">
-              <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
-              <span>Device Manager</span>
-            </a>
-            <a href="/resqmeshadmin/department-chats" class="admin-nav-link">
-              <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
-              <span>Department Chats</span>
-            </a>
-            <a href="/resqmeshadmin/reports" class="admin-nav-link">
-              <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
-              <span>Reports</span>
-            </a>
-            <a href="/resqmeshadmin/audit-logs" class="admin-nav-link">
-              <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
-              <span>Audit Logs</span>
-            </a>
-          </nav>
+        <div class="admin-sidebar-groups">
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">Command</span>
+            <nav class="admin-nav" aria-label="Command">
+              <a href="/resqmeshadmin/overview" class="admin-nav-link">
+                <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+                <span>Overview</span>
+              </a>
+              <a href="/resqmeshadmin/device-map" class="admin-nav-link">
+                <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+                <span>Mesh Map</span>
+              </a>
+              <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <span>Distress Signals</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">People</span>
+            <nav class="admin-nav" aria-label="People">
+              <a href="/resqmeshadmin/accounts" class="admin-nav-link">
+                <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+                <span>Accounts</span>
+              </a>
+              <a href="/resqmeshadmin/rescuers" class="admin-nav-link">
+                <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                <span>Rescuers</span>
+              </a>
+              <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link is-active" aria-current="page">
+                <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+                <span>Rescue Teams</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">Communication</span>
+            <nav class="admin-nav" aria-label="Communication">
+              <a href="/resqmeshadmin/messages" class="admin-nav-link">
+                <i class="fa-regular fa-comments" aria-hidden="true"></i>
+                <span>Messages</span>
+              </a>
+              <a href="/resqmeshadmin/department-chats" class="admin-nav-link">
+                <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
+                <span>Department Chats</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">System</span>
+            <nav class="admin-nav" aria-label="System">
+              <a href="/resqmeshadmin/devices" class="admin-nav-link">
+                <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+                <span>Devices</span>
+              </a>
+              <a href="/resqmeshadmin/reports" class="admin-nav-link">
+                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+                <span>Reports</span>
+              </a>
+              <a href="/resqmeshadmin/audit-logs" class="admin-nav-link">
+                <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+                <span>Audit Logs</span>
+              </a>
+            </nav>
+          </div>
         </div>
       </div>
 
@@ -182,11 +200,12 @@
 
   <div class="rescue-team-modal" id="rescueTeamModal" aria-hidden="true">
     <div class="rescue-team-modal-backdrop" data-close-rescue-team-modal></div>
-    <section class="rescue-team-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescueTeamModalTitle">
+    <section class="rescue-team-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescueTeamModalTitle" aria-describedby="rescueTeamModalDescription">
       <header class="rescue-team-modal-header">
         <div>
           <span class="rescue-team-modal-kicker">Add Rescue Team</span>
           <h2 id="rescueTeamModalTitle">Rescue Team Form</h2>
+          <p class="admin-dialog-description" id="rescueTeamModalDescription">Create a rescue team and manage its active responder roster.</p>
         </div>
         <button type="button" class="rescue-team-icon-button" aria-label="Close rescue team form" data-close-rescue-team-modal>
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -199,7 +218,7 @@
           <div class="rescue-team-form-grid">
             <label class="rescue-team-field">
               <span>Team name</span>
-              <input type="text" id="rescueTeamNameInput" name="name" placeholder="Enter team name" required>
+              <input type="text" id="rescueTeamNameInput" name="name" placeholder="Enter team name" data-modal-initial-focus required>
             </label>
             <label class="rescue-team-field">
               <span>Agency</span>
@@ -232,11 +251,14 @@
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                 <input type="search" id="rescueTeamRescuerSearchInput" placeholder="Search rescuer name, code, agency, or current team">
               </label>
-              <div class="rescue-team-picker-results" id="rescueTeamRosterResults"></div>
-              <div class="rescue-team-selected">
-                <h4>Selected rescuers</h4>
+              <section class="rescue-team-picker-group" aria-labelledby="rescueTeamAvailableRescuersTitle">
+                <h4 id="rescueTeamAvailableRescuersTitle">Available rescuers</h4>
+                <div class="rescue-team-picker-results" id="rescueTeamRosterResults"></div>
+              </section>
+              <section class="rescue-team-selected" aria-labelledby="rescueTeamSelectedRescuersTitle">
+                <h4 id="rescueTeamSelectedRescuersTitle">Selected rescuers</h4>
                 <div class="rescue-team-selected-list" id="rescueTeamSelectedList"></div>
-              </div>
+              </section>
             </div>
           </section>
         </form>
@@ -254,10 +276,7 @@
 
   <div class="rescue-team-confirm-modal" id="rescueTeamCreateConfirmModal" aria-hidden="true">
     <div class="rescue-team-confirm-backdrop" data-close-rescue-team-confirm></div>
-    <section class="rescue-team-confirm-card" role="dialog" aria-modal="true" aria-labelledby="rescueTeamCreateConfirmTitle">
-      <button type="button" class="rescue-team-confirm-close" aria-label="Cancel rescue team confirmation" data-close-rescue-team-confirm>
-        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-      </button>
+    <section class="rescue-team-confirm-card" role="dialog" aria-modal="true" aria-labelledby="rescueTeamCreateConfirmTitle" aria-describedby="rescueTeamCreateConfirmMessage">
       <span class="rescue-team-confirm-icon">
         <i class="fa-solid fa-people-group" aria-hidden="true"></i>
       </span>
@@ -275,11 +294,12 @@
 
   <div class="rescue-team-view-modal" id="rescueTeamViewModal" aria-hidden="true">
     <div class="rescue-team-view-modal-backdrop" data-close-rescue-team-view-modal></div>
-    <section class="rescue-team-view-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescueTeamViewModalTitle">
+    <section class="rescue-team-view-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescueTeamViewModalTitle" aria-describedby="rescueTeamViewModalDescription">
       <header class="rescue-team-view-modal-header">
         <div>
           <span class="rescue-team-view-modal-kicker" id="rescueTeamViewModalCode">Rescue team details</span>
           <h2 id="rescueTeamViewModalTitle">Team Details</h2>
+          <p class="admin-dialog-description" id="rescueTeamViewModalDescription">Review team status, leadership, and responder roster assignments.</p>
         </div>
         <button type="button" class="rescue-team-view-icon-button" aria-label="Close rescue team details" data-close-rescue-team-view-modal>
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -305,10 +325,7 @@
 
   <div class="rescue-team-confirm-modal" id="rescueTeamSaveConfirmModal" aria-hidden="true">
     <div class="rescue-team-confirm-backdrop" data-close-rescue-team-save-confirm></div>
-    <section class="rescue-team-confirm-card" role="dialog" aria-modal="true" aria-labelledby="rescueTeamSaveConfirmTitle">
-      <button type="button" class="rescue-team-confirm-close" aria-label="Cancel save confirmation" data-close-rescue-team-save-confirm>
-        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-      </button>
+    <section class="rescue-team-confirm-card" role="dialog" aria-modal="true" aria-labelledby="rescueTeamSaveConfirmTitle" aria-describedby="rescueTeamSaveConfirmMessage">
       <span class="rescue-team-confirm-icon">
         <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
       </span>

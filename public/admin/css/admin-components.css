@@ -1,0 +1,1205 @@
+/* Shared visual primitives. Existing page classes remain intact for JavaScript compatibility. */
+.admin-topbar-title {
+  font-size: 1.65rem;
+  font-weight: 700;
+}
+
+.admin-topbar-desc {
+  font-size: 0.86rem;
+  font-weight: 400;
+}
+
+.admin-nav-link {
+  font-weight: 600;
+}
+
+.admin-sidebar-label,
+.admin-topbar-copy .admin-kicker {
+  font-weight: 700;
+}
+
+.admin-content-panel h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.admin-content-panel h3,
+[role=dialog] h2 {
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.admin-content-panel :is(p, li, td),
+[role=dialog] :is(p, li) {
+  font-size: 0.86rem;
+  font-weight: 400;
+}
+
+.admin-content-panel :is(input, select, textarea),
+[role=dialog] :is(input, select, textarea) {
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.admin-content-panel :is(label, th, [class*=label], [class*=kicker]),
+[role=dialog] :is(label, [class*=label], [class*=kicker]) {
+  font-weight: 600;
+}
+
+.admin-content-panel strong,
+[role=dialog] strong {
+  font-weight: 700;
+}
+
+.admin-content-panel :is(
+  [class*=-title],
+  [class*=-primary-text],
+  [class*=-value],
+  [class*=-status-pill],
+  [class*=-inline-pill],
+  [class*=-badge],
+  [class*=-chip]
+),
+[role=dialog] :is(dt, dd, [class*=-title], [class*=-value]) {
+  font-weight: 700;
+}
+
+.admin-content-panel :is(
+  [class*=-subtitle],
+  [class*=-detail],
+  [class*=-meta],
+  [class*=-muted-text]
+) {
+  font-weight: 500;
+}
+
+.device-map-legend h3,
+.device-map-unavailable h3 {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-content-panel {
+  border-color: var(--admin-border);
+  background: var(--admin-panel);
+  box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-content-panel > [class$=-panel-header] {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-content-panel :is(input:not([type=checkbox]):not([type=radio]), select, textarea) {
+  border-color: var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+}
+
+.admin-content-panel :is(input:not([type=checkbox]):not([type=radio]), select, textarea):focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px var(--admin-focus);
+  outline: none;
+}
+
+.admin-content-panel [class*=table-wrap] {
+  border-color: var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  box-shadow: none;
+}
+
+.admin-content-panel table th {
+  background: #f7f9fc;
+  color: var(--admin-muted);
+}
+
+.admin-content-panel table tbody tr:hover {
+  background: #f9fbfd;
+}
+
+.admin-content-panel :is([class*=summary-card], [class*=stat-card]) {
+  border-color: var(--admin-border);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+:is(
+  .admin-topbar-button,
+  .admin-secondary-button,
+  [class*=-primary-button],
+  [class*=-secondary-button],
+  [class*=-add-button],
+  [class*=-view-button],
+  [class*=-confirm-submit],
+  [class*=-confirm-cancel],
+  [class*=-filter-button],
+  [class*=-sort-button],
+  .messages-send-button,
+  .audit-logs-primary-button,
+  .admin-logout-confirm-button,
+  .account-decline-button
+) {
+  min-height: 42px;
+  border-radius: var(--admin-radius-md);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.15;
+  padding: 0.58rem 0.8rem;
+}
+
+:is(.admin-topbar-button, .admin-secondary-button, [class*=-secondary-button], [class*=-view-button]) {
+  border-color: var(--admin-border-strong);
+  background: #ffffff;
+  color: var(--admin-ink);
+  box-shadow: none;
+}
+
+:is(.admin-topbar-button, .admin-secondary-button, [class*=-secondary-button], [class*=-view-button]):hover:not(:disabled) {
+  border-color: #aebbc8;
+  background: #f7f9fc;
+  color: var(--admin-ink);
+  box-shadow: none;
+}
+
+:is([class*=-primary-button], [class*=-add-button]):not([data-tone=danger]) {
+  border-color: var(--admin-primary);
+  background: var(--admin-primary);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+:is([class*=-primary-button], [class*=-add-button]):not([data-tone=danger]):hover:not(:disabled) {
+  border-color: var(--admin-primary-hover);
+  background: var(--admin-primary-hover);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(207, 60, 37, 0.18);
+}
+
+:is(
+  [class*=-primary-button],
+  [class*=-add-button],
+  [class*=-confirm-submit],
+  .messages-send-button,
+  .audit-logs-primary-button,
+  .admin-logout-confirm-button,
+  .account-decline-button
+) > i:not(.fa-spinner) {
+  display: none;
+}
+
+.account-decline-button {
+  border: 1px solid var(--admin-error);
+  background: var(--admin-error);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.account-decline-button:hover:not(:disabled) {
+  border-color: #b72a2a;
+  background: #b72a2a;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+:is([class*=-modal-dialog], .admin-logout-dialog) {
+  border-color: var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  background: #ffffff;
+  box-shadow: 0 24px 64px rgba(23, 33, 43, 0.2);
+}
+
+:is([class*=-modal-header], [class*=-modal-actions], [class*=-modal-footer]) {
+  border-color: var(--admin-border);
+}
+
+:is([class*=feedback], [class*=status-message], [class*=action-message])[data-tone=success] {
+  border-color: rgba(11, 122, 96, 0.24);
+  background: var(--admin-success-soft);
+  color: var(--admin-success);
+}
+
+:is([class*=feedback], [class*=status-message], [class*=action-message])[data-tone=error] {
+  border-color: rgba(201, 54, 54, 0.24);
+  background: var(--admin-error-soft);
+  color: var(--admin-error);
+}
+
+@media (min-width: 981px) {
+  .admin-content-panel {
+    padding: 1.5rem;
+  }
+}
+/* Shared form and detail dialogs */
+.admin-dialog-description {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+:is(
+  .account-modal-backdrop,
+  .audit-log-modal-backdrop,
+  .department-chat-modal-backdrop,
+  .device-view-modal-backdrop,
+  .distress-signal-modal-backdrop,
+  .rescuer-modal-backdrop,
+  .rescuer-view-modal-backdrop,
+  .rescue-team-modal-backdrop,
+  .rescue-team-view-modal-backdrop
+) {
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(6px);
+}
+
+:is(
+  .account-modal-dialog,
+  .department-chat-modal-dialog,
+  .device-view-modal-dialog,
+  .distress-signal-modal-dialog,
+  .rescuer-modal-dialog,
+  .rescuer-view-modal-dialog,
+  .rescue-team-modal-dialog,
+  .rescue-team-view-modal-dialog
+) {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: calc(100vh - 2rem);
+  overflow: hidden;
+  padding: 0;
+}
+
+.distress-signal-modal-dialog {
+  margin: clamp(1.5rem, 4vh, 2.5rem) auto;
+  max-height: calc(100vh - clamp(3rem, 8vh, 5rem));
+}
+
+.audit-log-modal-dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: calc(100vh - 3rem);
+  overflow: hidden;
+  padding: 0;
+}
+
+:is(
+  .account-modal-header,
+  .audit-log-modal-header,
+  .department-chat-modal-header,
+  .device-view-modal-header,
+  .distress-signal-modal-header,
+  .rescuer-modal-header,
+  .rescuer-view-modal-header,
+  .rescue-team-modal-header,
+  .rescue-team-view-modal-header
+) {
+  display: flex;
+  min-height: 72px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  border-bottom: 1px solid var(--admin-border);
+  background: #ffffff;
+  padding: 1rem 1.25rem;
+}
+
+:is(
+  .account-modal-kicker,
+  .audit-log-modal-kicker,
+  .department-chat-modal-kicker,
+  .device-view-modal-kicker,
+  .distress-signal-modal-kicker,
+  .rescuer-modal-kicker,
+  .rescuer-view-modal-kicker,
+  .rescue-team-modal-kicker,
+  .rescue-team-view-modal-kicker
+) {
+  color: var(--admin-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+:is(
+  .account-modal-header,
+  .audit-log-modal-header,
+  .department-chat-modal-header,
+  .device-view-modal-header,
+  .distress-signal-modal-header,
+  .rescuer-modal-header,
+  .rescuer-view-modal-header,
+  .rescue-team-modal-header,
+  .rescue-team-view-modal-header
+) h2 {
+  margin: 0.2rem 0 0;
+  color: var(--admin-ink);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+:is(
+  .account-icon-button,
+  .audit-log-icon-button,
+  .department-chat-icon-button,
+  .device-view-icon-button,
+  .distress-signal-icon-button,
+  .rescuer-icon-button,
+  .rescuer-view-icon-button,
+  .rescue-team-icon-button,
+  .rescue-team-view-icon-button
+) {
+  display: inline-flex;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  color: var(--admin-muted);
+  box-shadow: none;
+  cursor: pointer;
+}
+
+:is(
+  .account-icon-button,
+  .audit-log-icon-button,
+  .department-chat-icon-button,
+  .device-view-icon-button,
+  .distress-signal-icon-button,
+  .rescuer-icon-button,
+  .rescuer-view-icon-button,
+  .rescue-team-icon-button,
+  .rescue-team-view-icon-button
+):hover:not(:disabled) {
+  border-color: #aebbc8;
+  background: #f7f9fc;
+  color: var(--admin-ink);
+  box-shadow: none;
+}
+
+:is(
+  .account-icon-button,
+  .audit-log-icon-button,
+  .department-chat-icon-button,
+  .device-view-icon-button,
+  .distress-signal-icon-button,
+  .rescuer-icon-button,
+  .rescuer-view-icon-button,
+  .rescue-team-icon-button,
+  .rescue-team-view-icon-button
+):disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+:is(
+  .account-modal-body,
+  .audit-log-modal-body,
+  .department-chat-modal-body,
+  .device-view-modal-body,
+  .distress-signal-modal-body,
+  .rescuer-modal-body,
+  .rescuer-view-modal-body,
+  .rescue-team-modal-body,
+  .rescue-team-view-modal-body
+) {
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 1.2rem 1.25rem;
+  scrollbar-gutter: stable;
+}
+
+.department-chat-form {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.department-chat-modal-body {
+  display: grid;
+  align-content: start;
+  gap: 0.95rem;
+}
+
+:is(
+  .account-modal-actions,
+  .department-chat-modal-actions,
+  .device-view-modal-actions,
+  .distress-signal-modal-actions,
+  .rescuer-modal-actions,
+  .rescuer-view-modal-actions,
+  .rescue-team-modal-actions,
+  .rescue-team-view-modal-actions
+) {
+  position: static;
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  border-top: 1px solid var(--admin-border);
+  border-bottom: 0;
+  background: #ffffff;
+  padding: 0.85rem 1.25rem;
+  backdrop-filter: none;
+}
+
+.audit-log-modal-body {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+.audit-log-metadata-section {
+  margin-top: 0;
+}
+/* Shared confirmation dialogs */
+:is(
+  .account-confirm-backdrop,
+  .rescuer-confirm-backdrop,
+  .rescue-team-confirm-backdrop,
+  .distress-signal-confirm-backdrop,
+  .department-chat-confirm-backdrop,
+  .reports-password-backdrop,
+  .admin-logout-modal-backdrop,
+  #departmentChatArchiveModal .department-chat-modal-backdrop
+) {
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(6px);
+}
+
+:is(
+  .account-confirm-card,
+  .rescuer-confirm-dialog,
+  .rescue-team-confirm-card,
+  .distress-signal-confirm-card,
+  .department-chat-confirm-card,
+  .reports-password-dialog,
+  .admin-logout-dialog,
+  #departmentChatArchiveModal .department-chat-modal-dialog
+) {
+  width: min(460px, calc(100vw - 2rem));
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  background: #ffffff;
+  box-shadow: 0 24px 64px rgba(23, 33, 43, 0.2);
+}
+
+:is(
+  .account-confirm-card,
+  .rescuer-confirm-dialog,
+  .rescue-team-confirm-card,
+  .distress-signal-confirm-card,
+  .department-chat-confirm-card,
+  .admin-logout-dialog
+) {
+  gap: 0.9rem;
+  padding: 1.25rem;
+}
+
+:is(
+  .rescuer-confirm-header,
+  .reports-password-header,
+  .admin-logout-dialog-header,
+  #departmentChatArchiveModal .department-chat-modal-header
+) {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+:is(
+  .account-confirm-copy > .account-confirm-kicker,
+  .rescuer-confirm-kicker,
+  .rescue-team-confirm-copy > span,
+  .distress-signal-confirm-copy > span,
+  .department-chat-confirm-copy > span,
+  .reports-password-kicker,
+  .admin-logout-dialog-kicker,
+  #departmentChatArchiveModal .department-chat-modal-kicker
+) {
+  color: var(--admin-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+:is(
+  .account-confirm-copy,
+  .rescue-team-confirm-copy,
+  .distress-signal-confirm-copy,
+  .department-chat-confirm-copy
+) {
+  gap: 0.35rem;
+  padding-right: 0;
+}
+
+:is(
+  .account-confirm-copy h3,
+  .rescuer-confirm-header h2,
+  .rescue-team-confirm-copy h3,
+  .distress-signal-confirm-copy h3,
+  .department-chat-confirm-copy h3,
+  .reports-password-header h2,
+  .admin-logout-dialog-header h2,
+  #departmentChatArchiveModal .department-chat-modal-header h2
+) {
+  margin: 0.2rem 0 0;
+  color: var(--admin-ink);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+:is(
+  .account-confirm-copy p,
+  .rescuer-confirm-copy,
+  .rescue-team-confirm-copy p,
+  .distress-signal-confirm-copy p,
+  .department-chat-confirm-copy p,
+  .reports-password-body p,
+  .admin-logout-dialog-body p,
+  .department-chat-archive-copy
+) {
+  margin: 0;
+  color: var(--admin-muted);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+:is(
+  .account-confirm-icon,
+  .rescue-team-confirm-icon,
+  .distress-signal-confirm-icon,
+  .department-chat-confirm-icon
+) {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-soft);
+  color: var(--admin-primary);
+  font-size: 1rem;
+}
+
+:is(
+  .account-confirm-icon,
+  .distress-signal-confirm-icon
+)[data-tone="danger"] {
+  background: var(--admin-error-soft);
+  color: var(--admin-error);
+}
+
+.rescuer-confirm-summary {
+  border-color: var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+:is(
+  .account-confirm-reason textarea,
+  .account-confirm-password input,
+  .rescuer-confirm-password-field input,
+  .reports-password-body input
+) {
+  border-color: var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+:is(
+  .account-confirm-reason textarea,
+  .account-confirm-password input,
+  .rescuer-confirm-password-field input,
+  .reports-password-body input
+):focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px var(--admin-focus);
+  outline: none;
+}
+
+:is(
+  .account-confirm-actions,
+  .rescuer-confirm-actions,
+  .rescue-team-confirm-actions,
+  .distress-signal-confirm-actions,
+  .department-chat-confirm-actions,
+  .reports-password-actions,
+  .admin-logout-dialog-actions,
+  #departmentChatArchiveModal .department-chat-modal-actions
+) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  grid-template-columns: none;
+}
+
+:is(
+  .account-confirm-actions,
+  .rescuer-confirm-actions,
+  .rescue-team-confirm-actions,
+  .distress-signal-confirm-actions,
+  .department-chat-confirm-actions,
+  .admin-logout-dialog-actions
+) {
+  margin-top: 0.15rem;
+  border-top: 1px solid var(--admin-border);
+  padding-top: 1rem;
+}
+
+:is(
+  .account-confirm-actions,
+  .rescuer-confirm-actions,
+  .rescue-team-confirm-actions,
+  .distress-signal-confirm-actions,
+  .department-chat-confirm-actions,
+  .reports-password-actions,
+  .admin-logout-dialog-actions,
+  #departmentChatArchiveModal .department-chat-modal-actions
+) > button {
+  min-width: 104px;
+  min-height: 42px;
+  border-radius: var(--admin-radius-md);
+  box-shadow: none;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.15;
+  padding: 0.58rem 0.8rem;
+}
+
+:is(
+  .rescuer-confirm-cancel,
+  .rescue-team-confirm-cancel,
+  .distress-signal-confirm-cancel,
+  .department-chat-confirm-cancel,
+  .admin-logout-cancel-button,
+  #departmentChatArchiveModal .department-chat-secondary-button
+) {
+  border: 1px solid var(--admin-border-strong);
+  background: #ffffff;
+  color: var(--admin-ink);
+}
+
+:is(
+  .account-confirm-primary-button,
+  .rescuer-confirm-submit,
+  .rescue-team-confirm-submit,
+  .distress-signal-confirm-submit,
+  .department-chat-confirm-submit,
+  .reports-primary-button,
+  #departmentChatArchiveModal .department-chat-primary-button
+) {
+  border: 1px solid var(--admin-primary);
+  background: var(--admin-primary);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.account-confirm-primary-button[data-tone="danger"],
+.rescuer-confirm-submit.is-danger,
+.admin-logout-confirm-button,
+#distressSignalCancelConfirmModal .distress-signal-confirm-submit,
+#departmentChatArchiveModal .department-chat-primary-button {
+  border-color: var(--admin-error);
+  background: var(--admin-error);
+  color: #ffffff;
+}
+
+:is(
+  .account-confirm-message,
+  .rescuer-confirm-message,
+  .reports-password-message,
+  .admin-logout-dialog-message
+) {
+  border: 1px solid rgba(201, 54, 54, 0.24);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-error-soft);
+  color: var(--admin-error);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
+  padding: 0.7rem 0.8rem;
+}
+
+@media (max-width: 560px) {
+  :is(
+    .account-confirm-actions,
+    .rescuer-confirm-actions,
+    .rescue-team-confirm-actions,
+    .distress-signal-confirm-actions,
+    .department-chat-confirm-actions,
+    .reports-password-actions,
+    .admin-logout-dialog-actions,
+    #departmentChatArchiveModal .department-chat-modal-actions
+  ) > button {
+    flex: 1 1 140px;
+  }
+}
+/* Specialized workspaces */
+.overview-kpi-card,
+.overview-panel,
+.device-card,
+.reports-summary-card,
+.reports-preview-card,
+.reports-recent-card,
+.reports-include-panel,
+.reports-catalog-panel,
+.reports-builder-panel,
+.reports-preview-panel,
+.messages-conversation-pane,
+.messages-scope-pane,
+.messages-chat-pane {
+  border-color: var(--admin-border);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.overview-kpi-card[data-tone] {
+  background: #ffffff;
+}
+
+.overview-kpi-card[data-tone="danger"] {
+  border-left: 3px solid var(--admin-error);
+}
+
+.overview-kpi-card[data-tone="warning"] {
+  border-left: 3px solid var(--admin-warning);
+}
+
+.overview-kpi-card[data-tone="success"] {
+  border-left: 3px solid var(--admin-success);
+}
+
+.overview-kpi-card[data-tone="neutral"] {
+  border-left: 3px solid var(--admin-info);
+}
+
+.reports-catalog-card {
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.reports-catalog-card.is-active {
+  border-color: rgba(231, 75, 50, 0.42);
+  background: var(--admin-soft);
+  box-shadow: inset 3px 0 0 var(--admin-primary);
+}
+
+.device-card-stat {
+  background: #f8fafc;
+}
+
+.messages-chat-body {
+  background: #f7f9fc;
+}
+/* Final authenticated admin consistency pass */
+.admin-content-panel [class*=table-wrap] {
+  overflow-x: auto;
+  scrollbar-gutter: stable;
+}
+
+.admin-content-panel table {
+  width: 100%;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.admin-content-panel table :is(th, td) {
+  padding: 0.78rem 0.85rem;
+}
+
+.admin-content-panel table th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.045em;
+}
+
+.admin-content-panel table td {
+  font-size: 0.84rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.admin-content-panel table td :is(strong, [class*=-title], [class*=-primary-text], [class*=-value]) {
+  font-weight: 700;
+}
+
+:is(.admin-content-panel, [role=dialog]) :is(
+  [class*=-description],
+  [class*=-detail],
+  [class*=-helper],
+  [class*=-meta],
+  [class*=-note],
+  [class*=-footnote]
+) {
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+:is(.admin-content-panel, [role=dialog]) :is(
+  [class*=-feedback],
+  [class*=-status-message],
+  [class*=-action-message],
+  [class*=-empty]
+) {
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+:is(
+  .rescuer-form-grid,
+  .rescue-team-form-grid,
+  .reports-builder-grid,
+  .reports-custom-range-fields
+) {
+  gap: 0.85rem 1rem;
+}
+
+:is(.rescuer-field, .rescue-team-field, .reports-field) {
+  gap: 0.38rem;
+}
+
+:is(.rescuer-field, .rescue-team-field, .reports-field, .department-chat-field) > span:first-child {
+  color: var(--admin-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+}
+
+:is(.rescuer-field, .rescue-team-field, .reports-field) :is(input, select, textarea) {
+  min-height: 42px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.3;
+  padding: 0.62rem 0.78rem;
+}
+
+.department-chat-field {
+  gap: 0.38rem;
+  padding: 0.72rem 0.82rem;
+}
+
+.department-chat-field :is(input, select, textarea) {
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+:is(
+  .accounts-toolbar,
+  .rescuers-toolbar,
+  .rescue-teams-controls,
+  .distress-signals-toolbar,
+  .devices-toolbar,
+  .department-chats-toolbar,
+  .audit-logs-toolbar
+) {
+  gap: 0.75rem;
+}
+
+.accounts-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+  align-items: stretch;
+}
+
+:is(
+  .rescuers-toolbar,
+  .rescue-teams-controls,
+  .distress-signals-toolbar,
+  .devices-toolbar,
+  .department-chats-toolbar
+) {
+  grid-template-columns: minmax(240px, 1fr) minmax(180px, 220px);
+}
+
+:is(
+  .accounts-search,
+  .rescuers-search,
+  .rescuers-status-filter,
+  .rescue-teams-search,
+  .rescue-teams-status-filter,
+  .distress-signals-search,
+  .distress-signals-status-filter,
+  .devices-search,
+  .devices-status-filter,
+  .department-chats-search,
+  .department-chats-status-filter,
+  .audit-logs-search,
+  .audit-logs-filter
+) {
+  min-width: 0;
+  min-height: 42px;
+}
+
+:is(
+  .accounts-search,
+  .rescuers-search,
+  .rescuers-status-filter,
+  .rescue-teams-search,
+  .rescue-teams-status-filter,
+  .distress-signals-search,
+  .distress-signals-status-filter,
+  .devices-search,
+  .devices-status-filter,
+  .department-chats-search,
+  .department-chats-status-filter,
+  .audit-logs-search,
+  .audit-logs-filter
+) :is(input, select) {
+  min-width: 0;
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+:is(
+  .rescuers-status-filter,
+  .rescue-teams-status-filter,
+  .distress-signals-status-filter,
+  .devices-status-filter,
+  .department-chats-status-filter,
+  .audit-logs-filter
+) > span:first-child {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+:is(
+  .accounts-pagination,
+  .rescuers-pagination,
+  .rescue-teams-pagination,
+  .distress-signals-pagination,
+  .devices-pagination,
+  .audit-logs-pagination
+) {
+  min-height: 42px;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  border-top: 1px solid var(--admin-border);
+  padding-top: 0.85rem;
+}
+
+:is(
+  .accounts-pagination-summary,
+  .rescuers-pagination-summary,
+  .rescue-teams-pagination-summary,
+  .distress-signals-pagination-summary,
+  .devices-pagination-summary,
+  .audit-logs-pagination-summary
+) {
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+:is(
+  .accounts-pagination-actions,
+  .rescuers-pagination-actions,
+  .rescue-teams-pagination-actions,
+  .distress-signals-pagination-actions,
+  .devices-pagination-actions,
+  .audit-logs-pagination-actions
+) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+:is(.admin-content-panel, [role=dialog]) button > span {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-align: center;
+}
+
+.messages-manager-panel :is(
+  [class*=-title],
+  [class*=-name],
+  [class*=-value],
+  [class*=-badge],
+  strong
+),
+.reports-panel :is(
+  [class*=-title],
+  [class*=-name],
+  [class*=-value],
+  [class*=-badge],
+  strong
+) {
+  font-weight: 700;
+}
+
+.messages-manager-panel :is(
+  [class*=-kicker],
+  [class*=-label],
+  [class*=-status]
+),
+.reports-panel :is(
+  [class*=-kicker],
+  [class*=-label],
+  [class*=-status]
+) {
+  font-weight: 700;
+}
+
+.messages-manager-panel :is(
+  p,
+  input,
+  textarea,
+  [class*=-meta],
+  [class*=-preview],
+  [class*=-timestamp]
+),
+.reports-panel :is(
+  p,
+  input,
+  select,
+  [class*=-meta],
+  [class*=-detail]
+) {
+  font-size: 0.84rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+@media (min-width: 981px) and (max-width: 1200px) {
+  .audit-logs-toolbar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  :is(
+    .accounts-toolbar,
+    .rescuers-toolbar,
+    .rescue-teams-controls,
+    .distress-signals-toolbar,
+    .devices-toolbar,
+    .department-chats-toolbar
+  ) {
+    grid-template-columns: 1fr;
+  }
+}
+/* Creation forms use shared compact controls and centered viewport shells. */
+:is(.rescuer-modal, .rescue-team-modal).is-open {
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 3vh, 2rem);
+}
+
+.rescuer-modal-dialog,
+.rescue-team-modal-dialog {
+  max-height: calc(100vh - clamp(2rem, 6vh, 4rem));
+  margin: 0;
+}
+
+.rescuer-modal-dialog {
+  width: min(860px, 100%);
+}
+
+.rescue-team-modal-dialog {
+  width: min(980px, 100%);
+}
+
+:is(.rescuer-action-buttons, .rescue-team-action-buttons) :is(
+  .rescuer-close-button,
+  .rescuer-submit-button,
+  .rescue-team-close-button,
+  .rescue-team-submit-button
+) {
+  width: auto;
+  min-width: 96px;
+  height: 42px;
+  min-height: 42px;
+  border-radius: var(--admin-radius-md);
+  box-shadow: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.15;
+  padding: 0.58rem 0.8rem;
+  transform: none;
+}
+
+:is(.rescuer-action-buttons, .rescue-team-action-buttons) :is(
+  .rescuer-close-button,
+  .rescue-team-close-button
+) {
+  border-color: var(--admin-border-strong);
+  background: #ffffff;
+  color: var(--admin-ink);
+}
+
+:is(.rescuer-action-buttons, .rescue-team-action-buttons) :is(
+  .rescuer-close-button,
+  .rescue-team-close-button
+):hover:not(:disabled) {
+  border-color: #aebbc8;
+  background: #f7f9fc;
+  color: var(--admin-ink);
+  box-shadow: none;
+  transform: none;
+}
+
+:is(.rescuer-action-buttons, .rescue-team-action-buttons) :is(
+  .rescuer-submit-button,
+  .rescue-team-submit-button
+) {
+  border-color: var(--admin-primary);
+  background: var(--admin-primary);
+  color: #ffffff;
+}
+
+:is(.rescuer-action-buttons, .rescue-team-action-buttons) :is(
+  .rescuer-submit-button,
+  .rescue-team-submit-button
+):hover:not(:disabled) {
+  border-color: var(--admin-primary-hover);
+  background: var(--admin-primary-hover);
+  box-shadow: 0 6px 16px rgba(207, 60, 37, 0.18);
+  transform: none;
+}
+
+@media (max-width: 640px) {
+  :is(.rescuer-action-buttons, .rescue-team-action-buttons) :is(
+    .rescuer-close-button,
+    .rescuer-submit-button,
+    .rescue-team-close-button,
+    .rescue-team-submit-button
+  ) {
+    width: 100%;
+  }
+}

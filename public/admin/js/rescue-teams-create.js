@@ -22,7 +22,7 @@
           : 'Currently unassigned';
 
         return `
-          <article class="rescue-team-selected-item">
+          <article class="rescue-team-selected-item is-selected">
             <div class="rescue-team-selected-copy">
               <strong>${helpers.escapeHtml(rescuer.fullName)}</strong>
               <span>${helpers.escapeHtml(`${rescuer.rescuerCode} - ${helpers.getAgencyDisplay(rescuer.agency)}`)}</span>
@@ -46,7 +46,7 @@
         const currentTeamLabel = 'Unassigned and ready to add.';
 
         return `
-          <article class="rescue-team-search-result${disabled ? ' is-disabled' : ''}">
+          <article class="rescue-team-search-result${isSelected ? ' is-selected' : ''}${disabled ? ' is-disabled' : ''}">
             <div class="rescue-team-search-result-copy">
               <strong>${helpers.escapeHtml(rescuer.fullName)}</strong>
               <span>${helpers.escapeHtml(`${rescuer.rescuerCode} - ${helpers.getAgencyDisplay(rescuer.agency)}`)}</span>
@@ -56,6 +56,7 @@
               type="button"
               class="rescue-team-search-add"
               data-add-rescuer-id="${helpers.escapeHtml(rescuer.id)}"
+              aria-pressed="${isSelected ? 'true' : 'false'}"
               ${disabled ? 'disabled' : ''}
             >
               <i class="fa-solid fa-plus" aria-hidden="true"></i>

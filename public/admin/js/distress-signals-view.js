@@ -759,6 +759,20 @@
         }
       });
 
+      window.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+          return;
+        }
+
+        if (dom.distressSignalDeployConfirmModal?.classList.contains('is-open')) {
+          event.stopImmediatePropagation();
+          closeDeployConfirm();
+        } else if (dom.distressSignalCancelConfirmModal?.classList.contains('is-open')) {
+          event.stopImmediatePropagation();
+          closeCancelConfirm();
+        }
+      });
+
       dom.distressSignalModal.addEventListener('input', (event) => {
         const input = event.target.closest('#distressSignalTeamSearchInput');
         if (!input) {

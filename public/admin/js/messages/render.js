@@ -5,6 +5,15 @@
     const { state, dom, helpers, formatters, voice } = context;
     const { escapeHtml, formatDateTime, formatTime, formatVoiceTime } = formatters;
 
+    function getDepartmentInitials(name) {
+      return String(name || 'DP')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join('') || 'DP';
+    }
+
     function renderDepartmentTabs() {
       if (!state.departments.length) {
         dom.scopeRail.innerHTML = `
@@ -17,18 +26,40 @@
 
       dom.scopeRail.innerHTML = state.departments
         .filter((department) => department.status !== 'archived')
-        .map((department) => `
-          <button
-            type="button"
-            class="messages-scope-chip${department.id === state.selectedDepartmentId ? ' is-active' : ''}"
-            data-department-id="${department.id}"
-          >
-            <span class="messages-scope-chip-label">${escapeHtml(department.name)}</span>
-            <small class="messages-scope-chip-meta">${escapeHtml(department.subtitle || '')}</small>
-            ${department.unreadCount > 0 ? `<strong class="messages-scope-badge">${department.unreadCount}</strong>` : ''}
-          </button>
-        `)
+        .map((department) => {
+          const name = department.name || 'Department';
+          const subtitle = department.subtitle || '';
+          const initials = getDepartmentInitials(name);
+          const logo = department.iconUrl
+            ? `<img src="${escapeHtml(department.iconUrl)}" alt="" loading="lazy" decoding="async" data-department-logo>`
+            : '';
+
+          return `
+            <button
+              type="button"
+              class="messages-scope-chip${department.id === state.selectedDepartmentId ? ' is-active' : ''}"
+              data-department-id="${department.id}"
+            >
+              <span class="messages-scope-chip-logo${department.iconUrl ? ' has-image' : ''}" aria-hidden="true">
+                <span class="messages-scope-chip-logo-fallback">${escapeHtml(initials)}</span>
+                ${logo}
+              </span>
+              <span class="messages-scope-chip-copy">
+                <span class="messages-scope-chip-label" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+                <small class="messages-scope-chip-meta"${subtitle ? ` title="${escapeHtml(subtitle)}"` : ''}>${escapeHtml(subtitle)}</small>
+              </span>
+              ${department.unreadCount > 0 ? `<strong class="messages-scope-badge">${department.unreadCount}</strong>` : ''}
+            </button>
+          `;
+        })
         .join('');
+
+      dom.scopeRail.querySelectorAll('[data-department-logo]').forEach((image) => {
+        image.addEventListener('error', () => {
+          image.hidden = true;
+          image.closest('.messages-scope-chip-logo')?.classList.remove('has-image');
+        }, { once: true });
+      });
     }
 
     function renderConversations() {

@@ -26,8 +26,8 @@
 
 .overview-kpi-strip {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.85rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
 }
 
 .overview-kpi-card,
@@ -40,11 +40,13 @@
 
 .overview-kpi-card {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 0.75rem;
-  align-items: center;
-  min-height: 116px;
-  padding: 0.9rem;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-content: center;
+  gap: 0.55rem;
+  min-height: 108px;
+  padding: 1rem 1.1rem;
+  text-align: center;
 }
 
 .overview-kpi-card[data-tone="danger"] {
@@ -73,8 +75,8 @@
 
 .overview-kpi-icon {
   display: inline-flex;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
@@ -86,28 +88,28 @@
 .overview-kpi-copy {
   display: grid;
   gap: 0.1rem;
+  justify-items: center;
   min-width: 0;
+  width: 100%;
 }
 
 .overview-kpi-label,
 .overview-panel-kicker {
   color: var(--admin-muted);
-  font: 850 0.72rem/1.25 'Inter', system-ui, -apple-system, sans-serif;
+  font: 700 0.7rem/1.3 'Inter', system-ui, -apple-system, sans-serif;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .overview-kpi-value {
   color: var(--admin-ink);
-  font: 950 2rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  font: 700 1.7rem/1.05 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .overview-kpi-detail {
   color: var(--admin-muted);
-  font: 750 0.78rem/1.25 'Inter', system-ui, -apple-system, sans-serif;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font: 500 0.76rem/1.35 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-wrap: anywhere;
 }
 
 .overview-grid {
@@ -157,7 +159,7 @@
 .overview-panel-heading h3 {
   margin: 0.2rem 0 0;
   color: var(--admin-ink);
-  font: 950 1.38rem/1.05 'Inter', system-ui, -apple-system, sans-serif;
+  font: 700 1.12rem/1.2 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .overview-panel-link {
@@ -165,7 +167,7 @@
   border: 1px solid rgba(231, 75, 50, 0.22);
   border-radius: 8px;
   color: var(--admin-primary-hover);
-  font: 900 0.76rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  font: 700 0.74rem/1 'Inter', system-ui, -apple-system, sans-serif;
   padding: 0.55rem 0.72rem;
   text-decoration: none;
 }
@@ -241,7 +243,7 @@
 .overview-list-title {
   min-width: 0;
   color: var(--admin-ink);
-  font: 900 0.86rem/1.25 'Inter', system-ui, -apple-system, sans-serif;
+  font: 700 0.84rem/1.3 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .overview-legend-label {
@@ -253,7 +255,7 @@
 .overview-legend-value,
 .overview-pulse-value {
   color: var(--admin-primary-hover);
-  font: 950 1rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  font: 700 0.94rem/1 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .overview-pulse-grid {
@@ -290,7 +292,7 @@
 
 .overview-list-meta {
   color: var(--admin-muted);
-  font: 750 0.8rem/1.3 'Inter', system-ui, -apple-system, sans-serif;
+  font: 500 0.78rem/1.4 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .overview-chip-row {
@@ -305,7 +307,7 @@
   border-radius: 999px;
   background: var(--admin-soft);
   color: var(--admin-primary-hover);
-  font: 950 0.64rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  font: 700 0.64rem/1 'Inter', system-ui, -apple-system, sans-serif;
   letter-spacing: 0.05em;
   padding: 0.34rem 0.5rem;
   text-transform: uppercase;
@@ -335,10 +337,6 @@
 }
 
 @media (max-width: 1500px) {
-  .overview-kpi-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .overview-panel-status,
   .overview-panel-trend,
   .overview-panel-readiness,

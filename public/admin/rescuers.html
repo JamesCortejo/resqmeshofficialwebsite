@@ -4,16 +4,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="ResQMesh rescuer manager workspace.">
-  <title>Rescuer Manager - ResQMesh</title>
+  <meta name="description" content="ResQMesh rescuers workspace.">
+  <title>Rescuers - ResQMesh</title>
   <link rel="icon" type="image/png" href="/assets/logo-icon.png">
 
-  <link rel="stylesheet" href="/admin/css/login.css">
+  <link rel="stylesheet" href="/admin/css/admin-base.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
   <link rel="stylesheet" href="/admin/css/app-shell.css">
   <link rel="stylesheet" href="/admin/css/admin-notifications.css">
   <link rel="stylesheet" href="/admin/css/rescuers.css">
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="/admin/css/admin-components.css">
 </head>
 
 <body class="admin-login-page admin-loading">
@@ -38,54 +39,71 @@
           </div>
         </a>
 
-        <div class="admin-sidebar-group">
-          <span class="admin-sidebar-label">Navigation</span>
-          <nav class="admin-nav">
-            <a href="/resqmeshadmin/overview" class="admin-nav-link">
-              <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
-              <span>Overview</span>
-            </a>
-            <a href="/resqmeshadmin/device-map" class="admin-nav-link">
-              <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
-              <span>Mesh Node Map</span>
-            </a>
-            <a href="/resqmeshadmin/accounts" class="admin-nav-link">
-              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
-              <span>Accounts Manager</span>
-            </a>
-            <a href="/resqmeshadmin/rescuers" class="admin-nav-link is-active" aria-current="page">
-              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
-              <span>Rescuer Manager</span>
-            </a>
-            <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link">
-              <i class="fa-solid fa-people-group" aria-hidden="true"></i>
-              <span>Rescue Teams</span>
-            </a>
-            <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
-              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-              <span>Distress Signals</span>
-            </a>
-            <a href="/resqmeshadmin/messages" class="admin-nav-link">
-              <i class="fa-regular fa-comments" aria-hidden="true"></i>
-              <span>Messages Manager</span>
-            </a>
-            <a href="/resqmeshadmin/devices" class="admin-nav-link">
-              <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
-              <span>Device Manager</span>
-            </a>
-            <a href="/resqmeshadmin/department-chats" class="admin-nav-link">
-              <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
-              <span>Department Chats</span>
-            </a>
-            <a href="/resqmeshadmin/reports" class="admin-nav-link">
-              <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
-              <span>Reports</span>
-            </a>
-            <a href="/resqmeshadmin/audit-logs" class="admin-nav-link">
-              <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
-              <span>Audit Logs</span>
-            </a>
-          </nav>
+        <div class="admin-sidebar-groups">
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">Command</span>
+            <nav class="admin-nav" aria-label="Command">
+              <a href="/resqmeshadmin/overview" class="admin-nav-link">
+                <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+                <span>Overview</span>
+              </a>
+              <a href="/resqmeshadmin/device-map" class="admin-nav-link">
+                <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+                <span>Mesh Map</span>
+              </a>
+              <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <span>Distress Signals</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">People</span>
+            <nav class="admin-nav" aria-label="People">
+              <a href="/resqmeshadmin/accounts" class="admin-nav-link">
+                <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+                <span>Accounts</span>
+              </a>
+              <a href="/resqmeshadmin/rescuers" class="admin-nav-link is-active" aria-current="page">
+                <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                <span>Rescuers</span>
+              </a>
+              <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link">
+                <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+                <span>Rescue Teams</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">Communication</span>
+            <nav class="admin-nav" aria-label="Communication">
+              <a href="/resqmeshadmin/messages" class="admin-nav-link">
+                <i class="fa-regular fa-comments" aria-hidden="true"></i>
+                <span>Messages</span>
+              </a>
+              <a href="/resqmeshadmin/department-chats" class="admin-nav-link">
+                <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
+                <span>Department Chats</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">System</span>
+            <nav class="admin-nav" aria-label="System">
+              <a href="/resqmeshadmin/devices" class="admin-nav-link">
+                <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+                <span>Devices</span>
+              </a>
+              <a href="/resqmeshadmin/reports" class="admin-nav-link">
+                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+                <span>Reports</span>
+              </a>
+              <a href="/resqmeshadmin/audit-logs" class="admin-nav-link">
+                <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+                <span>Audit Logs</span>
+              </a>
+            </nav>
+          </div>
         </div>
       </div>
 
@@ -99,7 +117,7 @@
             <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
             Valencia City Emergency Network
           </span>
-          <h1 class="admin-topbar-title">Rescuer Manager</h1>
+          <h1 class="admin-topbar-title">Rescuers</h1>
           <p class="admin-topbar-desc">A dedicated workspace for rescuer records and team readiness.</p>
         </div>
 
@@ -182,11 +200,12 @@
 
   <div class="rescuer-modal" id="rescuerModal" aria-hidden="true">
     <div class="rescuer-modal-backdrop" data-close-rescuer-modal></div>
-    <section class="rescuer-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescuerModalTitle">
+    <section class="rescuer-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescuerModalTitle" aria-describedby="rescuerModalDescription">
       <header class="rescuer-modal-header">
         <div>
           <span class="rescuer-modal-kicker">Add Rescuer</span>
           <h2 id="rescuerModalTitle">Rescuer Form</h2>
+          <p class="admin-dialog-description" id="rescuerModalDescription">Create a rescuer profile and optionally assign an active rescue team.</p>
         </div>
         <button type="button" class="rescuer-icon-button" aria-label="Close rescuer form" data-close-rescuer-modal>
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -202,7 +221,7 @@
           <div class="rescuer-form-grid">
             <label class="rescuer-field">
               <span>First name</span>
-              <input type="text" id="rescuerFirstNameInput" name="firstName" placeholder="Enter first name" required>
+              <input type="text" id="rescuerFirstNameInput" name="firstName" placeholder="Enter first name" data-modal-initial-focus required>
             </label>
             <label class="rescuer-field">
               <span>Middle name</span>
@@ -266,11 +285,12 @@
 
   <div class="rescuer-view-modal" id="rescuerViewModal" aria-hidden="true">
     <div class="rescuer-view-modal-backdrop" data-close-view-modal></div>
-    <section class="rescuer-view-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescuerViewModalTitle">
+    <section class="rescuer-view-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rescuerViewModalTitle" aria-describedby="rescuerViewModalDescription">
       <header class="rescuer-view-modal-header">
         <div>
           <span class="rescuer-view-modal-kicker" id="rescuerViewModalCode">Rescuer details</span>
           <h2 id="rescuerViewModalTitle">Rescuer Details</h2>
+          <p class="admin-dialog-description" id="rescuerViewModalDescription">Review rescuer identity, assignment, readiness, and access controls.</p>
         </div>
         <button type="button" class="rescuer-view-icon-button" aria-label="Close rescuer details" data-close-view-modal>
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -296,15 +316,12 @@
 
   <div class="rescuer-confirm-modal" id="rescuerConfirmModal" aria-hidden="true">
     <div class="rescuer-confirm-backdrop" data-close-rescuer-confirm></div>
-    <section class="rescuer-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="rescuerConfirmTitle">
+    <section class="rescuer-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="rescuerConfirmTitle" aria-describedby="rescuerConfirmCopy">
       <header class="rescuer-confirm-header">
         <div>
           <span class="rescuer-confirm-kicker" id="rescuerConfirmKicker">Confirmation</span>
           <h2 id="rescuerConfirmTitle">Confirm action</h2>
         </div>
-        <button type="button" class="rescuer-confirm-close" aria-label="Close confirmation dialog" data-close-rescuer-confirm>
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
       </header>
       <div class="rescuer-confirm-body">
         <p class="rescuer-confirm-copy" id="rescuerConfirmCopy">Review this action before continuing.</p>

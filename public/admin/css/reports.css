@@ -488,7 +488,6 @@
   place-items: center;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
 }
 
 .reports-password-modal.is-open {
@@ -538,19 +537,6 @@
   margin: 0.28rem 0 0;
   color: var(--admin-ink);
   font: 900 1.2rem/1.2 'Poppins', 'Inter', system-ui, sans-serif;
-}
-
-.reports-password-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.8rem;
-  height: 2.8rem;
-  border: 1px solid rgba(220, 227, 234, 0.95);
-  border-radius: 999px;
-  background: #ffffff;
-  color: var(--admin-muted);
-  cursor: pointer;
 }
 
 .reports-password-body {

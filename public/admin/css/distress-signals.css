@@ -702,6 +702,18 @@
   scroll-padding-bottom: 1rem;
 }
 
+#distressSignalTeamGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#distressSignalTeamGrid > .distress-signal-team-option {
+  min-width: 0;
+}
+
+#distressSignalTeamGrid > .distress-signal-team-empty {
+  grid-column: 1 / -1;
+}
+
 #distressSignalLeaderGrid {
   max-height: 13.5rem;
 }
@@ -1033,22 +1045,6 @@
   padding: 1.35rem;
 }
 
-.distress-signal-confirm-close {
-  position: absolute;
-  top: 0.9rem;
-  right: 0.9rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border: 1px solid rgba(220, 227, 234, 0.9);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--admin-muted);
-  cursor: pointer;
-}
-
 .distress-signal-confirm-icon {
   display: inline-flex;
   align-items: center;
@@ -1240,6 +1236,11 @@ body.distress-signal-modal-open {
   .distress-signal-team-grid {
     max-height: 15rem;
   }
+
+  #distressSignalTeamGrid {
+    grid-template-columns: 1fr;
+  }
+
 
   #distressSignalLeaderGrid {
     max-height: 11.5rem;

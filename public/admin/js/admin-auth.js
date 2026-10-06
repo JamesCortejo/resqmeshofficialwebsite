@@ -10,6 +10,176 @@
   let logoutConfirmButton = null;
   let logoutModalMessage = null;
 
+  const modalController = (() => {
+    const modalStack = [];
+    const modalOpeners = new WeakMap();
+    const focusableSelector = [
+      'a[href]',
+      'button:not([disabled])',
+      'input:not([disabled]):not([type="hidden"])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])'
+    ].join(',');
+
+    function getDialog(container) {
+      return container?.querySelector(':scope > [role="dialog"]') || null;
+    }
+
+    function getModalContainers() {
+      return Array.from(document.querySelectorAll('[aria-hidden]'))
+        .filter((container) => getDialog(container));
+    }
+
+    function isOpen(container) {
+      return container.getAttribute('aria-hidden') === 'false';
+    }
+
+    function getFocusableElements(dialog) {
+      return Array.from(dialog.querySelectorAll(focusableSelector))
+        .filter((element) => (
+          !element.hidden
+          && element.getAttribute('aria-hidden') !== 'true'
+          && element.getClientRects().length > 0
+        ));
+    }
+
+    function focusFirst(dialog) {
+      const preferred = dialog.querySelector('[autofocus], [data-modal-initial-focus]');
+      const preferredIsUsable = preferred
+        && !preferred.disabled
+        && !preferred.hidden
+        && preferred.getClientRects().length > 0;
+      const target = preferredIsUsable ? preferred : getFocusableElements(dialog)[0];
+
+      if (target) {
+        target.focus();
+        return;
+      }
+
+      if (!dialog.hasAttribute('tabindex')) {
+        dialog.setAttribute('tabindex', '-1');
+      }
+      dialog.focus();
+    }
+
+    function getTopDialog() {
+      return getDialog(modalStack[modalStack.length - 1]);
+    }
+
+    function sync() {
+      const containers = getModalContainers();
+      const openSet = new Set(containers.filter(isOpen));
+      const closed = modalStack.filter((container) => !openSet.has(container)).reverse();
+      const newlyOpened = [];
+
+      for (let index = modalStack.length - 1; index >= 0; index -= 1) {
+        if (!openSet.has(modalStack[index])) {
+          modalStack.splice(index, 1);
+        }
+      }
+
+      containers.forEach((container) => {
+        if (!openSet.has(container) || modalStack.includes(container)) {
+          return;
+        }
+
+        const activeElement = document.activeElement;
+        if (activeElement instanceof HTMLElement && !container.contains(activeElement)) {
+          modalOpeners.set(container, activeElement);
+        }
+
+        modalStack.push(container);
+        newlyOpened.push(container);
+      });
+
+      document.body.classList.toggle('admin-modal-open', modalStack.length > 0);
+
+      const closedContainer = modalStack.length > 0
+        ? closed[0]
+        : closed[closed.length - 1];
+      const opener = closedContainer ? modalOpeners.get(closedContainer) : null;
+      closed.forEach((container) => modalOpeners.delete(container));
+
+      if (newlyOpened.length > 0) {
+        const dialog = getDialog(newlyOpened[newlyOpened.length - 1]);
+        window.requestAnimationFrame(() => {
+          if (dialog && !dialog.contains(document.activeElement)) {
+            focusFirst(dialog);
+          }
+        });
+        return;
+      }
+
+      if (opener instanceof HTMLElement && opener.isConnected) {
+        window.requestAnimationFrame(() => opener.focus());
+      }
+    }
+
+    function trapFocus(event) {
+      if (event.key !== 'Tab') {
+        return;
+      }
+
+      const dialog = getTopDialog();
+      if (!dialog) {
+        return;
+      }
+
+      const focusable = getFocusableElements(dialog);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        focusFirst(dialog);
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && (activeElement === first || !dialog.contains(activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (activeElement === last || !dialog.contains(activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    function keepFocusInsideTopDialog(event) {
+      const dialog = getTopDialog();
+      if (!dialog || dialog.contains(event.target)) {
+        return;
+      }
+
+      focusFirst(dialog);
+    }
+
+    function init() {
+      if (!document.body) {
+        return;
+      }
+
+      const observer = new MutationObserver(sync);
+      observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['aria-hidden'],
+        childList: true,
+        subtree: true
+      });
+
+      document.addEventListener('keydown', trapFocus, true);
+      document.addEventListener('focusin', keepFocusInsideTopDialog, true);
+      sync();
+    }
+
+    return {
+      getTopDialog,
+      init,
+      sync
+    };
+  })();
+
   function isSafeMethod(method) {
     const normalizedMethod = String(method || 'GET').toUpperCase();
     return normalizedMethod === 'GET' || normalizedMethod === 'HEAD' || normalizedMethod === 'OPTIONS';
@@ -182,18 +352,16 @@
     modal.setAttribute('aria-hidden', 'true');
     modal.innerHTML = `
       <div class="admin-logout-modal-backdrop" data-admin-logout-close></div>
-      <section class="admin-logout-dialog" role="dialog" aria-modal="true" aria-labelledby="adminLogoutTitle">
+      <section class="admin-logout-dialog" role="dialog" aria-modal="true" aria-labelledby="adminLogoutTitle" aria-describedby="adminLogoutDescription">
         <header class="admin-logout-dialog-header">
           <div>
             <span class="admin-logout-dialog-kicker">Confirm Logout</span>
             <h2 id="adminLogoutTitle">Leave admin session?</h2>
           </div>
-          <button type="button" class="admin-logout-close-button" aria-label="Close logout dialog" data-admin-logout-close>
-            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-          </button>
+
         </header>
         <div class="admin-logout-dialog-body">
-          <p>You are about to log out of the ResQMesh admin console. You will need to sign in again to continue managing the system.</p>
+          <p id="adminLogoutDescription">You are about to log out of the ResQMesh admin console. You will need to sign in again to continue managing the system.</p>
           <div class="admin-logout-dialog-message" data-admin-logout-message hidden></div>
         </div>
         <footer class="admin-logout-dialog-actions">
@@ -270,7 +438,13 @@
     syncLogoutButtons();
   }
 
+  modalController.init();
   bindLogoutButtons();
+
+  window.ResQMeshAdminModal = {
+    getTopDialog: modalController.getTopDialog,
+    sync: modalController.sync
+  };
 
   window.ResQMeshAdminAuth = {
     bindLogoutButtons,

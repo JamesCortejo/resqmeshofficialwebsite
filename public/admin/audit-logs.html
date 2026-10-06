@@ -8,12 +8,13 @@
   <title>Audit Logs - ResQMesh</title>
   <link rel="icon" type="image/png" href="/assets/logo-icon.png">
 
-  <link rel="stylesheet" href="/admin/css/login.css">
+  <link rel="stylesheet" href="/admin/css/admin-base.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
   <link rel="stylesheet" href="/admin/css/app-shell.css">
   <link rel="stylesheet" href="/admin/css/admin-notifications.css">
   <link rel="stylesheet" href="/admin/css/audit-logs.css">
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="/admin/css/admin-components.css">
 </head>
 
 <body class="admin-login-page admin-loading">
@@ -38,54 +39,71 @@
           </div>
         </a>
 
-        <div class="admin-sidebar-group">
-          <span class="admin-sidebar-label">Navigation</span>
-          <nav class="admin-nav">
-            <a href="/resqmeshadmin/overview" class="admin-nav-link">
-              <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
-              <span>Overview</span>
-            </a>
-            <a href="/resqmeshadmin/device-map" class="admin-nav-link">
-              <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
-              <span>Mesh Node Map</span>
-            </a>
-            <a href="/resqmeshadmin/accounts" class="admin-nav-link">
-              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
-              <span>Accounts Manager</span>
-            </a>
-            <a href="/resqmeshadmin/rescuers" class="admin-nav-link">
-              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
-              <span>Rescuer Manager</span>
-            </a>
-            <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link">
-              <i class="fa-solid fa-people-group" aria-hidden="true"></i>
-              <span>Rescue Teams</span>
-            </a>
-            <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
-              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-              <span>Distress Signals</span>
-            </a>
-            <a href="/resqmeshadmin/messages" class="admin-nav-link">
-              <i class="fa-regular fa-comments" aria-hidden="true"></i>
-              <span>Messages Manager</span>
-            </a>
-            <a href="/resqmeshadmin/devices" class="admin-nav-link">
-              <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
-              <span>Device Manager</span>
-            </a>
-            <a href="/resqmeshadmin/department-chats" class="admin-nav-link">
-              <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
-              <span>Department Chats</span>
-            </a>
-            <a href="/resqmeshadmin/reports" class="admin-nav-link">
-              <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
-              <span>Reports</span>
-            </a>
-            <a href="/resqmeshadmin/audit-logs" class="admin-nav-link is-active" aria-current="page">
-              <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
-              <span>Audit Logs</span>
-            </a>
-          </nav>
+        <div class="admin-sidebar-groups">
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">Command</span>
+            <nav class="admin-nav" aria-label="Command">
+              <a href="/resqmeshadmin/overview" class="admin-nav-link">
+                <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+                <span>Overview</span>
+              </a>
+              <a href="/resqmeshadmin/device-map" class="admin-nav-link">
+                <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+                <span>Mesh Map</span>
+              </a>
+              <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <span>Distress Signals</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">People</span>
+            <nav class="admin-nav" aria-label="People">
+              <a href="/resqmeshadmin/accounts" class="admin-nav-link">
+                <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+                <span>Accounts</span>
+              </a>
+              <a href="/resqmeshadmin/rescuers" class="admin-nav-link">
+                <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                <span>Rescuers</span>
+              </a>
+              <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link">
+                <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+                <span>Rescue Teams</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">Communication</span>
+            <nav class="admin-nav" aria-label="Communication">
+              <a href="/resqmeshadmin/messages" class="admin-nav-link">
+                <i class="fa-regular fa-comments" aria-hidden="true"></i>
+                <span>Messages</span>
+              </a>
+              <a href="/resqmeshadmin/department-chats" class="admin-nav-link">
+                <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
+                <span>Department Chats</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">System</span>
+            <nav class="admin-nav" aria-label="System">
+              <a href="/resqmeshadmin/devices" class="admin-nav-link">
+                <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+                <span>Devices</span>
+              </a>
+              <a href="/resqmeshadmin/reports" class="admin-nav-link">
+                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+                <span>Reports</span>
+              </a>
+              <a href="/resqmeshadmin/audit-logs" class="admin-nav-link is-active" aria-current="page">
+                <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+                <span>Audit Logs</span>
+              </a>
+            </nav>
+          </div>
         </div>
       </div>
 
@@ -206,20 +224,23 @@
 
   <div class="audit-log-modal" id="auditLogDetailsModal" aria-hidden="true">
     <div class="audit-log-modal-backdrop" data-close-audit-log-details></div>
-    <section class="audit-log-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="auditLogDetailsTitle">
+    <section class="audit-log-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="auditLogDetailsTitle" aria-describedby="auditLogDetailsDescription">
       <header class="audit-log-modal-header">
         <div>
           <span class="audit-log-modal-kicker">Audit details</span>
           <h2 id="auditLogDetailsTitle">Audit Log Record</h2>
+          <p class="admin-dialog-description" id="auditLogDetailsDescription">Review the selected administrative audit event and its sanitized metadata.</p>
         </div>
         <button type="button" class="audit-log-icon-button" aria-label="Close audit log details" data-close-audit-log-details>
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </header>
-      <div class="audit-log-details-grid" id="auditLogDetailsGrid"></div>
-      <div class="audit-log-metadata-section">
-        <h3>Sanitized Metadata</h3>
-        <pre id="auditLogMetadataBlock">{}</pre>
+      <div class="audit-log-modal-body">
+        <div class="audit-log-details-grid" id="auditLogDetailsGrid"></div>
+        <div class="audit-log-metadata-section">
+          <h3>Sanitized Metadata</h3>
+          <pre id="auditLogMetadataBlock">{}</pre>
+        </div>
       </div>
     </section>
   </div>

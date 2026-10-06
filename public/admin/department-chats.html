@@ -8,12 +8,13 @@
   <title>Department Chats - ResQMesh</title>
   <link rel="icon" type="image/png" href="/assets/logo-icon.png">
 
-  <link rel="stylesheet" href="/admin/css/login.css">
+  <link rel="stylesheet" href="/admin/css/admin-base.css">
   <link rel="stylesheet" href="/admin/css/admin-loader.css">
   <link rel="stylesheet" href="/admin/css/app-shell.css">
   <link rel="stylesheet" href="/admin/css/admin-notifications.css">
   <link rel="stylesheet" href="/admin/css/department-chats.css">
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="/admin/css/admin-components.css">
 </head>
 
 <body class="admin-login-page admin-loading">
@@ -38,54 +39,71 @@
           </div>
         </a>
 
-        <div class="admin-sidebar-group">
-          <span class="admin-sidebar-label">Navigation</span>
-          <nav class="admin-nav">
-            <a href="/resqmeshadmin/overview" class="admin-nav-link">
-              <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
-              <span>Overview</span>
-            </a>
-            <a href="/resqmeshadmin/device-map" class="admin-nav-link">
-              <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
-              <span>Mesh Node Map</span>
-            </a>
-            <a href="/resqmeshadmin/accounts" class="admin-nav-link">
-              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
-              <span>Accounts Manager</span>
-            </a>
-            <a href="/resqmeshadmin/rescuers" class="admin-nav-link">
-              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
-              <span>Rescuer Manager</span>
-            </a>
-            <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link">
-              <i class="fa-solid fa-people-group" aria-hidden="true"></i>
-              <span>Rescue Teams</span>
-            </a>
-            <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
-              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-              <span>Distress Signals</span>
-            </a>
-            <a href="/resqmeshadmin/messages" class="admin-nav-link">
-              <i class="fa-regular fa-comments" aria-hidden="true"></i>
-              <span>Messages Manager</span>
-            </a>
-            <a href="/resqmeshadmin/devices" class="admin-nav-link">
-              <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
-              <span>Device Manager</span>
-            </a>
-            <a href="/resqmeshadmin/department-chats" class="admin-nav-link is-active" aria-current="page">
-              <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
-              <span>Department Chats</span>
-            </a>
-            <a href="/resqmeshadmin/reports" class="admin-nav-link">
-              <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
-              <span>Reports</span>
-            </a>
-            <a href="/resqmeshadmin/audit-logs" class="admin-nav-link">
-              <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
-              <span>Audit Logs</span>
-            </a>
-          </nav>
+        <div class="admin-sidebar-groups">
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">Command</span>
+            <nav class="admin-nav" aria-label="Command">
+              <a href="/resqmeshadmin/overview" class="admin-nav-link">
+                <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+                <span>Overview</span>
+              </a>
+              <a href="/resqmeshadmin/device-map" class="admin-nav-link">
+                <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+                <span>Mesh Map</span>
+              </a>
+              <a href="/resqmeshadmin/distress-signals" class="admin-nav-link">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <span>Distress Signals</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">People</span>
+            <nav class="admin-nav" aria-label="People">
+              <a href="/resqmeshadmin/accounts" class="admin-nav-link">
+                <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+                <span>Accounts</span>
+              </a>
+              <a href="/resqmeshadmin/rescuers" class="admin-nav-link">
+                <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                <span>Rescuers</span>
+              </a>
+              <a href="/resqmeshadmin/rescue-teams" class="admin-nav-link">
+                <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+                <span>Rescue Teams</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">Communication</span>
+            <nav class="admin-nav" aria-label="Communication">
+              <a href="/resqmeshadmin/messages" class="admin-nav-link">
+                <i class="fa-regular fa-comments" aria-hidden="true"></i>
+                <span>Messages</span>
+              </a>
+              <a href="/resqmeshadmin/department-chats" class="admin-nav-link is-active" aria-current="page">
+                <i class="fa-solid fa-comments-dollar" aria-hidden="true"></i>
+                <span>Department Chats</span>
+              </a>
+            </nav>
+          </div>
+          <div class="admin-sidebar-group">
+            <span class="admin-sidebar-label">System</span>
+            <nav class="admin-nav" aria-label="System">
+              <a href="/resqmeshadmin/devices" class="admin-nav-link">
+                <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+                <span>Devices</span>
+              </a>
+              <a href="/resqmeshadmin/reports" class="admin-nav-link">
+                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+                <span>Reports</span>
+              </a>
+              <a href="/resqmeshadmin/audit-logs" class="admin-nav-link">
+                <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+                <span>Audit Logs</span>
+              </a>
+            </nav>
+          </div>
         </div>
       </div>
 
@@ -169,11 +187,12 @@
 
   <div class="department-chat-modal" id="departmentChatFormModal" aria-hidden="true">
     <div class="department-chat-modal-backdrop" data-close-department-chat-form></div>
-    <section class="department-chat-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="departmentChatFormTitle">
+    <section class="department-chat-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="departmentChatFormTitle" aria-describedby="departmentChatFormDescription">
       <header class="department-chat-modal-header">
         <div>
           <span class="department-chat-modal-kicker" id="departmentChatFormKicker">Department chat</span>
           <h2 id="departmentChatFormTitle">Add Department Chat</h2>
+          <p class="admin-dialog-description" id="departmentChatFormDescription">Create or edit a department chat room and its civilian access settings.</p>
         </div>
         <button type="button" class="department-chat-icon-button" aria-label="Close department chat form" data-close-department-chat-form>
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -181,9 +200,10 @@
       </header>
 
       <form class="department-chat-form" id="departmentChatForm">
+        <div class="department-chat-modal-body">
         <label class="department-chat-field">
           <span>Name</span>
-          <input type="text" id="departmentChatNameInput" maxlength="60" required>
+          <input type="text" id="departmentChatNameInput" maxlength="60" data-modal-initial-focus required>
         </label>
         <label class="department-chat-field">
           <span>Subtitle</span>
@@ -243,6 +263,7 @@
           </select>
         </label>
 
+        </div>
         <footer class="department-chat-modal-actions">
           <button type="button" class="department-chat-secondary-button" data-close-department-chat-form>Cancel</button>
           <button type="submit" class="department-chat-primary-button" id="departmentChatFormSubmitButton">Save Room</button>
@@ -253,15 +274,12 @@
 
   <div class="department-chat-modal" id="departmentChatArchiveModal" aria-hidden="true">
     <div class="department-chat-modal-backdrop" data-close-department-chat-archive></div>
-    <section class="department-chat-modal-dialog department-chat-modal-dialog-small" role="dialog" aria-modal="true" aria-labelledby="departmentChatArchiveTitle">
+    <section class="department-chat-modal-dialog department-chat-modal-dialog-small" role="dialog" aria-modal="true" aria-labelledby="departmentChatArchiveTitle" aria-describedby="departmentChatArchiveCopy">
       <header class="department-chat-modal-header">
         <div>
           <span class="department-chat-modal-kicker">Archive room</span>
           <h2 id="departmentChatArchiveTitle">Archive Department Chat</h2>
         </div>
-        <button type="button" class="department-chat-icon-button" aria-label="Close archive dialog" data-close-department-chat-archive>
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
       </header>
 
       <div class="department-chat-archive-copy" id="departmentChatArchiveCopy">
@@ -277,10 +295,7 @@
 
   <div class="department-chat-confirm-modal" id="departmentChatSaveConfirmModal" aria-hidden="true">
     <div class="department-chat-confirm-backdrop" data-close-department-chat-save-confirm></div>
-    <section class="department-chat-confirm-card" role="dialog" aria-modal="true" aria-labelledby="departmentChatSaveConfirmTitle">
-      <button type="button" class="department-chat-confirm-close" aria-label="Cancel save confirmation" data-close-department-chat-save-confirm>
-        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-      </button>
+    <section class="department-chat-confirm-card" role="dialog" aria-modal="true" aria-labelledby="departmentChatSaveConfirmTitle" aria-describedby="departmentChatSaveConfirmCopy">
       <span class="department-chat-confirm-icon">
         <i class="fa-solid fa-message" aria-hidden="true"></i>
       </span>
