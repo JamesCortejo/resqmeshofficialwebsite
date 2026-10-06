@@ -197,17 +197,16 @@
 
     function updateModalActions(account, options) {
       const actionMode = options.actionMode || 'view';
+      actionButtons.dataset.mode = actionMode;
 
       if (actionMode === 'pending' && account.status === 'pending') {
         activeReviewHandler = options.onReview;
         actionButtons.hidden = false;
         actionButtons.innerHTML = `
           <button type="button" class="account-decline-button" data-modal-action="declined">
-            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             <span>Decline</span>
           </button>
           <button type="button" class="account-approve-button" data-modal-action="approved">
-            <i class="fa-solid fa-check" aria-hidden="true"></i>
             <span>Approve</span>
           </button>
         `;

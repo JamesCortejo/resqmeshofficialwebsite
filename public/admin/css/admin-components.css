@@ -1203,3 +1203,47 @@
     width: 100%;
   }
 }
+/* Pending account review actions use the compact modal button treatment. */
+.account-action-buttons[data-mode='pending'] :is(
+  .account-decline-button,
+  .account-approve-button
+) {
+  min-width: 104px;
+  height: 42px;
+  min-height: 42px;
+  border-radius: var(--admin-radius-md);
+  box-shadow: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.15;
+  padding: 0.58rem 0.8rem;
+  transform: none;
+}
+
+.account-action-buttons[data-mode='pending'] .account-decline-button {
+  border: 1px solid var(--admin-error);
+  background: #ffffff;
+  color: var(--admin-error);
+}
+
+.account-action-buttons[data-mode='pending'] .account-decline-button:hover:not(:disabled) {
+  border-color: #b72a2a;
+  background: var(--admin-error-soft);
+  color: #b72a2a;
+  box-shadow: none;
+  transform: none;
+}
+
+.account-action-buttons[data-mode='pending'] .account-approve-button {
+  border: 1px solid var(--admin-success);
+  background: var(--admin-success);
+  color: #ffffff;
+}
+
+.account-action-buttons[data-mode='pending'] .account-approve-button:hover:not(:disabled) {
+  border-color: #08765d;
+  background: #08765d;
+  color: #ffffff;
+  box-shadow: none;
+  transform: none;
+}
