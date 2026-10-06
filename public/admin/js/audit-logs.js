@@ -205,12 +205,7 @@
   function setLoading(isLoading) {
     state.loading = isLoading;
     document.body.classList.toggle('audit-logs-loading', isLoading);
-
-    [dom.prev, dom.next].forEach(function toggleButton(button) {
-      if (button) {
-        button.disabled = isLoading;
-      }
-    });
+    renderPagination();
   }
 
   async function parseJsonResponse(response) {
