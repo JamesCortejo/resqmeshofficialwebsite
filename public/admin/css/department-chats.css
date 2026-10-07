@@ -274,6 +274,7 @@
 
 .department-chats-room-icon,
 .department-chats-logo-preview {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -296,17 +297,42 @@
 
 .department-chats-room-icon span,
 .department-chats-logo-preview span {
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
   color: var(--admin-primary-hover);
-  font: 900 0.8rem/1 'Inter', system-ui, -apple-system, sans-serif;
-  letter-spacing: 0.06em;
+  font: 700 0.7rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0;
+  text-align: center;
 }
 
 .department-chats-room-icon img,
 .department-chats-logo-preview img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  background: #ffffff;
+  opacity: 0;
+}
+
+.department-chats-room-icon.has-image img,
+.department-chats-logo-preview.has-image img {
+  opacity: 1;
+}
+
+.department-chats-room-icon.has-image span,
+.department-chats-logo-preview.has-image span {
+  opacity: 0;
+}
+
+.department-chats-room-icon img[hidden],
+.department-chats-logo-preview img[hidden] {
+  display: none;
 }
 
 .department-chats-room-icon.has-image,

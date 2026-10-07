@@ -314,7 +314,17 @@
   border-radius: 0.6rem;
   background: #f3f6f8;
   color: var(--admin-primary-hover);
-  font: 700 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  font: 700 0.7rem/1 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-scope-chip-logo-fallback {
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0;
+  text-align: center;
 }
 
 .messages-scope-chip-logo img {
@@ -324,6 +334,15 @@
   height: 100%;
   background: #ffffff;
   object-fit: contain;
+  opacity: 0;
+}
+
+.messages-scope-chip-logo.has-image img {
+  opacity: 1;
+}
+
+.messages-scope-chip-logo.has-image .messages-scope-chip-logo-fallback {
+  opacity: 0;
 }
 
 .messages-scope-chip-logo img[hidden] {
@@ -860,8 +879,10 @@
 }
 
 .messages-bubble time {
+  justify-self: end;
   color: var(--admin-muted);
   font: 800 0.72rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  text-align: right;
 }
 
 @media (max-width: 980px) {

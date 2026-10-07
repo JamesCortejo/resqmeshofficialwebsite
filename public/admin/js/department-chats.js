@@ -241,10 +241,11 @@
         <td>
           <span class="department-chats-primary-text">
             <span class="department-chats-room-name">
-              <span class="department-chats-room-icon${room.iconUrl ? ' has-image' : ''}" aria-hidden="true">
+              <span class="department-chats-room-icon" aria-hidden="true">
+                <span>${escapeHtml(getRoomInitials(room.name))}</span>
                 ${room.iconUrl
-                  ? `<img src="${escapeHtml(room.iconUrl)}" alt="">`
-                  : `<span>${escapeHtml(getRoomInitials(room.name))}</span>`}
+                  ? `<img src="${escapeHtml(room.iconUrl)}" alt="" loading="lazy" decoding="async" data-department-logo>`
+                  : ''}
               </span>
               <span>${escapeHtml(room.name)}</span>
             </span>
@@ -258,10 +259,11 @@
           <span class="department-chats-muted-text">${escapeHtml(getAgencyLabel(room.rescuerAgency))}</span>
         </td>
         <td>
-          <span class="department-chats-logo-preview${room.iconUrl ? ' has-image' : ''}" aria-label="Department logo">
+          <span class="department-chats-logo-preview" aria-label="Department logo">
+            <span>${escapeHtml(getRoomInitials(room.name))}</span>
             ${room.iconUrl
-              ? `<img src="${escapeHtml(room.iconUrl)}" alt="">`
-              : `<span>${escapeHtml(getRoomInitials(room.name))}</span>`}
+              ? `<img src="${escapeHtml(room.iconUrl)}" alt="" loading="lazy" decoding="async" data-department-logo>`
+              : ''}
           </span>
         </td>
         <td>
@@ -284,6 +286,26 @@
         </td>
       </tr>
     `).join('');
+
+    dom.tableBody.querySelectorAll('[data-department-logo]').forEach((image) => {
+      const logoContainer = image.parentElement;
+      const showImage = () => logoContainer?.classList.add('has-image');
+      const showFallback = () => {
+        image.hidden = true;
+        logoContainer?.classList.remove('has-image');
+      };
+
+      image.addEventListener('load', showImage, { once: true });
+      image.addEventListener('error', showFallback, { once: true });
+
+      if (image.complete) {
+        if (image.naturalWidth > 0) {
+          showImage();
+        } else {
+          showFallback();
+        }
+      }
+    });
   }
 
   async function loadRooms() {

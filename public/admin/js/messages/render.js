@@ -40,7 +40,7 @@
               class="messages-scope-chip${department.id === state.selectedDepartmentId ? ' is-active' : ''}"
               data-department-id="${department.id}"
             >
-              <span class="messages-scope-chip-logo${department.iconUrl ? ' has-image' : ''}" aria-hidden="true">
+              <span class="messages-scope-chip-logo" aria-hidden="true">
                 <span class="messages-scope-chip-logo-fallback">${escapeHtml(initials)}</span>
                 ${logo}
               </span>
@@ -55,10 +55,23 @@
         .join('');
 
       dom.scopeRail.querySelectorAll('[data-department-logo]').forEach((image) => {
-        image.addEventListener('error', () => {
+        const logoContainer = image.closest('.messages-scope-chip-logo');
+        const showImage = () => logoContainer?.classList.add('has-image');
+        const showFallback = () => {
           image.hidden = true;
-          image.closest('.messages-scope-chip-logo')?.classList.remove('has-image');
-        }, { once: true });
+          logoContainer?.classList.remove('has-image');
+        };
+
+        image.addEventListener('load', showImage, { once: true });
+        image.addEventListener('error', showFallback, { once: true });
+
+        if (image.complete) {
+          if (image.naturalWidth > 0) {
+            showImage();
+          } else {
+            showFallback();
+          }
+        }
       });
     }
 
