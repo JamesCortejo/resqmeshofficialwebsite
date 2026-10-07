@@ -30,9 +30,12 @@
           const name = department.name || 'Department';
           const subtitle = department.subtitle || '';
           const initials = getDepartmentInitials(name);
-          const logo = department.iconUrl
-            ? `<img src="${escapeHtml(department.iconUrl)}" alt="" loading="lazy" decoding="async" data-department-logo>`
-            : '';
+          const isGlobal = helpers.isGlobalDepartment(department);
+          const logo = isGlobal
+            ? '<i class="fa-solid fa-globe" aria-hidden="true"></i>'
+            : department.iconUrl
+              ? `<img src="${escapeHtml(department.iconUrl)}" alt="" loading="lazy" decoding="async" data-department-logo>`
+              : '';
 
           return `
             <button
@@ -40,8 +43,8 @@
               class="messages-scope-chip${department.id === state.selectedDepartmentId ? ' is-active' : ''}"
               data-department-id="${department.id}"
             >
-              <span class="messages-scope-chip-logo" aria-hidden="true">
-                <span class="messages-scope-chip-logo-fallback">${escapeHtml(initials)}</span>
+              <span class="messages-scope-chip-logo${isGlobal ? ' is-global' : ''}" aria-hidden="true">
+                ${isGlobal ? '' : `<span class="messages-scope-chip-logo-fallback">${escapeHtml(initials)}</span>`}
                 ${logo}
               </span>
               <span class="messages-scope-chip-copy">
