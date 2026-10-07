@@ -241,12 +241,6 @@
         <td>
           <span class="department-chats-primary-text">
             <span class="department-chats-room-name">
-              <span class="department-chats-room-icon" aria-hidden="true">
-                <span>${escapeHtml(getRoomInitials(room.name))}</span>
-                ${room.iconUrl
-                  ? `<img src="${escapeHtml(room.iconUrl)}" alt="" loading="lazy" decoding="async" data-department-logo>`
-                  : ''}
-              </span>
               <span>${escapeHtml(room.name)}</span>
             </span>
           </span>
