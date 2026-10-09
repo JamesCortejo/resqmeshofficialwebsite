@@ -525,6 +525,7 @@
   gap: 0.9rem;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top right, rgba(231, 75, 50, 0.08), transparent 24rem),
     linear-gradient(180deg, rgba(250, 252, 255, 0.94), rgba(255, 247, 244, 0.96));
@@ -559,6 +560,7 @@
 }
 
 .messages-bubble {
+  min-width: 0;
   max-width: min(74%, 38rem);
   display: grid;
   gap: 0.45rem;
@@ -582,9 +584,13 @@
 }
 
 .messages-bubble-body {
+  min-width: 0;
+  max-width: 100%;
   color: var(--admin-ink);
   font: 700 0.9rem/1.58 'Inter', system-ui, -apple-system, sans-serif;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .messages-voice-control {
@@ -824,6 +830,17 @@
   font: 900 0.75rem/1 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+.messages-conversation-badge {
+  width: 1.5rem;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border-radius: 50%;
+  flex: 0 0 1.5rem;
+  box-sizing: border-box;
+  font-size: 0.68rem;
+}
+
 .messages-info-button {
   width: 2.4rem;
   height: 2.4rem;
@@ -888,10 +905,14 @@
 }
 
 .messages-bubble p {
+  min-width: 0;
+  max-width: 100%;
   margin: 0;
   color: var(--admin-ink);
   font: 700 0.9rem/1.58 'Inter', system-ui, -apple-system, sans-serif;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .messages-bubble time {
