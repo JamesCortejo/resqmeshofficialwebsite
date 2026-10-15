@@ -206,11 +206,25 @@
   const stage = carousel.querySelector('[data-screenshot-stage]');
   const currentTarget = carousel.querySelector('[data-slide-current]');
   const totalTarget = carousel.querySelector('[data-slide-total]');
+  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const transitionDuration = 320;
+  const slideStateClasses = [
+    'is-active',
+    'is-previous',
+    'is-next',
+    'is-promoting',
+    'is-entering-previous',
+    'is-entering-next',
+    'is-exiting-left',
+    'is-exiting-right'
+  ];
 
   if (!slides.length) return;
 
   let activeIndex = Math.max(0, slides.findIndex((slide) => !slide.hidden));
   let pointerStart = null;
+  let isAnimating = false;
+  let transitionTimer = null;
 
   if (totalTarget) {
     totalTarget.textContent = String(slides.length);
@@ -220,15 +234,11 @@
     return (index + slides.length) % slides.length;
   }
 
-  function showSlide(index) {
-    activeIndex = normalizeIndex(index);
+  function clearSlideState(slide) {
+    slide.classList.remove(...slideStateClasses);
+  }
 
-    slides.forEach((slide, slideIndex) => {
-      const isActive = slideIndex === activeIndex;
-      slide.hidden = !isActive;
-      slide.setAttribute('aria-hidden', String(!isActive));
-    });
-
+  function updateControls() {
     dots.forEach((dot, dotIndex) => {
       const isActive = dotIndex === activeIndex;
       dot.classList.toggle('is-active', isActive);
@@ -244,8 +254,91 @@
     }
   }
 
+  function renderSlides() {
+    const previousIndex = normalizeIndex(activeIndex - 1);
+    const nextIndex = normalizeIndex(activeIndex + 1);
+
+    slides.forEach((slide, slideIndex) => {
+      const isActive = slideIndex === activeIndex;
+      const isPrevious = slideIndex === previousIndex;
+      const isNext = slideIndex === nextIndex;
+
+      clearSlideState(slide);
+      slide.hidden = !(isActive || isPrevious || isNext);
+      slide.setAttribute('aria-hidden', String(!isActive));
+
+      if (isActive) {
+        slide.classList.add('is-active');
+      } else if (isPrevious) {
+        slide.classList.add('is-previous');
+      } else if (isNext) {
+        slide.classList.add('is-next');
+      }
+    });
+
+    carousel.classList.add('has-card-stack');
+    carousel.removeAttribute('aria-busy');
+    updateControls();
+  }
+
+  function finishTransition() {
+    window.clearTimeout(transitionTimer);
+    transitionTimer = null;
+    isAnimating = false;
+    renderSlides();
+  }
+
+  function showSlide(index, direction = 0) {
+    const requestedIndex = normalizeIndex(index);
+
+    if (requestedIndex === activeIndex || isAnimating) {
+      return;
+    }
+
+    if (reducedMotionQuery.matches || direction === 0) {
+      activeIndex = requestedIndex;
+      renderSlides();
+      return;
+    }
+
+    const outgoingIndex = activeIndex;
+    const trailingIndex = normalizeIndex(requestedIndex + direction);
+    isAnimating = true;
+    carousel.setAttribute('aria-busy', 'true');
+
+    slides.forEach((slide, slideIndex) => {
+      const isOutgoing = slideIndex === outgoingIndex;
+      const isIncoming = slideIndex === requestedIndex;
+      const isTrailing = slideIndex === trailingIndex;
+
+      clearSlideState(slide);
+      slide.hidden = !(isOutgoing || isIncoming || isTrailing);
+      slide.setAttribute('aria-hidden', String(!isIncoming));
+
+      if (isOutgoing) {
+        slide.classList.add('is-active');
+      } else if (isIncoming) {
+        slide.classList.add(direction > 0 ? 'is-next' : 'is-previous');
+      } else if (isTrailing) {
+        slide.classList.add(direction > 0 ? 'is-entering-next' : 'is-entering-previous');
+      }
+    });
+
+    // Commit the starting deck positions before moving the cards.
+    void carousel.offsetWidth;
+
+    slides[outgoingIndex].classList.add(direction > 0 ? 'is-exiting-left' : 'is-exiting-right');
+    slides[requestedIndex].classList.add('is-promoting');
+    slides[trailingIndex].classList.remove(direction > 0 ? 'is-entering-next' : 'is-entering-previous');
+    slides[trailingIndex].classList.add(direction > 0 ? 'is-next' : 'is-previous');
+    activeIndex = requestedIndex;
+    updateControls();
+
+    transitionTimer = window.setTimeout(finishTransition, transitionDuration);
+  }
+
   function moveSlide(direction) {
-    showSlide(activeIndex + direction);
+    showSlide(activeIndex + direction, direction);
   }
 
   previousButton?.addEventListener('click', () => moveSlide(-1));
@@ -255,7 +348,11 @@
     dot.addEventListener('click', () => {
       const requestedIndex = Number.parseInt(dot.dataset.slideDot || '', 10);
       if (Number.isInteger(requestedIndex)) {
-        showSlide(requestedIndex);
+        const normalizedIndex = normalizeIndex(requestedIndex);
+        const forwardDistance = normalizeIndex(normalizedIndex - activeIndex);
+        const backwardDistance = normalizeIndex(activeIndex - normalizedIndex);
+        const direction = forwardDistance <= backwardDistance ? 1 : -1;
+        showSlide(normalizedIndex, direction);
       }
     });
   });
@@ -294,5 +391,14 @@
     pointerStart = null;
   });
 
-  showSlide(activeIndex);
+  function syncResponsiveLayout() {
+    window.clearTimeout(transitionTimer);
+    transitionTimer = null;
+    isAnimating = false;
+    renderSlides();
+  }
+
+  reducedMotionQuery.addEventListener?.('change', syncResponsiveLayout);
+
+  renderSlides();
 }());
