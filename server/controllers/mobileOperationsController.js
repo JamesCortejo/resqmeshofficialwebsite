@@ -1,18 +1,14 @@
 const {
   getRescuerAssignments,
   getRescuerLiveRoute,
+  getCivilianLiveRoute,
+  getVisibleLiveRoutes,
   resolveRescuerAssignment,
   updateRescuerLocation,
-  getPublicLiveRoute,
-  getPublicLiveRoutes,
-  getEtaByNodeId,
-  getEtaByDistressId,
-  getPublicNodes,
-  getNodeDistress,
-  getOnlineDistressMarkers,
+  getVisibleMapSnapshot,
+  getVisibleNodeDistress,
   getRescuerLocationSharingStatus,
   setRescuerLocationSharing,
-  getPublicSharedRescuers,
   getSharedRescuerRouteForCivilian
 } = require('../services/mobileOperationsService');
 
@@ -34,6 +30,11 @@ function errorResponse(res, error, fallbackMessage) {
   });
 }
 
+function disableSensitiveCaching(res) {
+  res.set('Cache-Control', 'private, no-store, max-age=0');
+  res.set('Pragma', 'no-cache');
+}
+
 exports.listRescuerAssignments = async (req, res) => {
   try {
     const assignments = await getRescuerAssignments(req.rescuer);
@@ -45,7 +46,18 @@ exports.listRescuerAssignments = async (req, res) => {
 
 exports.getRescuerLiveRoute = async (req, res) => {
   try {
+    disableSensitiveCaching(res);
     const route = await getRescuerLiveRoute(req.rescuer);
+    return res.json(route);
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to load live route.');
+  }
+};
+
+exports.getCivilianLiveRoute = async (req, res) => {
+  try {
+    disableSensitiveCaching(res);
+    const route = await getCivilianLiveRoute(req.civilian);
     return res.json(route);
   } catch (error) {
     return errorResponse(res, error, 'Unable to load live route.');
@@ -88,51 +100,18 @@ exports.updateLocation = async (req, res) => {
 
 exports.listNodes = async (req, res) => {
   try {
-    const nodes = await getPublicNodes();
-    return res.json(nodes);
+    disableSensitiveCaching(res);
+    const snapshot = await getVisibleMapSnapshot(req.mobilePrincipal, req.mobileRole);
+    return res.json(snapshot.nodes);
   } catch (error) {
     return errorResponse(res, error, 'Unable to load nodes.');
   }
 };
 
-exports.getMapSnapshot = async (_req, res) => {
+exports.getMapSnapshot = async (req, res) => {
   try {
-    const nodes = await getPublicNodes();
-    const onlineDistress = await getOnlineDistressMarkers();
-    const sharedRescuers = await getPublicSharedRescuers();
-    return res.json({
-      status: {
-        internet: true,
-        mesh_running: false,
-        node_id: null,
-        node_name: 'ResQMesh Cloud'
-      },
-      nodes,
-      activeDistress: nodes
-        .filter((node) => node.distress)
-        .map((node) => ({
-          id: node.active_distress_id || null,
-          origin_node_id: node.id,
-          node_id: node.id,
-          status: 'active'
-        }))
-        .concat(onlineDistress.map((distress) => ({
-          id: distress.id,
-          sourceType: 'online',
-          sourceLabel: 'ONLINE',
-          distressCode: distress.distressCode,
-          reason: distress.reason,
-          latitude: distress.latitude,
-          longitude: distress.longitude,
-          recordedAt: distress.recordedAt,
-          timestamp: distress.recordedAt,
-          status: 'active',
-          user: distress.user
-        }))),
-      onlineDistress,
-      sharedRescuers,
-      serverTime: new Date().toISOString()
-    });
+    disableSensitiveCaching(res);
+    return res.json(await getVisibleMapSnapshot(req.mobilePrincipal, req.mobileRole));
   } catch (error) {
     return errorResponse(res, error, 'Unable to load map snapshot.');
   }
@@ -140,7 +119,12 @@ exports.getMapSnapshot = async (_req, res) => {
 
 exports.getNodeDistress = async (req, res) => {
   try {
-    const distress = await getNodeDistress(req.params.nodeId);
+    disableSensitiveCaching(res);
+    const distress = await getVisibleNodeDistress(
+      req.params.nodeId,
+      req.mobilePrincipal,
+      req.mobileRole
+    );
     return res.json(distress);
   } catch (error) {
     return errorResponse(res, error, 'Unable to load node distress.');
@@ -149,21 +133,22 @@ exports.getNodeDistress = async (req, res) => {
 
 exports.getPublicLiveRoute = async (req, res) => {
   try {
-    const distressId = parseId(req.query?.distressId);
-    const route = await getPublicLiveRoute({
-      nodeId: req.params.nodeId || null,
-      distressId
-    });
-
-    return res.json(route);
+    disableSensitiveCaching(res);
+    const principal = req.mobilePrincipal || req.civilian || req.rescuer;
+    const role = req.mobileRole || (req.rescuer ? 'rescuer' : 'civilian');
+    const routes = await getVisibleLiveRoutes(principal, role);
+    return res.json(routes[0]);
   } catch (error) {
     return errorResponse(res, error, 'Unable to load public live route.');
   }
 };
 
-exports.getPublicLiveRoutes = async (_req, res) => {
+exports.getPublicLiveRoutes = async (req, res) => {
   try {
-    const routes = await getPublicLiveRoutes();
+    disableSensitiveCaching(res);
+    const principal = req.mobilePrincipal || req.civilian || req.rescuer;
+    const role = req.mobileRole || (req.rescuer ? 'rescuer' : 'civilian');
+    const routes = await getVisibleLiveRoutes(principal, role);
     return res.json(routes);
   } catch (error) {
     return errorResponse(res, error, 'Unable to load public live routes.');
@@ -172,7 +157,21 @@ exports.getPublicLiveRoutes = async (_req, res) => {
 
 exports.getNodeDistressEta = async (req, res) => {
   try {
-    const etaMinutes = await getEtaByNodeId(req.params.nodeId);
+    disableSensitiveCaching(res);
+    const distress = await getVisibleNodeDistress(req.params.nodeId, req.mobilePrincipal, req.mobileRole);
+    if (!distress || distress.visibility === 'assigned_other') {
+      const error = new Error('Active distress signal not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const routes = await getVisibleLiveRoutes(req.mobilePrincipal, req.mobileRole);
+    const route = routes.find((item) => Number(item?.assignment?.distress_id) === Number(distress.id));
+    if (!route) {
+      const error = new Error('No active assignment found.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const etaMinutes = route.route?.eta_minutes ?? null;
     return res.json({ eta_minutes: etaMinutes });
   } catch (error) {
     return errorResponse(res, error, 'Unable to load distress ETA.');
@@ -190,7 +189,17 @@ exports.getDistressEta = async (req, res) => {
       });
     }
 
-    const etaMinutes = await getEtaByDistressId(distressId);
+    disableSensitiveCaching(res);
+    const routes = await getVisibleLiveRoutes(req.mobilePrincipal, req.mobileRole);
+    const route = routes.find((item) => Number(item?.distress?.id) === distressId
+      || Number(item?.assignment?.distress_id) === distressId
+      || Number(item?.assignment?.online_distress_id) === distressId);
+    if (!route) {
+      const error = new Error('Active distress signal not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const etaMinutes = route.route?.eta_minutes ?? null;
     return res.json({ eta_minutes: etaMinutes });
   } catch (error) {
     return errorResponse(res, error, 'Unable to load distress ETA.');

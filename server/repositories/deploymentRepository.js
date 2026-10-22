@@ -6,5 +6,6 @@ module.exports = {
   ...require('./deployments/onlineDistressRepository'),
   ...require('./deployments/routeSnapshotRepository'),
   ...require('./deployments/assignmentRepository'),
+  ...require('./deployments/mobileVisibilityRepository'),
   ...require('./deployments/syncDeploymentRepository')
 };

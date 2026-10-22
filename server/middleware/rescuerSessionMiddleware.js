@@ -41,6 +41,7 @@ async function requireMobileSession(req, res, next) {
 
     req.mobileSession = authenticatedSession.session;
     req.mobilePrincipal = authenticatedSession.principal;
+    req.mobileRole = authenticatedSession.principal?.rescuerCode ? 'rescuer' : 'civilian';
     return next();
   } catch (error) {
     console.error('Mobile session validation error:', error);

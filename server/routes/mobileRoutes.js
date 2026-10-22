@@ -17,22 +17,24 @@ router.post('/auth/logout', requireMobileSession, rescuerMobileAuthController.lo
 router.post('/api/mobile/push/register', requireMobileSession, mobilePushController.register);
 router.post('/api/mobile/push/unregister', requireMobileSession, mobilePushController.unregister);
 
-router.get('/api/nodes', rateLimiters.publicMap, mobileOperationsController.listNodes);
-router.get('/api/map/snapshot', rateLimiters.publicMap, mobileOperationsController.getMapSnapshot);
-router.get('/api/node/:nodeId/distress', rateLimiters.publicMap, mobileOperationsController.getNodeDistress);
-router.get('/api/node/:nodeId/distress/eta', rateLimiters.publicEta, mobileOperationsController.getNodeDistressEta);
-router.get('/api/distress/:id/eta', rateLimiters.publicEta, mobileOperationsController.getDistressEta);
-router.get('/api/public/distress/:id/eta', rateLimiters.publicEta, mobileOperationsController.getDistressEta);
-router.get('/api/route/live/public', rateLimiters.publicMap, mobileOperationsController.getPublicLiveRoute);
-router.get('/api/public/route/live', rateLimiters.publicMap, mobileOperationsController.getPublicLiveRoute);
-router.get('/api/routes/live/public', rateLimiters.publicMap, mobileOperationsController.getPublicLiveRoutes);
-router.get('/api/public/routes/live', rateLimiters.publicMap, mobileOperationsController.getPublicLiveRoutes);
-router.get('/api/node/:nodeId/route/live', rateLimiters.publicMap, mobileOperationsController.getPublicLiveRoute);
+router.get('/api/nodes', requireMobileSession, rateLimiters.publicMap, mobileOperationsController.listNodes);
+router.get('/api/map/snapshot', requireMobileSession, rateLimiters.publicMap, mobileOperationsController.getMapSnapshot);
+router.get('/api/node/:nodeId/distress', requireMobileSession, rateLimiters.publicMap, mobileOperationsController.getNodeDistress);
+router.get('/api/node/:nodeId/distress/eta', requireMobileSession, rateLimiters.publicEta, mobileOperationsController.getNodeDistressEta);
+router.get('/api/distress/:id/eta', requireMobileSession, rateLimiters.publicEta, mobileOperationsController.getDistressEta);
+router.get('/api/public/distress/:id/eta', requireMobileSession, rateLimiters.publicEta, mobileOperationsController.getDistressEta);
+router.get('/api/route/live/public', requireMobileSession, rateLimiters.publicMap, mobileOperationsController.getPublicLiveRoute);
+router.get('/api/public/route/live', requireMobileSession, rateLimiters.publicMap, mobileOperationsController.getPublicLiveRoute);
+router.get('/api/routes/live/public', requireMobileSession, rateLimiters.publicMap, mobileOperationsController.getPublicLiveRoutes);
+router.get('/api/public/routes/live', requireMobileSession, rateLimiters.publicMap, mobileOperationsController.getPublicLiveRoutes);
+router.get('/api/node/:nodeId/route/live', requireMobileSession, rateLimiters.publicMap, mobileOperationsController.getPublicLiveRoute);
 
 router.post('/api/civilian/distress-signals', requireCivilianSession, rateLimiters.authenticatedMobileWrite, civilianDistressController.create);
 router.get('/api/civilian/distress-signals/active', requireCivilianSession, civilianDistressController.getActive);
 router.post('/api/civilian/distress-signals/:id/cancel', requireCivilianSession, rateLimiters.authenticatedMobileWrite, civilianDistressController.cancel);
 router.post('/api/civilian/navigation/shared-rescuer-route', requireCivilianSession, rateLimiters.authenticatedMobileWrite, mobileOperationsController.getSharedRescuerRouteForCivilian);
+router.get('/api/civilian/route/live', requireCivilianSession, mobileOperationsController.getCivilianLiveRoute);
+router.get('/api/civilian/routes/live', requireCivilianSession, mobileOperationsController.getPublicLiveRoutes);
 router.get('/api/civilian/online-chat/departments', requireCivilianSession, onlineChatCivilianController.listDepartments);
 router.post('/api/civilian/online-chat/departments/:departmentId/conversation', requireCivilianSession, onlineChatCivilianController.openConversation);
 router.get('/api/civilian/online-chat/global/messages', requireCivilianSession, onlineChatCivilianController.listGlobalMessages);

@@ -1,15 +1,12 @@
 const {
-  getActiveDistressSignalById,
-  findActiveDeploymentByDistressSignalId,
   getDeploymentById,
   listAssignmentsForRescuer,
   listActiveAssignmentsForRescuer,
   findActiveAssignmentForRescuer,
-  findActiveDeploymentByOrigin,
-  getLatestDeployedAssignment,
-  listActiveDeployedAssignments,
+  findActiveAssignmentForCivilian,
+  listActiveMeshIncidentsForVisibility,
+  listActiveOnlineIncidentsForVisibility,
   listPublicNodes,
-  getNodeActiveDistress,
   upsertRescuerLocationCurrent,
   insertRescuerLocationHistory,
   getRescuerLocationSharingSettingByRescuerId,
@@ -18,7 +15,6 @@ const {
   listPublicSharedRescuers
 } = require('../repositories/deploymentRepository');
 const { accomplishDeployment } = require('./distressDeploymentService');
-const { listPublicOnlineDistressSignals } = require('./civilianDistressService');
 const {
   buildTransientRoute,
   buildLiveRouteResponse,
@@ -289,6 +285,27 @@ async function getRescuerLiveRoute(rescuer) {
   return buildLiveRouteResponse(assignment, location, snapshot);
 }
 
+async function getCivilianLiveRoute(civilian) {
+  const assignment = await findActiveAssignmentForCivilian(civilian.id, civilian.userCode);
+
+  if (!assignment) {
+    const error = new Error('No active rescue route for this civilian.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const { location, snapshot } = await ensureDeploymentRouteSnapshot(assignment);
+  return buildLiveRouteResponse(assignment, location, snapshot);
+}
+
+async function getVisibleLiveRoutes(principal, role) {
+  const route = role === 'rescuer'
+    ? await getRescuerLiveRoute(principal)
+    : await getCivilianLiveRoute(principal);
+
+  return [route];
+}
+
 async function resolveRescuerAssignment(assignmentId, rescuer) {
   const requestedId = ensurePositiveInteger(assignmentId);
 
@@ -359,66 +376,6 @@ async function updateRescuerLocation(rescuer, payload) {
   };
 }
 
-async function resolvePublicAssignment(nodeId, distressId) {
-  if (distressId) {
-    const distress = await getActiveDistressSignalById(distressId);
-
-    if (distress) {
-      return findActiveDeploymentByDistressSignalId(distress.id);
-    }
-  }
-
-  if (nodeId) {
-    const distress = await getNodeActiveDistress(nodeId);
-
-    if (distress) {
-      return findActiveDeploymentByOrigin(distress.originNodeId, distress.originDistressId);
-    }
-  }
-
-  return getLatestDeployedAssignment();
-}
-
-async function getPublicLiveRoute({ nodeId = null, distressId = null } = {}) {
-  const assignment = await resolvePublicAssignment(nodeId, distressId);
-
-  if (!assignment) {
-    const error = new Error('No active assignment found.');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  const { location, snapshot } = await ensureDeploymentRouteSnapshot(assignment);
-  return buildLiveRouteResponse(assignment, location, snapshot);
-}
-
-async function getPublicLiveRoutes() {
-  const assignments = await listActiveDeployedAssignments();
-
-  if (!assignments.length) {
-    const error = new Error('No active assignment found.');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  const routes = await Promise.all(assignments.map(async (assignment) => {
-    const { location, snapshot } = await ensureDeploymentRouteSnapshot(assignment);
-    return buildLiveRouteResponse(assignment, location, snapshot);
-  }));
-
-  return routes;
-}
-
-async function getEtaByNodeId(nodeId) {
-  const route = await getPublicLiveRoute({ nodeId });
-  return route.route.eta_minutes;
-}
-
-async function getEtaByDistressId(distressId) {
-  const route = await getPublicLiveRoute({ distressId });
-  return route.route.eta_minutes;
-}
-
 async function getPublicNodes() {
   const rows = await listPublicNodes();
   return rows.map((row) => {
@@ -457,8 +414,191 @@ async function getPublicNodes() {
   });
 }
 
-async function getOnlineDistressMarkers() {
-  return listPublicOnlineDistressSignals();
+function classifyIncident(row, principal, role) {
+  if (role === 'civilian') {
+    const rowUserId = Number(row.userId);
+    const principalId = Number(principal?.id);
+    const rowUserCode = String(row.userCode || '').trim();
+    const principalUserCode = String(principal?.userCode || '').trim();
+    const ownsIncident = (
+      Number.isInteger(rowUserId)
+      && rowUserId > 0
+      && Number.isInteger(principalId)
+      && rowUserId === principalId
+    ) || (
+      Boolean(rowUserCode)
+      && Boolean(principalUserCode)
+      && rowUserCode === principalUserCode
+    );
+    return ownsIncident ? 'owner' : 'hidden';
+  }
+
+  if (!row.deploymentId) {
+    return 'unassigned';
+  }
+
+  return row.isAssignedMember ? 'assigned_team' : 'assigned_other';
+}
+
+function fullMeshIncident(row, visibility) {
+  return {
+    id: row.id,
+    origin_node_id: row.originNodeId,
+    node_id: row.originNodeId,
+    sourceType: 'mesh',
+    sourceLabel: 'MESH',
+    distressCode: row.distressCode,
+    reason: row.reason,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    recordedAt: row.recordedAt,
+    timestamp: row.recordedAt,
+    priority: row.priority,
+    status: 'active',
+    visibility,
+    assignmentState: row.deploymentId ? 'assigned' : 'unassigned',
+    user: {
+      firstName: row.firstName,
+      lastName: row.lastName,
+      phone: row.phone,
+      bloodType: row.bloodType,
+      age: row.age
+    }
+  };
+}
+
+function fullOnlineIncident(row, visibility) {
+  return {
+    id: row.id,
+    sourceType: 'online',
+    sourceLabel: 'ONLINE',
+    distressCode: row.distressCode,
+    reason: row.reason,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    recordedAt: row.recordedAt,
+    timestamp: row.recordedAt,
+    status: 'active',
+    visibility,
+    assignmentState: row.deploymentId ? 'assigned' : 'unassigned',
+    user: {
+      firstName: row.firstName,
+      lastName: row.lastName,
+      phone: row.phone,
+      bloodType: row.bloodType,
+      age: row.age,
+      occupation: row.occupation || ''
+    }
+  };
+}
+
+function assignedIncident(row, sourceType) {
+  return {
+    id: row.id,
+    sourceType,
+    sourceLabel: 'ASSIGNED',
+    latitude: row.latitude,
+    longitude: row.longitude,
+    status: 'active',
+    visibility: 'assigned_other',
+    assignmentState: 'assigned'
+  };
+}
+
+async function getVisibleMapSnapshot(principal, role) {
+  const rescuerId = role === 'rescuer' ? principal?.id : null;
+  const [publicNodes, meshRows, onlineRows, sharedRescuers] = await Promise.all([
+    getPublicNodes(),
+    listActiveMeshIncidentsForVisibility(rescuerId),
+    listActiveOnlineIncidentsForVisibility(rescuerId),
+    getPublicSharedRescuers()
+  ]);
+  const nodesById = new Map(publicNodes.map((node) => [String(node.id), {
+    ...node,
+    distress: false,
+    active_distress_id: null,
+    assignedIncident: false,
+    incidentVisibility: null,
+    assignmentState: null
+  }]));
+  const activeDistress = [];
+  const onlineDistress = [];
+  const assignedIncidents = [];
+
+  for (const row of meshRows) {
+    const visibility = classifyIncident(row, principal, role);
+    if (visibility === 'hidden') continue;
+
+    const incident = visibility === 'assigned_other'
+      ? assignedIncident(row, 'mesh')
+      : fullMeshIncident(row, visibility);
+    activeDistress.push(incident);
+
+    if (visibility === 'assigned_other') {
+      assignedIncidents.push(incident);
+      continue;
+    }
+
+    const node = nodesById.get(String(row.originNodeId));
+    if (node && !node.active_distress_id) {
+      node.active_distress_id = row.id;
+      node.incidentVisibility = visibility;
+      node.assignmentState = row.deploymentId ? 'assigned' : 'unassigned';
+      node.assignedIncident = false;
+      node.distress = true;
+    }
+  }
+
+  for (const row of onlineRows) {
+    const visibility = classifyIncident(row, principal, role);
+    if (visibility === 'hidden') continue;
+
+    const incident = visibility === 'assigned_other'
+      ? assignedIncident(row, 'online')
+      : fullOnlineIncident(row, visibility);
+    if (visibility === 'assigned_other') {
+      assignedIncidents.push(incident);
+    } else {
+      onlineDistress.push(incident);
+    }
+    activeDistress.push(incident);
+  }
+
+  return {
+    status: {
+      internet: true,
+      mesh_running: false,
+      node_id: null,
+      node_name: 'ResQMesh Cloud'
+    },
+    nodes: Array.from(nodesById.values()),
+    activeDistress,
+    onlineDistress,
+    assignedIncidents,
+    sharedRescuers,
+    serverTime: new Date().toISOString()
+  };
+}
+
+async function getVisibleNodeDistress(nodeId, principal, role) {
+  const rows = await listActiveMeshIncidentsForVisibility(role === 'rescuer' ? principal?.id : null);
+  const matchingRows = rows.filter((incident) => String(incident.originNodeId) === String(nodeId));
+  const row = matchingRows.find((incident) => classifyIncident(incident, principal, role) !== 'hidden');
+
+  if (!row) return null;
+
+  const visibility = classifyIncident(row, principal, role);
+  if (visibility === 'assigned_other') {
+    return assignedIncident(row, 'mesh');
+  }
+
+  const incident = fullMeshIncident(row, visibility);
+  return {
+    ...incident,
+    code: incident.distressCode,
+    lat: incident.latitude,
+    lng: incident.longitude
+  };
 }
 
 async function getPublicSharedRescuers() {
@@ -540,44 +680,16 @@ async function getSharedRescuerRouteForCivilian(civilian, payload) {
   };
 }
 
-async function getNodeDistress(nodeId) {
-  const distress = await getNodeActiveDistress(nodeId);
-
-  if (!distress) {
-    return null;
-  }
-
-  return {
-    id: distress.id,
-    code: distress.distressCode,
-    reason: distress.reason,
-    lat: distress.latitude,
-    lng: distress.longitude,
-    timestamp: distress.timestamp,
-    status: distress.status,
-    priority: distress.priority,
-    user: {
-      firstName: distress.firstName,
-      lastName: distress.lastName,
-      phone: distress.phone,
-      bloodType: distress.bloodType,
-      age: distress.age
-    }
-  };
-}
-
 module.exports = {
   getRescuerAssignments,
   getRescuerLiveRoute,
+  getCivilianLiveRoute,
+  getVisibleLiveRoutes,
   resolveRescuerAssignment,
   updateRescuerLocation,
-  getPublicLiveRoute,
-  getPublicLiveRoutes,
-  getEtaByNodeId,
-  getEtaByDistressId,
   getPublicNodes,
-  getNodeDistress,
-  getOnlineDistressMarkers,
+  getVisibleMapSnapshot,
+  getVisibleNodeDistress,
   getRescuerLocationSharingStatus,
   setRescuerLocationSharing,
   disableRescuerLocationSharing,

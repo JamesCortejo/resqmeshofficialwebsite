@@ -262,12 +262,21 @@ async function pushGlobalAnnouncementNotification({ department, message }) {
   }));
 }
 
-async function pushOnlineDistressNotification(distress) {
+async function pushOnlineDistressNotification(distress, civilianId) {
   if (!distress?.id) {
     return;
   }
 
-  const registrations = await listAllActiveMobilePushRegistrations();
+  const ownerId = Number(civilianId);
+  const registrations = (await listAllActiveMobilePushRegistrations()).filter((registration) => (
+    registration.actorType === 'rescuer'
+    || (
+      registration.actorType === 'civilian'
+      && Number.isInteger(ownerId)
+      && ownerId > 0
+      && Number(registration.actorId) === ownerId
+    )
+  ));
   const distressCode = distress.distressCode || distress.code || 'Emergency';
   const reason = String(distress.reason || '').trim();
   const title = reason ? `${distressCode}: ${reason.toUpperCase()}` : `${distressCode}: New distress`;

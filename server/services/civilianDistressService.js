@@ -148,7 +148,7 @@ async function createCivilianOnlineDistress(civilian, payload) {
 
   const distress = await getActiveCivilianOnlineDistress({ id: civilian.id });
   await notifyOnlineDistressSignalActive(distress);
-  await pushOnlineDistressNotification(distress);
+  await pushOnlineDistressNotification(distress, civilian.id);
   return distress;
 }
 
