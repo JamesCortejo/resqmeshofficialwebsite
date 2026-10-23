@@ -31,6 +31,7 @@ router.get('/api/node/:nodeId/route/live', requireMobileSession, rateLimiters.pu
 
 router.post('/api/civilian/distress-signals', requireCivilianSession, rateLimiters.authenticatedMobileWrite, civilianDistressController.create);
 router.get('/api/civilian/distress-signals/active', requireCivilianSession, civilianDistressController.getActive);
+router.post('/api/civilian/distress-signals/:source/:id/cancel', requireCivilianSession, rateLimiters.authenticatedMobileWrite, civilianDistressController.cancelBySource);
 router.post('/api/civilian/distress-signals/:id/cancel', requireCivilianSession, rateLimiters.authenticatedMobileWrite, civilianDistressController.cancel);
 router.post('/api/civilian/navigation/shared-rescuer-route', requireCivilianSession, rateLimiters.authenticatedMobileWrite, mobileOperationsController.getSharedRescuerRouteForCivilian);
 router.get('/api/civilian/route/live', requireCivilianSession, mobileOperationsController.getCivilianLiveRoute);

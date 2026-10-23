@@ -32,6 +32,25 @@ function findActiveOnlineDistressByUserId(userId) {
   `, [userId]);
 }
 
+function findActiveOnlineDistressByUserCode(userCode) {
+  return get(`
+    SELECT
+      id,
+      distress_code AS "distressCode",
+      user_id AS "userId",
+      user_code AS "userCode",
+      recorded_at AS "recordedAt",
+      status,
+      updated_at AS "updatedAt"
+    FROM online_distress_signals
+    WHERE user_code = ?
+      AND status = 'active'
+      AND deleted = 0
+    ORDER BY recorded_at ASC, id ASC
+    LIMIT 1
+  `, [userCode]);
+}
+
 function findOnlineDistressByIdForUser(id, userId) {
   return get(`
     SELECT
@@ -161,6 +180,7 @@ function listActiveOnlineDistressSignals() {
 
 module.exports = {
   findActiveOnlineDistressByUserId,
+  findActiveOnlineDistressByUserCode,
   findOnlineDistressByIdForUser,
   createOnlineDistressSignal,
   updateOnlineDistressStatus,

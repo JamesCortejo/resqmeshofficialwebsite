@@ -227,10 +227,22 @@ function upsertMeshDistressSignal(item) {
       latitude = excluded.latitude,
       longitude = excluded.longitude,
       timestamp = excluded.timestamp,
-      status = excluded.status,
+      status = CASE
+        WHEN excluded.updated_at IS NOT NULL
+          AND mesh_distress_signals.updated_at IS NOT NULL
+          AND excluded.updated_at < mesh_distress_signals.updated_at
+        THEN mesh_distress_signals.status
+        WHEN LOWER(COALESCE(mesh_distress_signals.status, '')) IN ('canceled', 'cancelled', 'accomplished', 'superseded')
+          AND LOWER(COALESCE(excluded.status, '')) = 'active'
+        THEN mesh_distress_signals.status
+        ELSE excluded.status
+      END,
       priority = excluded.priority,
       ack_received = excluded.ack_received,
-      updated_at = excluded.updated_at,
+      updated_at = GREATEST(
+        COALESCE(mesh_distress_signals.updated_at, '-infinity'::timestamptz),
+        COALESCE(excluded.updated_at, '-infinity'::timestamptz)
+      ),
       deleted = excluded.deleted
   `, [
     item.originNodeId,

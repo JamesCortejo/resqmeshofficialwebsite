@@ -1,4 +1,5 @@
 const {
+  cancelCivilianDistress,
   cancelCivilianOnlineDistress,
   createCivilianOnlineDistress,
   getActiveCivilianOnlineDistress
@@ -13,7 +14,9 @@ function errorResponse(res, error, fallbackMessage) {
 
   return res.status(statusCode).json({
     success: false,
-    message: statusCode === 500 ? fallbackMessage : error.message
+    message: statusCode === 500 ? fallbackMessage : error.message,
+    ...(error.conflict ? { conflict: error.conflict } : {}),
+    ...(error.activeSource ? { activeSource: error.activeSource } : {})
   });
 }
 
@@ -28,6 +31,19 @@ exports.create = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error, 'Unable to activate online distress signal.');
+  }
+};
+
+exports.cancelBySource = async (req, res) => {
+  try {
+    const result = await cancelCivilianDistress(req.civilian, req.params.source, req.params.id);
+    return res.json({
+      success: true,
+      message: result?.message || 'Distress signal canceled.',
+      data: result
+    });
+  } catch (error) {
+    return errorResponse(res, error, 'Unable to cancel distress signal.');
   }
 };
 

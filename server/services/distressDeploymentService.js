@@ -22,6 +22,7 @@ const {
   updateOnlineDistressStatus
 } = require('../repositories/deploymentRepository');
 const { createMeshCommand } = require('../repositories/deviceSyncRepository');
+const { afterCommit, transaction } = require('../database/postgres');
 const {
   listRescueTeams,
   getRescueTeamMembers,
@@ -383,49 +384,51 @@ async function deployDistressSignal(id, payload, adminUser) {
 }
 
 async function setDeploymentStatus(id, status, options = {}) {
-  const deployment = await getDeploymentById(id);
+  return transaction(async () => {
+    const deployment = await getDeploymentById(id);
 
-  if (!deployment) {
-    const error = new Error('Deployment not found.');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  if (deployment.status !== DEPLOYMENT_STATUSES.DEPLOYED) {
-    const error = new Error(`Deployment is already ${deployment.status}.`);
-    error.statusCode = 409;
-    throw error;
-  }
-
-  const timestamp = new Date().toISOString();
-  const updateResult = await updateDeploymentStatus(id, status, timestamp);
-
-  if (!updateResult?.changes) {
-    const latestDeployment = await getDeploymentById(id);
-    const error = new Error(`Deployment is already ${latestDeployment?.status || 'closed'}.`);
-    error.statusCode = 409;
-    throw error;
-  }
-
-  const updated = await getDeploymentById(id);
-
-  if (status === DEPLOYMENT_STATUSES.CANCELED) {
-    if (updated.distressSource === 'online' && updated.onlineDistressSignalId) {
-      await updateOnlineDistressStatus(updated.onlineDistressSignalId, DEPLOYMENT_STATUSES.CANCELED, timestamp);
-    } else if (!options.suppressMeshCommand) {
-      await enqueueDistressCommand(updated, 'cancel_distress');
+    if (!deployment) {
+      const error = new Error('Deployment not found.');
+      error.statusCode = 404;
+      throw error;
     }
-    await notifyDeploymentCanceled(updated);
-  } else if (status === DEPLOYMENT_STATUSES.ACCOMPLISHED) {
-    if (updated.distressSource === 'online' && updated.onlineDistressSignalId) {
-      await updateOnlineDistressStatus(updated.onlineDistressSignalId, DEPLOYMENT_STATUSES.ACCOMPLISHED, timestamp);
-    } else if (!options.suppressMeshCommand) {
-      await enqueueDistressCommand(updated, 'resolve_distress');
-    }
-    await notifyDeploymentAccomplished(updated);
-  }
 
-  return updated;
+    if (deployment.status !== DEPLOYMENT_STATUSES.DEPLOYED) {
+      const error = new Error(`Deployment is already ${deployment.status}.`);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const timestamp = new Date().toISOString();
+    const updateResult = await updateDeploymentStatus(id, status, timestamp);
+
+    if (!updateResult?.changes) {
+      const latestDeployment = await getDeploymentById(id);
+      const error = new Error(`Deployment is already ${latestDeployment?.status || 'closed'}.`);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const updated = await getDeploymentById(id);
+
+    if (status === DEPLOYMENT_STATUSES.CANCELED) {
+      if (updated.distressSource === 'online' && updated.onlineDistressSignalId) {
+        await updateOnlineDistressStatus(updated.onlineDistressSignalId, DEPLOYMENT_STATUSES.CANCELED, timestamp);
+      } else if (!options.suppressMeshCommand) {
+        await enqueueDistressCommand(updated, 'cancel_distress');
+      }
+      await afterCommit(() => notifyDeploymentCanceled(updated));
+    } else if (status === DEPLOYMENT_STATUSES.ACCOMPLISHED) {
+      if (updated.distressSource === 'online' && updated.onlineDistressSignalId) {
+        await updateOnlineDistressStatus(updated.onlineDistressSignalId, DEPLOYMENT_STATUSES.ACCOMPLISHED, timestamp);
+      } else if (!options.suppressMeshCommand) {
+        await enqueueDistressCommand(updated, 'resolve_distress');
+      }
+      await afterCommit(() => notifyDeploymentAccomplished(updated));
+    }
+
+    return updated;
+  });
 }
 
 async function cancelDeployment(id) {

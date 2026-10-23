@@ -12,6 +12,7 @@ const transactionStorage = new AsyncLocalStorage();
 
 const pool = new Pool({
   connectionString: config.databaseUrl,
+  options: '-c timezone=UTC',
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000

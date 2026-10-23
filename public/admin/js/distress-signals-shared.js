@@ -21,6 +21,7 @@
     }
 
     return date.toLocaleString([], {
+      timeZone: 'Asia/Manila',
       year: 'numeric',
       month: 'short',
       day: '2-digit',
@@ -40,6 +41,7 @@
     }
 
     return date.toLocaleString([], {
+      timeZone: 'Asia/Manila',
       month: 'short',
       day: '2-digit',
       hour: '2-digit',

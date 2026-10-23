@@ -13,14 +13,20 @@ const {
   upsertMeshAuditLog,
   listPendingMeshCommands,
   markMeshCommandProcessed,
+  createMeshCommand,
   createServerAuditLog
 } = require('../repositories/deviceSyncRepository');
 const {
+  findActiveOnlineDistressByUserCode,
+  findActiveDeploymentByDistressSignalId,
+  lockCivilianDistressOwnership,
   listDeploymentsForSync,
   listDeploymentRouteSnapshotsForSync,
   listDeploymentMemberCodes,
   getLatestDeploymentByDistressSignalId
 } = require('../repositories/deploymentRepository');
+const { transaction } = require('../database/postgres');
+const { cancelDeployment } = require('./distressDeploymentService');
 const { touchSyncDeviceLastSync } = require('../repositories/syncDeviceRepository');
 const {
   notifyDistressSignalActive,
@@ -364,6 +370,18 @@ function normalizeString(value) {
   return normalized || null;
 }
 
+function normalizeDeviceTimestamp(value) {
+  const normalized = normalizeString(value);
+  if (!normalized) return null;
+
+  const explicitZone = /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(normalized);
+  const utcValue = explicitZone
+    ? normalized
+    : `${normalized.replace(' ', 'T')}Z`;
+  const parsed = new Date(utcValue);
+  return Number.isNaN(parsed.getTime()) ? normalized : parsed.toISOString();
+}
+
 async function syncNodesBatch(payload, syncDevice, requestIp) {
   const items = requireItemsArray(payload);
 
@@ -468,7 +486,6 @@ async function syncDistressSignalsBatch(payload, syncDevice, requestIp) {
       throw new Error('originNodeId and originDistressId are required.');
     }
 
-    const previous = await getMeshDistressSignalByOrigin(originNodeId, originDistressId);
     const normalized = {
       originNodeId,
       originDistressId,
@@ -483,17 +500,57 @@ async function syncDistressSignalsBatch(payload, syncDevice, requestIp) {
       reason: normalizeString(item.reason),
       latitude: normalizeNumber(item.latitude ?? item.lat),
       longitude: normalizeNumber(item.longitude ?? item.lng),
-      timestamp: normalizeString(item.timestamp),
+      timestamp: normalizeDeviceTimestamp(item.timestamp),
       status: normalizeDistressStatus(item.status),
       priority: normalizeString(item.priority),
       ackReceived: normalizeBoolean(item.ackReceived ?? item.ack_received),
-      updatedAt: normalizeString(item.updatedAt || item.updated_at) || nowAsIso(),
+      updatedAt: normalizeDeviceTimestamp(item.updatedAt || item.updated_at) || nowAsIso(),
       deleted: normalizeBoolean(item.deleted)
     };
 
-    await upsertMeshDistressSignal(normalized);
+    const { previous, current } = await transaction(async () => {
+      if (normalized.userCode) {
+        await lockCivilianDistressOwnership(normalized.userCode);
+      }
 
-    const current = await getMeshDistressSignalByOrigin(originNodeId, originDistressId);
+      const previousRecord = await getMeshDistressSignalByOrigin(originNodeId, originDistressId);
+      if (isDistressActive(normalized.status) && normalized.userCode) {
+        const activeOnline = await findActiveOnlineDistressByUserCode(normalized.userCode);
+        if (activeOnline) {
+          normalized.status = 'canceled';
+          if (!previousRecord || isDistressActive(previousRecord.status)) {
+            const deployment = previousRecord?.id
+              ? await findActiveDeploymentByDistressSignalId(previousRecord.id)
+              : null;
+            if (deployment?.id) {
+              await cancelDeployment(deployment.id);
+            } else {
+              const timestamp = nowAsIso();
+              await createMeshCommand({
+                targetNodeId: originNodeId,
+                commandType: 'cancel_distress',
+                payloadJson: JSON.stringify({
+                  originNodeId,
+                  originDistressId,
+                  meshDistressSignalId: previousRecord?.id || null,
+                  deploymentId: null,
+                  reason: 'cross_mode_conflict'
+                }),
+                status: 'pending',
+                createdAt: timestamp,
+                updatedAt: timestamp
+              });
+            }
+          }
+        }
+      }
+
+      await upsertMeshDistressSignal(normalized);
+      return {
+        previous: previousRecord,
+        current: await getMeshDistressSignalByOrigin(originNodeId, originDistressId)
+      };
+    });
 
     if (current && !current.deleted) {
       if ((!previous || !isDistressActive(previous.status) || previous.deleted) && isDistressActive(current.status)) {

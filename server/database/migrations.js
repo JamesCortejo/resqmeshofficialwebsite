@@ -104,6 +104,118 @@ async function ensureAccountAccessAuditBaseline(db) {
   `);
 }
 
+async function reconcileCrossModeDistressOwnership(db) {
+  const activeRows = await db.all(`
+    SELECT * FROM (
+      SELECT
+        'online' AS source,
+        o.id,
+        o.user_code AS "userCode",
+        NULL::TEXT AS "originNodeId",
+        o.id AS "originDistressId",
+        o.recorded_at AS "recordedAt",
+        EXISTS (
+          SELECT 1 FROM distress_deployments d
+          WHERE d.online_distress_signal_id = o.id
+            AND d.distress_source = 'online'
+            AND d.status = 'deployed'
+        ) AS deployed
+      FROM online_distress_signals o
+      WHERE o.status = 'active' AND o.deleted = 0
+
+      UNION ALL
+
+      SELECT
+        'mesh' AS source,
+        m.id,
+        m.user_code AS "userCode",
+        m.origin_node_id AS "originNodeId",
+        m.origin_distress_id AS "originDistressId",
+        m.timestamp AS "recordedAt",
+        EXISTS (
+          SELECT 1 FROM distress_deployments d
+          WHERE d.mesh_distress_signal_id = m.id
+            AND d.distress_source = 'mesh'
+            AND d.status = 'deployed'
+        ) AS deployed
+      FROM mesh_distress_signals m
+      WHERE LOWER(COALESCE(m.status, '')) = 'active' AND m.deleted = 0
+    ) active
+    WHERE "userCode" IS NOT NULL AND BTRIM("userCode") <> ''
+    ORDER BY "userCode", deployed DESC, "recordedAt" ASC NULLS LAST, source, id
+  `);
+
+  const byUserCode = new Map();
+  for (const row of activeRows) {
+    const key = String(row.userCode).trim();
+    const rows = byUserCode.get(key) || [];
+    rows.push(row);
+    byUserCode.set(key, rows);
+  }
+
+  for (const [userCode, rows] of byUserCode) {
+    if (rows.length < 2) continue;
+
+    await db.transaction(async (trx) => {
+      await trx.get('SELECT pg_advisory_xact_lock(hashtext(?)) AS locked', [
+        `civilian-distress:${userCode}`
+      ]);
+      const timestamp = new Date().toISOString();
+
+      for (const loser of rows.slice(1)) {
+        if (loser.source === 'online') {
+          await trx.run(`
+            UPDATE online_distress_signals
+            SET status = 'canceled', canceled_at = ?, updated_at = ?
+            WHERE id = ? AND status = 'active' AND deleted = 0
+          `, [timestamp, timestamp, loser.id]);
+          await trx.run(`
+            UPDATE distress_deployments
+            SET status = 'canceled', canceled_at = ?, updated_at = ?
+            WHERE online_distress_signal_id = ?
+              AND distress_source = 'online'
+              AND status = 'deployed'
+          `, [timestamp, timestamp, loser.id]);
+          continue;
+        }
+
+        const updated = await trx.run(`
+          UPDATE mesh_distress_signals
+          SET status = 'superseded', updated_at = ?
+          WHERE id = ?
+            AND LOWER(COALESCE(status, '')) = 'active'
+            AND deleted = 0
+        `, [timestamp, loser.id]);
+        if (!updated.changes) continue;
+
+        await trx.run(`
+          UPDATE distress_deployments
+          SET status = 'canceled', canceled_at = ?, updated_at = ?
+          WHERE mesh_distress_signal_id = ?
+            AND distress_source = 'mesh'
+            AND status = 'deployed'
+        `, [timestamp, timestamp, loser.id]);
+        await trx.run(`
+          INSERT INTO mesh_commands (
+            target_node_id, command_type, payload_json, status, created_at, updated_at
+          ) VALUES (?, 'cancel_distress', ?, 'pending', ?, ?)
+        `, [
+          loser.originNodeId,
+          JSON.stringify({
+            originNodeId: loser.originNodeId,
+            originDistressId: loser.originDistressId,
+            meshDistressSignalId: loser.id,
+            deploymentId: null,
+            reason: 'cross_mode_reconciliation'
+          }),
+          timestamp,
+          timestamp
+        ]);
+      }
+    });
+  }
+}
+
 async function runCompatibilityMigrations(db) {
   await ensurePostgresColumnTypes(db);
   await ensureAccountAccessAuditBaseline(db);
@@ -237,6 +349,7 @@ async function runCompatibilityMigrations(db) {
     ALTER TABLE mesh_node_health_logs
       ADD COLUMN IF NOT EXISTS battery_percent INTEGER;
   `);
+  await reconcileCrossModeDistressOwnership(db);
 }
 
 async function normalizeLegacyDistressStatuses(db) {
@@ -249,6 +362,7 @@ async function normalizeLegacyDistressStatuses(db) {
 
 module.exports = {
   ensureUserPhoneLookupHashes,
+  reconcileCrossModeDistressOwnership,
   runCompatibilityMigrations,
   normalizeLegacyDistressStatuses
 };

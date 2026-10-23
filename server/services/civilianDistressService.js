@@ -1,15 +1,23 @@
 const { decryptText } = require('./encryptionService');
 const {
   cancelActiveOnlineDistressForUser,
+  cancelActiveMeshDistressForUser,
   createOnlineDistressSignal,
+  findActiveCivilianDistress,
   findActiveDeploymentByOnlineDistressSignalId,
+  findActiveDeploymentByDistressSignalId,
   findActiveOnlineDistressByUserId,
+  findMeshDistressByIdForUser,
   findOnlineDistressByIdForUser,
   generateOnlineDistressCode,
-  listActiveOnlineDistressSignals
+  listActiveOnlineDistressSignals,
+  lockCivilianDistressOwnership
 } = require('../repositories/deploymentRepository');
+const { createMeshCommand } = require('../repositories/deviceSyncRepository');
+const { afterCommit, transaction } = require('../database/postgres');
 const { cancelDeployment } = require('./distressDeploymentService');
 const {
+  notifyDistressSignalCanceled,
   notifyOnlineDistressSignalActive,
   notifyOnlineDistressSignalCanceled
 } = require('./notificationService');
@@ -80,6 +88,7 @@ function normalizeOnlineDistress(row) {
 
   return {
     id: row.id,
+    sourceId: row.id,
     sourceType: 'online',
     sourceLabel: 'ONLINE',
     distressCode: row.distressCode,
@@ -91,6 +100,8 @@ function normalizeOnlineDistress(row) {
     recordedAt: row.recordedAt,
     timestamp: row.recordedAt,
     status: row.status,
+    originNodeId: null,
+    cancellationSyncStatus: null,
     user: {
       firstName: row.firstName,
       lastName: row.lastName,
@@ -102,18 +113,44 @@ function normalizeOnlineDistress(row) {
   };
 }
 
+function normalizeOwnedDistress(row) {
+  if (!row) return null;
+  if (row.sourceType === 'online') return normalizeOnlineDistress(row);
+
+  return {
+    id: row.id,
+    sourceId: row.sourceId ?? row.id,
+    sourceType: 'mesh',
+    sourceLabel: 'MESH',
+    distressCode: row.distressCode,
+    userCode: row.userCode,
+    reason: row.reason,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    accuracyM: null,
+    recordedAt: row.recordedAt,
+    timestamp: row.recordedAt,
+    status: row.status,
+    originNodeId: row.originNodeId,
+    cancellationSyncStatus: null,
+    user: {
+      firstName: row.firstName,
+      lastName: row.lastName,
+      phone: row.phone,
+      bloodType: row.bloodType,
+      age: row.age,
+      occupation: row.occupation || ''
+    }
+  };
+}
+
 async function getActiveCivilianOnlineDistress(civilian) {
-  return normalizeOnlineDistress(await findActiveOnlineDistressByUserId(civilian.id));
+  return normalizeOwnedDistress(
+    await findActiveCivilianDistress(civilian.id, civilian.userCode)
+  );
 }
 
 async function createCivilianOnlineDistress(civilian, payload) {
-  const existing = await findActiveOnlineDistressByUserId(civilian.id);
-  if (existing) {
-    const error = new Error('You already have an active online distress signal.');
-    error.statusCode = 409;
-    throw error;
-  }
-
   const reason = normalizeReason(payload.reason);
   if (!reason) {
     const error = new Error('Distress reason is required.');
@@ -131,25 +168,110 @@ async function createCivilianOnlineDistress(civilian, payload) {
   const accuracyM = payload.accuracy_m ?? payload.accuracyM ?? payload.accuracy ?? null;
   const timestamp = new Date().toISOString();
   const snapshot = profileSnapshot(civilian);
-  const distressCode = await generateOnlineDistressCode();
+  const distress = await transaction(async () => {
+    await lockCivilianDistressOwnership(civilian.userCode);
+    const existing = await findActiveCivilianDistress(civilian.id, civilian.userCode);
+    if (existing) {
+      const error = new Error('You already have an active distress signal.');
+      error.statusCode = 409;
+      error.conflict = 'user_active';
+      error.activeSource = existing.sourceType;
+      throw error;
+    }
 
-  const result = await createOnlineDistressSignal({
-    distressCode,
-    userId: civilian.id,
-    ...snapshot,
-    reason,
-    latitude,
-    longitude,
-    accuracyM,
-    recordedAt: payload.recorded_at || payload.recordedAt || timestamp,
-    createdAt: timestamp,
-    updatedAt: timestamp
+    const distressCode = await generateOnlineDistressCode();
+    await createOnlineDistressSignal({
+      distressCode,
+      userId: civilian.id,
+      ...snapshot,
+      reason,
+      latitude,
+      longitude,
+      accuracyM,
+      recordedAt: payload.recorded_at || payload.recordedAt || timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp
+    });
+
+    const created = await getActiveCivilianOnlineDistress(civilian);
+    await afterCommit(async () => {
+      await notifyOnlineDistressSignalActive(created);
+      await pushOnlineDistressNotification(created, civilian.id);
+    });
+    return created;
   });
-
-  const distress = await getActiveCivilianOnlineDistress({ id: civilian.id });
-  await notifyOnlineDistressSignalActive(distress);
-  await pushOnlineDistressNotification(distress, civilian.id);
   return distress;
+}
+
+async function cancelCivilianMeshDistress(civilian, id) {
+  const distressId = Number.parseInt(String(id || ''), 10);
+  if (!Number.isInteger(distressId) || distressId <= 0) {
+    const error = new Error('Invalid mesh distress id.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return transaction(async () => {
+    await lockCivilianDistressOwnership(civilian.userCode);
+    const distress = await findMeshDistressByIdForUser(distressId, civilian.userCode);
+    if (!distress) {
+      const error = new Error('Mesh distress signal not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const status = String(distress.status || '').toLowerCase();
+    if (status !== 'active') {
+      return {
+        id: distressId,
+        sourceType: 'mesh',
+        status: distress.status,
+        cancellationSyncStatus: 'queued',
+        message: 'Mesh distress signal is no longer active.'
+      };
+    }
+
+    const timestamp = new Date().toISOString();
+    const result = await cancelActiveMeshDistressForUser(
+      distressId,
+      civilian.userCode,
+      timestamp
+    );
+    if (!result.changes) {
+      const error = new Error('Active mesh distress signal not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const deployment = await findActiveDeploymentByDistressSignalId(distressId);
+    if (deployment?.id) {
+      await cancelDeployment(deployment.id);
+    } else {
+      await createMeshCommand({
+        targetNodeId: distress.originNodeId,
+        commandType: 'cancel_distress',
+        payloadJson: JSON.stringify({
+          originNodeId: distress.originNodeId,
+          originDistressId: distress.originDistressId,
+          meshDistressSignalId: distress.id,
+          deploymentId: null
+        }),
+        status: 'pending',
+        createdAt: timestamp,
+        updatedAt: timestamp
+      });
+    }
+
+    await afterCommit(() => notifyDistressSignalCanceled(distress));
+    return {
+      id: distressId,
+      sourceType: 'mesh',
+      status: 'canceled',
+      canceledAt: timestamp,
+      cancellationSyncStatus: 'queued',
+      message: 'Mesh distress canceled. The cancellation will sync to the mesh network when the origin node reconnects.'
+    };
+  });
 }
 
 async function cancelCivilianOnlineDistress(civilian, id) {
@@ -160,56 +282,69 @@ async function cancelCivilianOnlineDistress(civilian, id) {
     throw error;
   }
 
-  const timestamp = new Date().toISOString();
-  const activeDistress = await findActiveOnlineDistressByUserId(civilian.id);
+  return transaction(async () => {
+    await lockCivilianDistressOwnership(civilian.userCode);
+    const timestamp = new Date().toISOString();
+    const activeDistress = await findActiveOnlineDistressByUserId(civilian.id);
 
-  if (!activeDistress || Number(activeDistress.id) !== distressId) {
-    const ownedDistress = await findOnlineDistressByIdForUser(distressId, civilian.id);
-    const ownedStatus = String(ownedDistress?.status || '').toLowerCase();
-    if (ownedDistress && ['canceled', 'cancelled', 'accomplished'].includes(ownedStatus)) {
-      const accomplished = ownedStatus === 'accomplished';
+    if (!activeDistress || Number(activeDistress.id) !== distressId) {
+      const ownedDistress = await findOnlineDistressByIdForUser(distressId, civilian.id);
+      const ownedStatus = String(ownedDistress?.status || '').toLowerCase();
+      if (ownedDistress && ['canceled', 'cancelled', 'accomplished'].includes(ownedStatus)) {
+        const accomplished = ownedStatus === 'accomplished';
+        return {
+          id: distressId,
+          status: ownedDistress.status,
+          canceledAt: ownedDistress.canceledAt || null,
+          accomplishedAt: ownedDistress.accomplishedAt || null,
+          message: accomplished
+            ? 'Distress signal has already been accomplished by a rescuer.'
+            : 'Distress signal has been canceled by admin.'
+        };
+      }
+
+      const error = new Error('Active online distress signal not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const activeDeployment = await findActiveDeploymentByOnlineDistressSignalId(distressId);
+    if (activeDeployment?.id) {
+      await cancelDeployment(activeDeployment.id);
+      await afterCommit(() => notifyOnlineDistressSignalCanceled(normalizeOnlineDistress(activeDistress)));
       return {
         id: distressId,
-        status: ownedDistress.status,
-        canceledAt: ownedDistress.canceledAt || null,
-        accomplishedAt: ownedDistress.accomplishedAt || null,
-        message: accomplished
-          ? 'Distress signal has already been accomplished by a rescuer.'
-          : 'Distress signal has been canceled by admin.'
+        status: 'canceled',
+        canceledAt: timestamp,
+        message: 'Online distress signal canceled.'
       };
     }
 
-    const error = new Error('Active online distress signal not found.');
-    error.statusCode = 404;
-    throw error;
-  }
+    const result = await cancelActiveOnlineDistressForUser(distressId, civilian.id, timestamp);
+    if (!result.changes) {
+      const error = new Error('Active online distress signal not found.');
+      error.statusCode = 404;
+      throw error;
+    }
 
-  const activeDeployment = await findActiveDeploymentByOnlineDistressSignalId(distressId);
-  if (activeDeployment?.id) {
-    await cancelDeployment(activeDeployment.id);
-    await notifyOnlineDistressSignalCanceled(normalizeOnlineDistress(activeDistress));
+    await afterCommit(() => notifyOnlineDistressSignalCanceled(normalizeOnlineDistress(activeDistress)));
     return {
       id: distressId,
       status: 'canceled',
       canceledAt: timestamp,
       message: 'Online distress signal canceled.'
     };
-  }
+  });
+}
 
-  const result = await cancelActiveOnlineDistressForUser(distressId, civilian.id, timestamp);
-  if (!result.changes) {
-    const error = new Error('Active online distress signal not found.');
-    error.statusCode = 404;
-    throw error;
-  }
+async function cancelCivilianDistress(civilian, sourceType, id) {
+  const source = String(sourceType || 'online').trim().toLowerCase();
+  if (source === 'mesh') return cancelCivilianMeshDistress(civilian, id);
+  if (source === 'online') return cancelCivilianOnlineDistress(civilian, id);
 
-  await notifyOnlineDistressSignalCanceled(normalizeOnlineDistress(activeDistress));
-  return {
-    id: distressId,
-    status: 'canceled',
-    canceledAt: timestamp,
-    message: 'Online distress signal canceled.'
-  };
+  const error = new Error('Invalid distress source.');
+  error.statusCode = 400;
+  throw error;
 }
 
 async function listPublicOnlineDistressSignals() {
@@ -220,6 +355,7 @@ async function listPublicOnlineDistressSignals() {
 module.exports = {
   createCivilianOnlineDistress,
   getActiveCivilianOnlineDistress,
+  cancelCivilianDistress,
   cancelCivilianOnlineDistress,
   listPublicOnlineDistressSignals
 };
