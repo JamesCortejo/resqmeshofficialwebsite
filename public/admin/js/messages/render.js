@@ -266,14 +266,22 @@
           lastDate = dateLabel;
         }
 
-        const outgoing = message.senderType === 'admin';
-        const authorLabel = message.senderType === 'system'
-          ? 'System'
-          : message.senderType === 'admin'
-            ? 'Admin'
-            : message.senderType === 'rescuer'
-              ? 'Rescuer'
-              : (message.senderDisplayName || 'Civilian');
+        const senderType = ['admin', 'rescuer', 'system'].includes(message.senderType)
+          ? message.senderType
+          : 'civilian';
+        const outgoing = senderType === 'admin';
+        const roleLabel = senderType === 'admin'
+          ? 'Admin'
+          : senderType === 'rescuer'
+            ? 'Rescuer'
+            : senderType === 'system'
+              ? 'System'
+              : 'Civilian';
+        const authorLabel = senderType === 'admin'
+          ? 'ResQMesh Admin'
+          : senderType === 'system'
+            ? 'ResQMesh System'
+            : (message.senderDisplayName || roleLabel);
         const isVoice = message.messageType === 'voice';
         const voiceDuration = Number(message.voiceClip?.durationSeconds || 0);
         const bodyMarkup = isVoice
@@ -297,8 +305,11 @@
 
         return `
           ${separator}
-          <article class="messages-bubble ${outgoing ? 'is-outgoing' : 'is-incoming'}">
-            <span class="messages-bubble-author">${escapeHtml(authorLabel)}</span>
+          <article class="messages-bubble ${outgoing ? 'is-outgoing' : 'is-incoming'}" data-sender-type="${senderType}">
+            <div class="messages-bubble-identity">
+              <span class="messages-bubble-author">${escapeHtml(authorLabel)}</span>
+              <span class="messages-bubble-role">${roleLabel}</span>
+            </div>
             ${bodyMarkup}
             <time>${escapeHtml(formatTime(message.createdAt))}</time>
           </article>

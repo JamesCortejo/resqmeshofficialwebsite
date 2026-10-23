@@ -55,6 +55,7 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 0;
   overflow: hidden;
+  background: #ffffff;
 }
 
 .messages-pane-header,
@@ -526,9 +527,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at top right, rgba(231, 75, 50, 0.08), transparent 24rem),
-    linear-gradient(180deg, rgba(250, 252, 255, 0.94), rgba(255, 247, 244, 0.96));
+  background: #f7f9fb;
   padding: 1.1rem;
 }
 
@@ -566,21 +565,63 @@
   gap: 0.45rem;
   border-radius: 1.08rem;
   border: 1px solid rgba(220, 227, 234, 0.88);
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 14px 24px rgba(23, 33, 43, 0.05);
+  background: #ffffff;
+  box-shadow: none;
   padding: 0.85rem 0.95rem;
 }
 
 .messages-bubble-wrap.is-outgoing .messages-bubble {
-  border-color: rgba(231, 75, 50, 0.22);
-  background: linear-gradient(180deg, rgba(255, 242, 238, 0.98), rgba(255, 249, 247, 0.97));
+  background: #ffffff;
+}
+
+.messages-bubble[data-sender-type="civilian"] {
+  border-left: 3px solid #2675b6;
+}
+
+.messages-bubble[data-sender-type="rescuer"] {
+  border-left: 3px solid #168a68;
+}
+
+.messages-bubble[data-sender-type="admin"] {
+  border-right: 3px solid var(--admin-primary);
+}
+
+.messages-bubble[data-sender-type="system"] {
+  border-left: 3px solid #6b7785;
+}
+
+.messages-bubble-identity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
 .messages-bubble-author {
-  color: var(--admin-primary-hover);
-  font: 900 0.76rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--admin-ink);
+  font: 700 0.78rem/1.2 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.messages-bubble-role {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.35rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: #6b7785;
+  font: 700 0.64rem/1 'Inter', system-ui, -apple-system, sans-serif;
   letter-spacing: 0.04em;
+  padding: 0.2rem 0.42rem;
   text-transform: uppercase;
+}
+
+.messages-bubble[data-sender-type="civilian"] .messages-bubble-role { color: #2675b6; }
+.messages-bubble[data-sender-type="rescuer"] .messages-bubble-role { color: #168a68; }
+.messages-bubble[data-sender-type="admin"] .messages-bubble-role { color: var(--admin-primary-hover); }
+.messages-bubble[data-sender-type="system"] .messages-bubble-role { color: #6b7785; }
+
+.messages-bubble.is-outgoing .messages-bubble-identity {
+  justify-content: flex-end;
 }
 
 .messages-bubble-body {
@@ -601,7 +642,7 @@
   min-width: min(18rem, 100%);
   border: 1px solid rgba(220, 227, 234, 0.9);
   border-radius: 0.9rem;
-  background: rgba(255, 255, 255, 0.88);
+  background: transparent;
   color: var(--admin-ink);
   cursor: pointer;
   padding: 0.68rem 0.75rem;
@@ -610,7 +651,16 @@
 
 .messages-voice-control.is-playing {
   border-color: rgba(231, 75, 50, 0.25);
-  background: linear-gradient(180deg, rgba(255, 247, 244, 0.98), rgba(255, 255, 255, 0.94));
+  background: transparent;
+}
+
+.messages-voice-control:hover {
+  border-color: rgba(100, 113, 127, 0.38);
+}
+
+.messages-voice-control:focus-visible {
+  outline: 3px solid rgba(38, 117, 182, 0.24);
+  outline-offset: 2px;
 }
 
 .messages-voice-control.is-loading {
@@ -628,14 +678,15 @@
   justify-content: center;
   width: 2.35rem;
   height: 2.35rem;
+  border: 1px solid currentColor;
   border-radius: 999px;
-  background: rgba(231, 75, 50, 0.1);
+  background: transparent;
   color: var(--admin-primary-hover);
 }
 
 .messages-voice-control.is-playing .messages-voice-play {
-  background: var(--admin-primary);
-  color: #ffffff;
+  background: transparent;
+  color: var(--admin-primary-hover);
 }
 
 .messages-voice-main {
@@ -898,10 +949,13 @@
   justify-self: start;
 }
 
+.messages-bubble.is-incoming[data-sender-type="system"] {
+  justify-self: center;
+}
+
 .messages-bubble.is-outgoing {
   justify-self: end;
-  border-color: rgba(231, 75, 50, 0.22);
-  background: linear-gradient(180deg, rgba(255, 242, 238, 0.98), rgba(255, 249, 247, 0.97));
+  background: #ffffff;
 }
 
 .messages-bubble p {
