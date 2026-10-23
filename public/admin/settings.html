@@ -114,7 +114,8 @@
         </div>
 
         <div class="admin-topbar-actions">
-          <button type="button" class="admin-notification-button" id="adminNotificationButton" aria-label="Notifications" aria-expanded="false">
+          <button type="button" class="admin-notification-button" id="adminNotificationButton"
+            aria-label="Notifications" aria-expanded="false">
             <i class="fa-regular fa-bell" aria-hidden="true"></i>
             <span class="admin-notification-badge" id="adminNotificationBadge" hidden>0</span>
           </button>
@@ -126,7 +127,8 @@
       </header>
 
       <form class="settings-workspace" id="notificationSettingsForm" novalidate>
-        <section class="admin-content-panel settings-panel settings-alerts-panel" aria-labelledby="headsUpSettingsTitle">
+        <section class="admin-content-panel settings-panel settings-alerts-panel"
+          aria-labelledby="headsUpSettingsTitle">
           <div class="settings-panel-header">
             <div>
               <span class="settings-kicker">Notifications</span>
@@ -137,7 +139,8 @@
 
           <div class="settings-list">
             <div class="settings-row settings-row-required">
-              <span class="settings-row-icon settings-row-icon-emergency" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+              <span class="settings-row-icon settings-row-icon-emergency" aria-hidden="true"><i
+                  class="fa-solid fa-triangle-exclamation"></i></span>
               <span class="settings-row-copy">
                 <strong>Emergency</strong>
                 <span>New and updated distress activity.</span>
@@ -151,42 +154,48 @@
 
             <div class="settings-row">
               <span class="settings-row-icon" aria-hidden="true"><i class="fa-solid fa-comments"></i></span>
-              <span class="settings-row-copy"><strong>Communication</strong><span>New civilian department-chat messages.</span></span>
+              <span class="settings-row-copy"><strong>Communication</strong><span>New civilian department-chat
+                  messages.</span></span>
               <label class="settings-switch" aria-label="Communication heads-up alerts">
                 <input type="checkbox" role="switch" name="communication" checked><span aria-hidden="true"></span>
               </label>
             </div>
             <div class="settings-row">
               <span class="settings-row-icon" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
-              <span class="settings-row-copy"><strong>Accounts</strong><span>Registration reviews and account access changes.</span></span>
+              <span class="settings-row-copy"><strong>Accounts</strong><span>Registration reviews and account access
+                  changes.</span></span>
               <label class="settings-switch" aria-label="Account heads-up alerts">
                 <input type="checkbox" role="switch" name="accounts" checked><span aria-hidden="true"></span>
               </label>
             </div>
             <div class="settings-row">
               <span class="settings-row-icon" aria-hidden="true"><i class="fa-solid fa-user-shield"></i></span>
-              <span class="settings-row-copy"><strong>Responders</strong><span>Rescuer access, status, and credential changes.</span></span>
+              <span class="settings-row-copy"><strong>Responders</strong><span>Rescuer access, status, and credential
+                  changes.</span></span>
               <label class="settings-switch" aria-label="Responder heads-up alerts">
                 <input type="checkbox" role="switch" name="responders" checked><span aria-hidden="true"></span>
               </label>
             </div>
             <div class="settings-row">
               <span class="settings-row-icon" aria-hidden="true"><i class="fa-solid fa-people-group"></i></span>
-              <span class="settings-row-copy"><strong>Rescue Teams</strong><span>Team creation, updates, and roster changes.</span></span>
+              <span class="settings-row-copy"><strong>Rescue Teams</strong><span>Team creation, updates, and roster
+                  changes.</span></span>
               <label class="settings-switch" aria-label="Rescue team heads-up alerts">
                 <input type="checkbox" role="switch" name="teams" checked><span aria-hidden="true"></span>
               </label>
             </div>
             <div class="settings-row">
               <span class="settings-row-icon" aria-hidden="true"><i class="fa-solid fa-truck-medical"></i></span>
-              <span class="settings-row-copy"><strong>Deployments</strong><span>Deployment creation, cancellation, and completion.</span></span>
+              <span class="settings-row-copy"><strong>Deployments</strong><span>Deployment creation, cancellation, and
+                  completion.</span></span>
               <label class="settings-switch" aria-label="Deployment heads-up alerts">
                 <input type="checkbox" role="switch" name="deployments" checked><span aria-hidden="true"></span>
               </label>
             </div>
             <div class="settings-row">
               <span class="settings-row-icon" aria-hidden="true"><i class="fa-solid fa-bell"></i></span>
-              <span class="settings-row-copy"><strong>System</strong><span>General activity that does not belong to another category.</span></span>
+              <span class="settings-row-copy"><strong>System</strong><span>General activity that does not belong to
+                  another category.</span></span>
               <label class="settings-switch" aria-label="System heads-up alerts">
                 <input type="checkbox" role="switch" name="system" checked><span aria-hidden="true"></span>
               </label>
@@ -206,7 +215,8 @@
           <div class="settings-sound-controls">
             <div class="settings-row settings-sound-toggle-row">
               <span class="settings-row-icon" aria-hidden="true"><i class="fa-solid fa-volume-high"></i></span>
-              <span class="settings-row-copy"><strong>Play notification sound</strong><span>Sound is off by default and can be blocked by browser autoplay rules.</span></span>
+              <span class="settings-row-copy"><strong>Play notification sound</strong><span>Sound is off by default and
+                  can be blocked by browser autoplay rules.</span></span>
               <label class="settings-switch" aria-label="Play notification sound">
                 <input type="checkbox" role="switch" name="soundEnabled"><span aria-hidden="true"></span>
               </label>
@@ -223,15 +233,16 @@
                 <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
               </div>
               <div class="settings-test-actions">
-                <button type="button" class="admin-secondary-button settings-test-button" id="testNotificationSoundButton" disabled>Test notification</button>
-                <button type="button" class="admin-secondary-button settings-test-button" id="testDistressSoundButton" disabled>Test emergency</button>
+                <button type="button" class="admin-secondary-button settings-test-button"
+                  id="testNotificationSoundButton" disabled>Test notification</button>
+                <button type="button" class="admin-secondary-button settings-test-button" id="testDistressSoundButton"
+                  disabled>Test emergency</button>
               </div>
             </div>
           </div>
         </section>
 
         <div class="settings-actions">
-          <p>Changes affect heads-up presentation only. Every notification remains available from the bell.</p>
           <button type="submit" class="settings-primary-button" id="saveNotificationSettingsButton">
             <span>Save Settings</span>
           </button>
@@ -240,7 +251,8 @@
     </section>
   </main>
 
-  <div class="admin-review-toast" id="adminReviewToast" role="status" aria-live="polite" aria-hidden="true" data-tone="success">
+  <div class="admin-review-toast" id="adminReviewToast" role="status" aria-live="polite" aria-hidden="true"
+    data-tone="success">
     <span class="admin-review-toast-icon" id="adminReviewToastIcon">
       <i class="fa-solid fa-check" aria-hidden="true"></i>
     </span>

@@ -63,6 +63,23 @@ function normalizeForCondensedMatching(value) {
   );
 }
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function createObfuscatedWordPattern(value) {
+  const characters = normalizeForCondensedMatching(value).split('');
+  if (characters.length === 0) {
+    return null;
+  }
+
+  const pattern = characters
+    .map((character) => `${escapeRegex(character)}+`)
+    .join('[^a-z0-9]*');
+
+  return new RegExp(`(^|[^a-z0-9])${pattern}(?=$|[^a-z0-9])`);
+}
+
 const wordEntries = Object.values(profanityWords)
   .flat()
   .map((word) => String(word).trim())
@@ -70,19 +87,19 @@ const wordEntries = Object.values(profanityWords)
   .map((word) => ({
     raw: word,
     spaced: normalizeForWordMatching(word),
-    condensed: normalizeForCondensedMatching(word),
+    obfuscatedPattern: createObfuscatedWordPattern(word),
   }));
 
 function containsProfanity(body) {
   const spaced = ` ${normalizeForWordMatching(body)} `;
-  const condensed = normalizeForCondensedMatching(body);
+  const normalized = normalizeCharacters(body);
 
   return wordEntries.some((entry) => {
     if (entry.spaced && spaced.includes(` ${entry.spaced} `)) {
       return true;
     }
 
-    return Boolean(entry.condensed) && condensed.includes(entry.condensed);
+    return entry.obfuscatedPattern?.test(normalized) || false;
   });
 }
 
@@ -365,6 +382,7 @@ async function enforceRescuerMessageSecurity({
 }
 
 module.exports = {
+  containsProfanity,
   enforceActorMessageSecurity,
   enforceCivilianMessageSecurity,
   enforceRescuerMessageSecurity,
