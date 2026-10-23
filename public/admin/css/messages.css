@@ -141,17 +141,21 @@
   padding: 0.92rem 0.95rem;
   transition:
     border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background-color 0.2s ease,
-    transform 0.2s ease;
+    background-color 0.2s ease;
 }
 
-.messages-conversation-card:hover,
+.messages-conversation-card:hover {
+  border-color: #c4ced8;
+  background: #f8fafc;
+  box-shadow: none;
+  transform: none;
+}
+
 .messages-conversation-card.is-active {
-  border-color: rgba(231, 75, 50, 0.34);
-  background: rgba(255, 245, 242, 0.98);
-  box-shadow: 0 16px 28px rgba(231, 75, 50, 0.08);
-  transform: translateY(-1px);
+  border-color: #9eabb8;
+  background: #f4f7f9;
+  box-shadow: none;
+  transform: none;
 }
 
 .messages-conversation-top,
@@ -229,14 +233,15 @@
 }
 
 .messages-conversation-card.is-distress {
-  border-color: rgba(212, 58, 49, 0.26);
-  box-shadow: 0 16px 28px rgba(212, 58, 49, 0.08);
+  border-color: rgba(220, 227, 234, 0.88);
+  box-shadow: none;
 }
 
 .messages-conversation-card.is-distress:hover,
 .messages-conversation-card.is-distress.is-active {
-  border-color: rgba(212, 58, 49, 0.34);
-  background: rgba(255, 241, 239, 0.98);
+  border-color: #9eabb8;
+  background: #f4f7f9;
+  box-shadow: none;
 }
 
 .messages-unread-badge {
@@ -259,7 +264,7 @@
   overflow-x: auto;
   padding-bottom: 0.25rem;
   scrollbar-width: thin;
-  scrollbar-color: rgba(231, 75, 50, 0.35) rgba(236, 241, 246, 0.95);
+  scrollbar-color: #aeb8c3 rgba(236, 241, 246, 0.95);
 }
 
 .messages-scope-rail::-webkit-scrollbar {
@@ -268,7 +273,7 @@
 
 .messages-scope-rail::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(231, 75, 50, 0.32);
+  background: #aeb8c3;
 }
 
 .messages-scope-rail::-webkit-scrollbar-track {
@@ -287,7 +292,7 @@
   grid-template-columns: 2.5rem minmax(0, 1fr);
   align-items: center;
   gap: 0.7rem;
-  border: 1px solid rgba(231, 75, 50, 0.18);
+  border: 1px solid rgba(220, 227, 234, 0.95);
   border-radius: 1rem;
   background: #ffffff;
   color: var(--admin-primary-hover);
@@ -298,15 +303,19 @@
   padding: 0.72rem 2.75rem 0.72rem 0.75rem;
   transition:
     border-color 0.2s ease,
-    background-color 0.2s ease,
-    box-shadow 0.2s ease;
+    background-color 0.2s ease;
 }
 
-.messages-scope-chip:hover,
+.messages-scope-chip:hover {
+  border-color: #c4ced8;
+  background: #f8fafc;
+  box-shadow: none;
+}
+
 .messages-scope-chip.is-active {
-  border-color: rgba(231, 75, 50, 0.34);
-  background: rgba(255, 245, 242, 0.98);
-  box-shadow: 0 12px 24px rgba(231, 75, 50, 0.1);
+  border-color: #9eabb8;
+  background: #f4f7f9;
+  box-shadow: none;
 }
 
 .messages-scope-chip:focus-visible {
