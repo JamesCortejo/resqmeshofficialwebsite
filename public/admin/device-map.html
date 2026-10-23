@@ -144,13 +144,31 @@
             <div class="device-map-empty" id="deviceMapEmpty" hidden>No mesh nodes with valid coordinates match the current filters.</div>
             <section class="device-map-legend device-map-overlay">
               <h3>Map legend</h3>
-              <div class="device-map-legend-list">
-                <div class="device-map-legend-item"><span class="device-map-legend-dot" data-status="active"></span><span>Active</span></div>
-                <div class="device-map-legend-item"><span class="device-map-legend-dot" data-status="stale"></span><span>Stale</span></div>
-                <div class="device-map-legend-item"><span class="device-map-legend-dot" data-status="offline"></span><span>Offline</span></div>
-                <div class="device-map-legend-item"><span class="device-map-legend-dot" data-status="distressed"></span><span>Distressed</span></div>
-                <div class="device-map-legend-item"><span class="device-map-legend-dot" data-status="route"></span><span>Active team route</span></div>
-                <div class="device-map-legend-item"><span class="device-map-legend-dot" data-status="shared-rescuer"></span><span>Shared rescuer</span></div>
+              <div class="device-map-legend-group">
+                <span class="device-map-legend-heading">Markers</span>
+                <div class="device-map-legend-list">
+                  <div class="device-map-legend-item"><span class="device-map-legend-symbol device-map-legend-node" data-status="active"><i class="fa-solid fa-microchip" aria-hidden="true"></i></span><span>Active node</span></div>
+                  <div class="device-map-legend-item"><span class="device-map-legend-symbol device-map-legend-node" data-status="stale"><i class="fa-solid fa-microchip" aria-hidden="true"></i></span><span>Stale node</span></div>
+                  <div class="device-map-legend-item"><span class="device-map-legend-symbol device-map-legend-node" data-status="offline"><i class="fa-solid fa-microchip" aria-hidden="true"></i></span><span>Offline node</span></div>
+                  <div class="device-map-legend-item"><span class="device-map-legend-symbol device-map-legend-node" data-status="distressed"><i class="fa-solid fa-microchip" aria-hidden="true"></i></span><span>Distressed node</span></div>
+                  <div class="device-map-legend-item"><span class="device-map-legend-symbol device-map-legend-distress"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span><span>Online distress</span></div>
+                  <div class="device-map-legend-item"><span class="device-map-legend-symbol device-map-legend-team"><i class="fa-solid fa-location-arrow" aria-hidden="true"></i></span><span>Rescue team</span></div>
+                  <div class="device-map-legend-item"><span class="device-map-legend-symbol device-map-legend-rescuer"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span><span>Shared rescuer</span></div>
+                </div>
+              </div>
+              <div class="device-map-legend-group">
+                <span class="device-map-legend-heading">Connections</span>
+                <div class="device-map-legend-list">
+                  <div class="device-map-legend-item"><span class="device-map-legend-line" data-type="mesh"></span><span>Reported mesh link</span></div>
+                  <div class="device-map-legend-item"><span class="device-map-legend-line" data-type="route"></span><span>Active rescue route</span></div>
+                </div>
+                <div class="device-map-signal-key" aria-label="Mesh link signal quality">
+                  <span data-quality="strong">Strong</span>
+                  <span data-quality="good">Good</span>
+                  <span data-quality="weak">Weak</span>
+                  <span data-quality="poor">Poor</span>
+                  <span data-quality="unknown">Unknown</span>
+                </div>
               </div>
               <div class="device-map-style-control-host" id="deviceMapStyleControlHost"></div>
             </section>

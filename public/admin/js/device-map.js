@@ -8,9 +8,12 @@
   const MAX_ZOOM = 19;
   const THREE_D_PITCH = 55;
   const LINKS_SOURCE_ID = 'resqmesh-mesh-links';
+  const LINKS_CASING_LAYER_ID = 'resqmesh-mesh-links-casing';
   const LINKS_LAYER_ID = 'resqmesh-mesh-links-line';
   const ROUTES_SOURCE_ID = 'resqmesh-rescue-routes';
+  const ROUTES_CASING_LAYER_ID = 'resqmesh-rescue-routes-casing';
   const ROUTES_LAYER_ID = 'resqmesh-rescue-routes-line';
+  const LINK_STALE_THRESHOLD_MS = 10 * 60 * 1000;
   const CUSTOM_BUILDINGS_LAYER_ID = 'resqmesh-3d-buildings';
   const STYLE_DEFINITIONS = Object.freeze({
     streets: { label: 'Streets', resolve: () => maptilersdk.MapStyle.STREETS },
@@ -597,6 +600,28 @@
     return coordinateLngLat(firstCoordinate) || numericLngLat(route.leaderLatitude, route.leaderLongitude);
   }
 
+  function routeInitialBearing(route) {
+    const coordinates = Array.isArray(route.coordinates)
+      ? route.coordinates.map(coordinateLngLat).filter(Boolean)
+      : [];
+
+    for (let index = 1; index < coordinates.length; index += 1) {
+      const start = coordinates[index - 1];
+      const end = coordinates[index];
+      if (start[0] === end[0] && start[1] === end[1]) continue;
+
+      const startLat = start[1] * Math.PI / 180;
+      const endLat = end[1] * Math.PI / 180;
+      const deltaLng = (end[0] - start[0]) * Math.PI / 180;
+      const y = Math.sin(deltaLng) * Math.cos(endLat);
+      const x = (Math.cos(startLat) * Math.sin(endLat))
+        - (Math.sin(startLat) * Math.cos(endLat) * Math.cos(deltaLng));
+      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+
+    return 0;
+  }
+
   function routeDistressLngLat(route) {
     return numericLngLat(route.distressLatitude, route.distressLongitude);
   }
@@ -642,6 +667,21 @@
 
     if (!state.map.getLayer(LINKS_LAYER_ID)) {
       state.map.addLayer({
+        id: LINKS_CASING_LAYER_ID,
+        type: 'line',
+        source: LINKS_SOURCE_ID,
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round'
+        },
+        paint: {
+          'line-color': '#172533',
+          'line-width': ['+', ['coalesce', ['get', 'width'], 3], 4],
+          'line-opacity': ['*', ['coalesce', ['get', 'opacity'], 0.78], 0.28]
+        }
+      });
+
+      state.map.addLayer({
         id: LINKS_LAYER_ID,
         type: 'line',
         source: LINKS_SOURCE_ID,
@@ -652,8 +692,7 @@
         paint: {
           'line-color': ['coalesce', ['get', 'color'], '#e74b32'],
           'line-width': ['coalesce', ['get', 'width'], 3],
-          'line-opacity': ['coalesce', ['get', 'opacity'], 0.56],
-          'line-dasharray': [2.5, 2]
+          'line-opacity': ['coalesce', ['get', 'opacity'], 0.78]
         }
       });
     }
@@ -663,6 +702,21 @@
     }
 
     if (!state.map.getLayer(ROUTES_LAYER_ID)) {
+      state.map.addLayer({
+        id: ROUTES_CASING_LAYER_ID,
+        type: 'line',
+        source: ROUTES_SOURCE_ID,
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round'
+        },
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': ['case', ['==', ['get', 'selected'], true], 10, 8],
+          'line-opacity': ['case', ['==', ['get', 'selected'], true], 0.9, 0.72]
+        }
+      });
+
       state.map.addLayer({
         id: ROUTES_LAYER_ID,
         type: 'line',
@@ -674,22 +728,42 @@
         paint: {
           'line-color': ['case', ['==', ['get', 'selected'], true], '#c93f29', '#f26441'],
           'line-width': ['case', ['==', ['get', 'selected'], true], 6, 4],
-          'line-opacity': ['case', ['==', ['get', 'selected'], true], 0.94, 0.72]
+          'line-opacity': ['case', ['==', ['get', 'selected'], true], 1, 0.84]
         }
       });
     }
   }
 
-  function createMarkerElement(wrapperClass, markerClass, isSelected = false) {
+  function createMarkerElement(wrapperClass, markerClass, options = {}) {
+    const settings = typeof options === 'boolean' ? { isSelected: options } : options;
     const wrapper = document.createElement('div');
     const marker = document.createElement('div');
     wrapper.className = wrapperClass;
-    marker.className = markerClass + (isSelected ? ' is-selected' : '');
+    marker.className = markerClass + (settings.isSelected ? ' is-selected' : '');
+
+    if (settings.iconClass) {
+      const icon = document.createElement('i');
+      icon.className = `fa-solid ${settings.iconClass}`;
+      icon.setAttribute('aria-hidden', 'true');
+      if (Number.isFinite(settings.bearing)) {
+        icon.style.setProperty('--marker-bearing', `${settings.bearing}deg`);
+      }
+      marker.appendChild(icon);
+    }
+
     wrapper.appendChild(marker);
+
+    if (settings.label) {
+      const label = document.createElement('span');
+      label.className = 'device-map-marker-label';
+      label.textContent = settings.label;
+      wrapper.appendChild(label);
+    }
+
     return wrapper;
   }
 
-  function addDomMarker({ key, lngLat, element, popupHtml, popupClass = 'device-map-popup', onClick, zIndex = 300 }) {
+  function addDomMarker({ key, lngLat, element, popupHtml, popupClass = 'device-map-popup', onClick, ariaLabel, zIndex = 300 }) {
     if (!state.map || !lngLat) {
       return null;
     }
@@ -708,6 +782,20 @@
 
     if (popup) marker.setPopup(popup);
     if (onClick) element.addEventListener('click', onClick);
+    if (popup || onClick) {
+      element.tabIndex = 0;
+      element.setAttribute('role', 'button');
+      element.setAttribute('aria-label', ariaLabel || 'Open map marker details');
+      element.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        if (onClick) {
+          onClick(event);
+        } else if (popup && !popup.isOpen()) {
+          marker.togglePopup();
+        }
+      });
+    }
     marker.addTo(state.map);
     state.mapMarkers.push({ key, marker });
     return marker;
@@ -740,7 +828,10 @@
   function createDeviceMarker(device) {
     const status = deriveMapStatus(device);
     const distressedClass = device.hasActiveDistress ? ' is-flashing' : '';
-    const element = createMarkerElement('device-map-marker-icon', `device-map-marker${distressedClass}`);
+    const element = createMarkerElement('device-map-marker-icon', `device-map-marker${distressedClass}`, {
+      iconClass: 'fa-microchip',
+      label: device.nodeId || device.id
+    });
     element.firstElementChild.dataset.status = status;
 
     return addDomMarker({
@@ -748,43 +839,50 @@
       lngLat: numericLngLat(device.latitude, device.longitude),
       element,
       popupHtml: popupMarkup(device, status),
+      ariaLabel: `Open details for ${device.nodeName || device.nodeId}`,
       zIndex: 400
     });
   }
 
-  function calculateDistance(a, b) {
-    const latA = Number(a.latitude);
-    const lngA = Number(a.longitude);
-    const latB = Number(b.latitude);
-    const lngB = Number(b.longitude);
-    return ((latA - latB) ** 2) + ((lngA - lngB) ** 2);
+  function classifyLinkSignal(rssi) {
+    const numeric = Number(rssi);
+    if (!Number.isFinite(numeric) || numeric < -140 || numeric > -20) return 'unknown';
+    if (numeric >= -70) return 'strong';
+    if (numeric >= -85) return 'good';
+    if (numeric >= -100) return 'weak';
+    return 'poor';
   }
 
-  function buildConnectionPairs(devices) {
-    const links = new Map();
-
-    devices.forEach((device) => {
-      devices
-        .filter((candidate) => candidate.id !== device.id)
-        .sort((left, right) => calculateDistance(device, left) - calculateDistance(device, right))
-        .slice(0, 2)
-        .forEach((candidate) => {
-          const [startId, endId] = [String(device.id), String(candidate.id)].sort();
-          const key = `${startId}:${endId}`;
-          if (!links.has(key)) links.set(key, [device, candidate]);
-        });
-    });
-
-    return Array.from(links.values());
+  function linkVisualState(link) {
+    const quality = classifyLinkSignal(link.rssi);
+    const lastSeenAt = Date.parse(link.lastSeenAt || '');
+    const stale = !Number.isFinite(lastSeenAt) || Date.now() - lastSeenAt > LINK_STALE_THRESHOLD_MS;
+    const palette = {
+      strong: { color: '#168a68', width: 4 },
+      good: { color: '#1677a6', width: 3.5 },
+      weak: { color: '#d08a18', width: 3 },
+      poor: { color: '#c23d32', width: 2.5 },
+      unknown: { color: '#6b7785', width: 2.5 }
+    };
+    return { quality, stale, opacity: stale ? 0.34 : 0.84, ...palette[quality] };
   }
 
-  function meshLinkPopupMarkup(link) {
+  function signalQualityLabel(quality) {
+    return quality === 'strong' ? 'Strong'
+      : quality === 'good' ? 'Good'
+        : quality === 'weak' ? 'Weak'
+          : quality === 'poor' ? 'Poor'
+            : 'Unknown';
+  }
+
+  function meshLinkPopupMarkup(link, visualState) {
     return `
       <div class="device-map-popup-card">
         <h3>Mesh Link</h3>
         <div class="device-map-popup-meta">
           <div class="device-map-popup-row"><span>From</span><strong>${helpers.escapeHtml(link.sourceNodeName || link.reportingNodeId)}</strong></div>
           <div class="device-map-popup-row"><span>To</span><strong>${helpers.escapeHtml(link.targetNodeName || link.neighborNodeId)}</strong></div>
+          <div class="device-map-popup-row"><span>Signal quality</span><strong>${helpers.escapeHtml(signalQualityLabel(visualState.quality))}${visualState.stale ? ' (stale)' : ''}</strong></div>
           <div class="device-map-popup-row"><span>RSSI</span><strong>${helpers.escapeHtml(link.rssi != null ? `${link.rssi} dBm` : 'Not available')}</strong></div>
           <div class="device-map-popup-row"><span>Last seen</span><strong>${helpers.escapeHtml(helpers.formatRelativeTime(link.lastSeenAt))}</strong></div>
         </div>
@@ -806,38 +904,20 @@
       visibleIds.has(String(link.reportingNodeId)) && visibleIds.has(String(link.neighborNodeId))
     );
 
-    if (realLinks.length) {
-      realLinks.forEach((link, index) => {
+    realLinks.forEach((link, index) => {
         const source = numericLngLat(link.sourceLatitude, link.sourceLongitude);
         const target = numericLngLat(link.targetLatitude, link.targetLongitude);
         if (!source || !target) return;
 
+        const visualState = linkVisualState(link);
         const popupKey = `mesh-link:${index}`;
-        currentLinkPopups.set(popupKey, meshLinkPopupMarkup(link));
+        currentLinkPopups.set(popupKey, meshLinkPopupMarkup(link, visualState));
         features.push({
           type: 'Feature',
-          properties: { popupKey, color: '#e74b32', width: 3, opacity: 0.56 },
+          properties: { popupKey, ...visualState },
           geometry: { type: 'LineString', coordinates: [source, target] }
         });
       });
-    } else {
-      buildConnectionPairs(devices).forEach(([firstDevice, secondDevice]) => {
-        const source = numericLngLat(firstDevice.latitude, firstDevice.longitude);
-        const target = numericLngLat(secondDevice.latitude, secondDevice.longitude);
-        if (!source || !target) return;
-
-        const isDistressed = firstDevice.hasActiveDistress || secondDevice.hasActiveDistress;
-        features.push({
-          type: 'Feature',
-          properties: {
-            color: isDistressed ? '#b22929' : '#e74b32',
-            width: isDistressed ? 4 : 3,
-            opacity: isDistressed ? 0.72 : 0.48
-          },
-          geometry: { type: 'LineString', coordinates: [source, target] }
-        });
-      });
-    }
 
     setGeoJsonSourceData(LINKS_SOURCE_ID, { type: 'FeatureCollection', features });
   }
@@ -872,9 +952,14 @@
         addDomMarker({
           key: markerKey,
           lngLat: teamLngLat,
-          element: createMarkerElement('device-map-route-team-marker-icon', 'device-map-route-team-marker', isSelected),
+          element: createMarkerElement('device-map-route-team-marker-icon', 'device-map-route-team-marker', {
+            isSelected,
+            iconClass: 'fa-location-arrow',
+            bearing: routeInitialBearing(route)
+          }),
           popupHtml: routePopupMarkup(route),
           popupClass: 'device-map-popup device-map-route-popup',
+          ariaLabel: `Open route for ${route.teamName || route.teamCode || route.deploymentCode}`,
           zIndex: 350,
           onClick: () => {
             state.selectedRouteDeploymentId = route.deploymentId;
@@ -891,9 +976,13 @@
           addDomMarker({
             key: markerKey,
             lngLat: distressLngLat,
-            element: createMarkerElement('device-map-online-distress-marker-icon', 'device-map-online-distress-marker', isSelected),
+            element: createMarkerElement('device-map-online-distress-marker-icon', 'device-map-online-distress-marker', {
+              isSelected,
+              iconClass: 'fa-triangle-exclamation'
+            }),
             popupHtml: routeDistressPopupMarkup(route),
             popupClass: 'device-map-popup device-map-route-popup',
+            ariaLabel: `Open distress details for ${route.distressCode}`,
             zIndex: 330,
             onClick: () => {
               state.selectedRouteDeploymentId = route.deploymentId;
@@ -924,13 +1013,16 @@
         addDomMarker({
           key: `online-distress:${distress.id}`,
           lngLat,
-          element: createMarkerElement('device-map-online-distress-marker-icon', 'device-map-online-distress-marker'),
+          element: createMarkerElement('device-map-online-distress-marker-icon', 'device-map-online-distress-marker', {
+            iconClass: 'fa-triangle-exclamation'
+          }),
           popupHtml: distressCivilianPopupMarkup(distress, {
             isDeployed: distress.isDeployed,
             deploymentCode: distress.deploymentCode,
             teamName: distress.teamName
           }),
           popupClass: 'device-map-popup device-map-route-popup',
+          ariaLabel: `Open distress details for ${distress.distressCode || 'active distress'}`,
           zIndex: 320
         });
       });
@@ -944,8 +1036,11 @@
       addDomMarker({
         key: `shared-rescuer:${rescuer.id || rescuer.rescuerCode}`,
         lngLat,
-        element: createMarkerElement('device-map-shared-rescuer-marker-icon', 'device-map-shared-rescuer-marker'),
+        element: createMarkerElement('device-map-shared-rescuer-marker-icon', 'device-map-shared-rescuer-marker', {
+          iconClass: 'fa-user-shield'
+        }),
         popupHtml: sharedRescuerPopupMarkup(rescuer),
+        ariaLabel: `Open shared location for ${rescuer.firstName || rescuer.rescuerCode || 'rescuer'}`,
         zIndex: 310
       });
     });
@@ -957,13 +1052,14 @@
 
     state.map.on('click', (event) => {
       if (!state.mapStyleReady) return;
-      const layerIds = [ROUTES_LAYER_ID, LINKS_LAYER_ID].filter((id) => state.map.getLayer(id));
+      const layerIds = [ROUTES_LAYER_ID, ROUTES_CASING_LAYER_ID, LINKS_LAYER_ID, LINKS_CASING_LAYER_ID]
+        .filter((id) => state.map.getLayer(id));
       if (!layerIds.length) return;
 
       const feature = state.map.queryRenderedFeatures(event.point, { layers: layerIds })[0];
       if (!feature) return;
 
-      if (feature.layer.id === ROUTES_LAYER_ID) {
+      if (feature.layer.id === ROUTES_LAYER_ID || feature.layer.id === ROUTES_CASING_LAYER_ID) {
         const route = currentRoutesById.get(String(feature.properties?.deploymentId));
         if (!route) return;
         state.selectedRouteDeploymentId = route.deploymentId;
@@ -978,7 +1074,8 @@
 
     state.map.on('mousemove', (event) => {
       if (!state.mapStyleReady) return;
-      const layerIds = [ROUTES_LAYER_ID, LINKS_LAYER_ID].filter((id) => state.map.getLayer(id));
+      const layerIds = [ROUTES_LAYER_ID, ROUTES_CASING_LAYER_ID, LINKS_LAYER_ID, LINKS_CASING_LAYER_ID]
+        .filter((id) => state.map.getLayer(id));
       const hasInteractiveFeature = layerIds.length
         && state.map.queryRenderedFeatures(event.point, { layers: layerIds }).length > 0;
       state.map.getCanvas().style.cursor = hasInteractiveFeature ? 'pointer' : '';
