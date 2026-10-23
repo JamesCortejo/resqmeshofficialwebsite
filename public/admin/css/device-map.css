@@ -537,10 +537,6 @@
     0 0 0 10px rgba(22, 138, 104, 0.24);
 }
 
-.device-map-route-team-marker i {
-  transform: rotate(calc(var(--marker-bearing, 0deg) - 45deg));
-}
-
 .device-map-online-distress-marker {
   display: inline-flex;
   align-items: center;

@@ -750,9 +750,6 @@
       const icon = document.createElement('i');
       icon.className = `fa-solid ${settings.iconClass}`;
       icon.setAttribute('aria-hidden', 'true');
-      if (Number.isFinite(settings.bearing)) {
-        icon.style.setProperty('--marker-bearing', `${settings.bearing}deg`);
-      }
       marker.appendChild(icon);
     }
 
@@ -768,13 +765,27 @@
     return wrapper;
   }
 
-  function addDomMarker({ key, lngLat, element, onClick, ariaLabel, zIndex = 300 }) {
+  function addDomMarker({
+    key,
+    lngLat,
+    element,
+    onClick,
+    ariaLabel,
+    zIndex = 300,
+    rotation = 0,
+    rotationAlignment = 'viewport'
+  }) {
     if (!state.map || !lngLat) {
       return null;
     }
 
     element.style.zIndex = String(zIndex);
-    const marker = new maptilersdk.Marker({ element, anchor: 'center' }).setLngLat(lngLat);
+    const marker = new maptilersdk.Marker({
+      element,
+      anchor: 'center',
+      rotation,
+      rotationAlignment
+    }).setLngLat(lngLat);
 
     if (onClick) element.addEventListener('click', onClick);
     if (onClick) {
@@ -1065,6 +1076,7 @@
       if (teamLngLat) {
         const markerKey = `route-team:${deploymentId}`;
         const detailKey = `route:${deploymentId}`;
+        const routeBearing = routeInitialBearing(route);
         registerMapDetail({
           key: detailKey,
           markerKey,
@@ -1080,9 +1092,10 @@
           lngLat: teamLngLat,
           element: createMarkerElement('device-map-route-team-marker-icon', 'device-map-route-team-marker', {
             isSelected,
-            iconClass: 'fa-location-arrow',
-            bearing: routeInitialBearing(route)
+            iconClass: 'fa-location-arrow'
           }),
+          rotation: (routeBearing - 45 + 360) % 360,
+          rotationAlignment: 'map',
           ariaLabel: `Open route for ${route.teamName || route.teamCode || route.deploymentCode}`,
           zIndex: 350,
           onClick: (event) => openMapInspector(detailKey, {
