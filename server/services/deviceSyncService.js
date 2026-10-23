@@ -518,6 +518,10 @@ async function syncDistressSignalsBatch(payload, syncDevice, requestIp) {
         const activeOnline = await findActiveOnlineDistressByUserCode(normalized.userCode);
         if (activeOnline) {
           normalized.status = 'canceled';
+          // This is a cloud-authoritative reconciliation, not the device's
+          // original update. Use server time so stale-write protection cannot
+          // preserve the conflicting mesh incident as active.
+          normalized.updatedAt = nowAsIso();
           if (!previousRecord || isDistressActive(previousRecord.status)) {
             const deployment = previousRecord?.id
               ? await findActiveDeploymentByDistressSignalId(previousRecord.id)
