@@ -1,5 +1,17 @@
 (function initAdminNotifications() {
   const ONLINE_CHAT_NOTIFICATION_TYPE = 'online-chat.message.received';
+  const DEFAULT_PREFERENCES = Object.freeze({
+    headsUp: Object.freeze({
+      emergency: true,
+      communication: true,
+      accounts: true,
+      responders: true,
+      teams: true,
+      deployments: true,
+      system: true
+    }),
+    sound: Object.freeze({ enabled: false, volume: 60 })
+  });
   const button = document.getElementById('adminNotificationButton');
   const badge = document.getElementById('adminNotificationBadge');
   const distressNavLink = document.querySelector('.admin-nav-link[href="/resqmeshadmin/distress-signals"]');
@@ -73,13 +85,19 @@
   const headsUpTitle = document.getElementById('adminNotificationHeadsUpTitle');
   const headsUpMessage = document.getElementById('adminNotificationHeadsUpMessage');
   let notifications = [];
-  let previousUnreadCount = null;
+  let knownUnreadIds = null;
   let currentUnreadCount = 0;
   let activeDistressCount = 0;
   let headsUpTimer = null;
   let markChatReadPromise = null;
   let actionPending = false;
+  let notificationPreferences = DEFAULT_PREFERENCES;
+  let audioContext = null;
+  let soundPlaybackGeneration = 0;
+  let testSoundLockedUntil = 0;
+  const activeSoundNodes = new Set();
   let lastRefreshAt = 0;
+  let refreshGeneration = 0;
   const pollIntervalMs = 5000;
   const minManualRefreshGapMs = 1200;
 
@@ -142,6 +160,207 @@
     }
 
     return { category: 'system', label: 'System', icon: 'fa-bell', tone: 'neutral' };
+  }
+
+  function normalizePreferences(value) {
+    const headsUp = value?.headsUp || {};
+    const sound = value?.sound || {};
+    const volume = Number.parseInt(sound.volume, 10);
+
+    return {
+      headsUp: {
+        emergency: true,
+        communication: headsUp.communication !== false,
+        accounts: headsUp.accounts !== false,
+        responders: headsUp.responders !== false,
+        teams: headsUp.teams !== false,
+        deployments: headsUp.deployments !== false,
+        system: headsUp.system !== false
+      },
+      sound: {
+        enabled: Boolean(sound.enabled),
+        volume: Number.isInteger(volume) ? Math.min(100, Math.max(0, volume)) : 60
+      }
+    };
+  }
+
+  function applyPreferences(value) {
+    notificationPreferences = normalizePreferences(value);
+    window.dispatchEvent(new CustomEvent('resqmesh:admin-notification-preferences-updated', {
+      detail: { preferences: notificationPreferences }
+    }));
+    return notificationPreferences;
+  }
+
+  async function loadPreferences() {
+    try {
+      const payload = await fetchJson('/api/admin/settings/notifications');
+      applyPreferences(payload.data);
+    } catch (error) {
+      // Safe defaults preserve the existing visual behavior and keep sound disabled.
+      applyPreferences(DEFAULT_PREFERENCES);
+    }
+  }
+
+  function isHeadsUpEnabled(category) {
+    return category === 'emergency' || notificationPreferences.headsUp[category] !== false;
+  }
+
+  async function ensureAudioContext() {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContext) {
+      return null;
+    }
+
+    if (!audioContext) {
+      audioContext = new AudioContext();
+    }
+
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+
+    return audioContext;
+  }
+
+  function cleanupSoundNode(entry) {
+    if (entry.cleaned) return;
+
+    entry.cleaned = true;
+    activeSoundNodes.delete(entry);
+    try {
+      entry.oscillator.disconnect();
+    } catch (error) {
+      // The node may already be disconnected after ending naturally.
+    }
+    try {
+      entry.gain.disconnect();
+    } catch (error) {
+      // The node may already be disconnected after ending naturally.
+    }
+  }
+
+  function stopActiveSounds() {
+    Array.from(activeSoundNodes).forEach((entry) => {
+      try {
+        entry.oscillator.stop();
+      } catch (error) {
+        // The source may already have ended between clicks.
+      }
+      cleanupSoundNode(entry);
+    });
+  }
+
+  function trackSoundNode(oscillator, gain) {
+    const entry = { oscillator, gain, cleaned: false };
+    activeSoundNodes.add(entry);
+    oscillator.addEventListener('ended', () => {
+      cleanupSoundNode(entry);
+    }, { once: true });
+  }
+
+  async function playTone(volume, force = false) {
+    if (!force && !notificationPreferences.sound.enabled) {
+      return false;
+    }
+
+    const playbackGeneration = ++soundPlaybackGeneration;
+
+    try {
+      const context = await ensureAudioContext();
+      if (!context || context.state !== 'running') return false;
+      if (playbackGeneration !== soundPlaybackGeneration) return false;
+
+      stopActiveSounds();
+
+      const normalizedVolume = Math.min(100, Math.max(0, Number(volume) || 0)) / 100;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const startedAt = context.currentTime;
+
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(520, startedAt);
+      gain.gain.setValueAtTime(0.0001, startedAt);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, normalizedVolume * 0.4), startedAt + 0.004);
+      gain.gain.setValueAtTime(Math.max(0.0001, normalizedVolume * 0.4), startedAt + 0.16);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startedAt + 0.36);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      trackSoundNode(oscillator, gain);
+      oscillator.start(startedAt);
+      oscillator.stop(startedAt + 0.37);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async function playDistressTone(volume, force = false) {
+    if (!force && !notificationPreferences.sound.enabled) {
+      return false;
+    }
+
+    const playbackGeneration = ++soundPlaybackGeneration;
+
+    try {
+      const context = await ensureAudioContext();
+      if (!context || context.state !== 'running') return false;
+      if (playbackGeneration !== soundPlaybackGeneration) return false;
+
+      stopActiveSounds();
+
+      const normalizedVolume = Math.min(100, Math.max(0, Number(volume) || 0)) / 100;
+      const startedAt = context.currentTime;
+      const pulses = [
+        { offset: 0, frequency: 900 },
+        { offset: 0.3, frequency: 900 },
+        { offset: 0.6, frequency: 900 }
+      ];
+
+      pulses.forEach(({ offset, frequency }) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const pulseStart = startedAt + offset;
+
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(frequency, pulseStart);
+        gain.gain.setValueAtTime(0.0001, pulseStart);
+        gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, normalizedVolume * 0.36), pulseStart + 0.003);
+        gain.gain.setValueAtTime(Math.max(0.0001, normalizedVolume * 0.36), pulseStart + 0.17);
+        gain.gain.exponentialRampToValueAtTime(0.0001, pulseStart + 0.23);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        trackSoundNode(oscillator, gain);
+        oscillator.start(pulseStart);
+        oscillator.stop(pulseStart + 0.24);
+      });
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async function playTestSoundOnce(player, durationMs, volume) {
+    const now = Date.now();
+    if (now < testSoundLockedUntil) return false;
+
+    testSoundLockedUntil = now + durationMs;
+    const played = await player(volume, true);
+    if (!played) {
+      testSoundLockedUntil = 0;
+    }
+    return played;
+  }
+
+  function primeAudioFromInteraction() {
+    if (!notificationPreferences.sound.enabled) return;
+    void ensureAudioContext().then((context) => {
+      if (!context) return;
+      document.removeEventListener('pointerdown', primeAudioFromInteraction, true);
+      document.removeEventListener('keydown', primeAudioFromInteraction, true);
+    }).catch(() => {});
   }
 
   function renderNotificationState(state, title, message) {
@@ -234,11 +453,23 @@
   }
 
   function showHeadsUp(notification) {
-    if (!notification || panel.classList.contains('is-open')) {
+    if (!notification) {
       return;
     }
 
     const presentation = getNotificationPresentation(notification);
+    if (!isHeadsUpEnabled(presentation.category)) {
+      return;
+    }
+
+    const isNewDistress = notification.type === 'distress.active';
+    if (panel.classList.contains('is-open')) {
+      if (isNewDistress) {
+        void playDistressTone(notificationPreferences.sound.volume);
+      }
+      return;
+    }
+
     window.clearTimeout(headsUpTimer);
     headsUp.dataset.category = presentation.category;
     headsUp.dataset.tone = presentation.tone;
@@ -247,6 +478,11 @@
     headsUpMessage.textContent = notification.message || 'You have a new admin notification.';
     headsUp.classList.add('is-visible');
     headsUp.setAttribute('aria-hidden', 'false');
+    if (isNewDistress) {
+      void playDistressTone(notificationPreferences.sound.volume);
+    } else {
+      void playTone(notificationPreferences.sound.volume);
+    }
 
     headsUpTimer = window.setTimeout(() => {
       headsUp.classList.remove('is-visible');
@@ -268,12 +504,17 @@
   function renderBadge(count) {
     const normalizedCount = Number(count || 0);
 
-    if (previousUnreadCount !== null && normalizedCount > previousUnreadCount) {
-      const newestUnread = notifications.find((notification) => !notification.isRead);
+    const unreadNotifications = notifications.filter((notification) => !notification.isRead);
+    const currentUnreadIds = new Set(unreadNotifications.map((notification) => String(notification.id)));
+
+    if (knownUnreadIds !== null) {
+      const newUnread = unreadNotifications.filter((notification) => !knownUnreadIds.has(String(notification.id)));
+      const newestUnread = newUnread.find((notification) => notification.type === 'distress.active')
+        || newUnread.find((notification) => isHeadsUpEnabled(getNotificationPresentation(notification).category));
       showHeadsUp(newestUnread);
     }
 
-    previousUnreadCount = normalizedCount;
+    knownUnreadIds = currentUnreadIds;
     currentUnreadCount = normalizedCount;
     button.setAttribute(
       'aria-label',
@@ -418,6 +659,7 @@
 
   async function refreshNotifications({ showLoading = false } = {}) {
     lastRefreshAt = Date.now();
+    const requestGeneration = ++refreshGeneration;
 
     if (showLoading && notifications.length === 0) {
       renderNotificationState('loading', 'Loading notifications', 'Please wait while the latest activity is checked.');
@@ -430,6 +672,8 @@
         fetchJson('/api/admin/distress-signals/active-count')
       ]);
 
+      if (requestGeneration !== refreshGeneration) return;
+
       notifications = itemsPayload.data || [];
       activeDistressCount = Number(distressCountPayload.count || 0);
       renderNotifications();
@@ -437,6 +681,7 @@
       dispatchNotificationsRefreshed(countPayload.count || 0);
       void markOnlineChatNotificationsRead();
     } catch (error) {
+      if (requestGeneration !== refreshGeneration) return;
       renderNotificationState('error', 'Notifications unavailable', error.message || 'Unable to load notifications right now.');
       syncNotificationControls();
     }
@@ -444,6 +689,7 @@
 
   async function refreshCountOnly() {
     lastRefreshAt = Date.now();
+    const requestGeneration = ++refreshGeneration;
 
     try {
       const [itemsPayload, countPayload, distressCountPayload] = await Promise.all([
@@ -452,14 +698,21 @@
         fetchJson('/api/admin/distress-signals/active-count')
       ]);
 
+      if (requestGeneration !== refreshGeneration) return;
+
       notifications = itemsPayload.data || [];
       activeDistressCount = Number(distressCountPayload.count || 0);
-      renderDistressAlertState();
-      renderMessagesNavBadge();
+      if (panel.classList.contains('is-open')) {
+        renderNotifications();
+      } else {
+        renderDistressAlertState();
+        renderMessagesNavBadge();
+      }
       renderBadge(countPayload.count || 0);
       dispatchNotificationsRefreshed(countPayload.count || 0);
       void markOnlineChatNotificationsRead();
     } catch (error) {
+      if (requestGeneration !== refreshGeneration) return;
       // Keep badge state stable if a background poll fails.
     }
   }
@@ -561,15 +814,31 @@
 
   window.ResQMeshAdminNotifications = {
     refresh: refreshNotifications,
-    refreshCount: refreshCountOnly
+    refreshCount: refreshCountOnly,
+    applyPreferences,
+    getPreferences: () => notificationPreferences,
+    playTestSound: (volume = notificationPreferences.sound.volume) => (
+      playTestSoundOnce(playTone, 450, volume)
+    ),
+    playTestDistressSound: (volume = notificationPreferences.sound.volume) => (
+      playTestSoundOnce(playDistressTone, 850, volume)
+    )
   };
 
-  refreshNotifications();
-  window.setInterval(() => {
-    if (panel.classList.contains('is-open')) {
-      refreshNotifications();
-    } else {
-      refreshCountOnly();
-    }
-  }, pollIntervalMs);
+  document.addEventListener('pointerdown', primeAudioFromInteraction, true);
+  document.addEventListener('keydown', primeAudioFromInteraction, true);
+
+  async function initializeNotifications() {
+    await loadPreferences();
+    await refreshNotifications();
+    window.setInterval(() => {
+      if (panel.classList.contains('is-open')) {
+        refreshNotifications();
+      } else {
+        refreshCountOnly();
+      }
+    }, pollIntervalMs);
+  }
+
+  void initializeNotifications();
 }());

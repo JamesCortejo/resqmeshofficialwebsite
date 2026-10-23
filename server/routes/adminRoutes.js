@@ -2,6 +2,7 @@ const express = require('express');
 const adminAuthController = require('../controllers/adminAuthController');
 const adminAccountsController = require('../controllers/adminAccountsController');
 const adminNotificationsController = require('../controllers/adminNotificationsController');
+const adminSettingsController = require('../controllers/adminSettingsController');
 const adminDistressController = require('../controllers/adminDistressController');
 const adminActionAuditController = require('../controllers/adminActionAuditController');
 const reportController = require('../controllers/reportController');
@@ -33,6 +34,8 @@ router.patch('/notifications/read-all', adminNotificationsController.markAllRead
 router.patch('/notifications/:id/read', adminNotificationsController.markRead);
 router.delete('/notifications/:id', adminNotificationsController.deleteOne);
 router.delete('/notifications', adminNotificationsController.clearAll);
+router.get('/settings/notifications', adminSettingsController.getNotificationSettings);
+router.patch('/settings/notifications', adminSettingsController.updateNotificationSettings);
 router.get('/overview', overviewController.getOverview);
 router.get('/accounts/pending', adminAccountsController.listPending);
 router.get('/accounts/active', adminAccountsController.listActive);

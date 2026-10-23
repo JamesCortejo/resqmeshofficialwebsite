@@ -1,0 +1,354 @@
+body.admin-settings-page {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.settings-workspace {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+}
+
+.admin-content-panel.settings-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.settings-panel-header {
+  padding: 1.2rem 1.3rem 1rem;
+}
+
+.settings-panel-header h2 {
+  margin: 0.15rem 0 0;
+  color: var(--admin-ink);
+}
+
+.settings-panel-header p {
+  margin: 0.35rem 0 0;
+  color: var(--admin-muted);
+  font-size: 0.84rem;
+}
+
+.settings-kicker {
+  color: var(--admin-primary);
+  font: 700 0.7rem/1.2 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-list,
+.settings-sound-controls {
+  border-top: 1px solid var(--admin-border);
+}
+
+.admin-content-panel.settings-panel > .settings-panel-header {
+  border-bottom: 0;
+  padding: 1.2rem 1.3rem 1rem;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 72px;
+  padding: 0.75rem 1.3rem;
+}
+
+.settings-row + .settings-row {
+  border-top: 1px solid #edf1f5;
+}
+
+.settings-row-required {
+  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+}
+
+.settings-row-icon {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #edf4f8;
+  color: #355d78;
+  font-size: 0.86rem;
+}
+
+.settings-row-icon-emergency {
+  background: var(--admin-error-soft);
+  color: var(--admin-error);
+}
+
+.settings-row-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
+}
+
+.settings-row-copy strong {
+  color: var(--admin-ink);
+  font: 700 0.86rem/1.3 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.settings-row-copy > span {
+  color: var(--admin-muted);
+  font: 400 0.78rem/1.4 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.settings-required-badge {
+  border-radius: 999px;
+  background: var(--admin-error-soft);
+  color: var(--admin-error);
+  font: 700 0.68rem/1 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 0.42rem 0.58rem;
+  text-transform: uppercase;
+}
+
+.settings-switch {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.settings-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.settings-switch > span {
+  position: relative;
+  display: block;
+  width: 38px;
+  height: 22px;
+  border: 1px solid #b8c4cf;
+  border-radius: 999px;
+  background: #d8e0e7;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.settings-switch > span::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(23, 33, 43, 0.25);
+  content: '';
+  transition: transform 0.18s ease;
+}
+
+.settings-switch input:checked + span {
+  border-color: var(--admin-primary);
+  background: var(--admin-primary);
+}
+
+.settings-switch input:checked + span::after {
+  transform: translateX(16px);
+}
+
+.settings-switch input:focus-visible + span {
+  outline: 3px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.settings-switch input:disabled + span {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.settings-volume {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.3rem 1.2rem 5.45rem;
+}
+
+.settings-volume > label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--admin-ink);
+  font: 700 0.78rem/1.3 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.settings-volume output {
+  color: var(--admin-muted);
+  font-weight: 600;
+}
+
+.settings-volume-input {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--admin-muted);
+}
+
+.settings-volume-input input {
+  width: 100%;
+  accent-color: var(--admin-primary);
+}
+
+.settings-volume.is-disabled {
+  opacity: 0.56;
+}
+
+.settings-test-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-self: start;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  box-shadow: var(--admin-shadow-sm);
+  padding: 1rem 1.3rem;
+}
+
+.settings-actions p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--admin-muted);
+  font: 400 0.78rem/1.45 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.settings-primary-button {
+  display: inline-flex;
+  min-width: 132px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--admin-primary);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-primary);
+  color: #ffffff;
+  cursor: pointer;
+  font: 700 0.82rem/1.15 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 0.58rem 0.9rem;
+}
+
+.settings-primary-button:hover:not(:disabled) {
+  border-color: var(--admin-primary-hover);
+  background: var(--admin-primary-hover);
+}
+
+.settings-primary-button:focus-visible,
+.settings-test-button:focus-visible {
+  outline: 3px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.settings-primary-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.admin-review-toast {
+  position: fixed;
+  left: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 1300;
+  display: flex;
+  width: min(420px, calc(100vw - 2rem));
+  align-items: center;
+  gap: 0.85rem;
+  border: 1px solid rgba(33, 137, 91, 0.22);
+  border-radius: var(--admin-radius-md);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--admin-shadow);
+  color: var(--admin-ink);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(-100% - 2rem));
+  transition: opacity 0.24s ease, transform 0.28s ease;
+  padding: 0.95rem 1rem;
+}
+
+.admin-review-toast.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.admin-review-toast[data-tone='warning'] {
+  border-color: rgba(231, 75, 50, 0.28);
+}
+
+.admin-review-toast-icon {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--admin-radius-md);
+  background: rgba(33, 137, 91, 0.12);
+  color: #21895b;
+}
+
+.admin-review-toast[data-tone='warning'] .admin-review-toast-icon {
+  background: var(--admin-soft);
+  color: var(--admin-primary-hover);
+}
+
+.admin-review-toast-message {
+  color: var(--admin-ink);
+  font: 700 0.86rem/1.4 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@media (min-width: 1200px) {
+  .settings-workspace {
+    grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.75fr);
+    align-items: stretch;
+  }
+
+  .settings-alerts-panel {
+    grid-column: 1;
+    height: 100%;
+  }
+
+  .settings-sound-panel {
+    grid-column: 2;
+    height: 100%;
+  }
+
+  .settings-sound-panel .settings-volume {
+    padding: 1rem 1.3rem 1.2rem;
+  }
+
+  .settings-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 980px) {
+  body.admin-settings-page {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-switch > span,
+  .settings-switch > span::after,
+  .admin-review-toast {
+    transition: none;
+  }
+}
