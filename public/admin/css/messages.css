@@ -51,6 +51,8 @@
 }
 
 .messages-chat-pane {
+  --messages-civilian-color: #007780;
+  --messages-rescuer-color: #d13f2b;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 0;
@@ -575,11 +577,11 @@
 }
 
 .messages-bubble[data-sender-type="civilian"] {
-  border-left: 3px solid #2675b6;
+  border-left: 3px solid var(--messages-civilian-color);
 }
 
 .messages-bubble[data-sender-type="rescuer"] {
-  border-left: 3px solid #168a68;
+  border-left: 3px solid var(--messages-rescuer-color);
 }
 
 .messages-bubble[data-sender-type="admin"] {
@@ -615,8 +617,8 @@
   text-transform: uppercase;
 }
 
-.messages-bubble[data-sender-type="civilian"] .messages-bubble-role { color: #2675b6; }
-.messages-bubble[data-sender-type="rescuer"] .messages-bubble-role { color: #168a68; }
+.messages-bubble[data-sender-type="civilian"] .messages-bubble-role { color: var(--messages-civilian-color); }
+.messages-bubble[data-sender-type="rescuer"] .messages-bubble-role { color: var(--messages-rescuer-color); }
 .messages-bubble[data-sender-type="admin"] .messages-bubble-role { color: var(--admin-primary-hover); }
 .messages-bubble[data-sender-type="system"] .messages-bubble-role { color: #6b7785; }
 
