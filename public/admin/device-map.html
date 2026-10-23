@@ -141,6 +141,21 @@
         <div class="device-map-stage">
           <div class="device-map-canvas-wrap">
             <div class="device-map-canvas" id="deviceMapCanvas" aria-label="Mesh node map"></div>
+            <aside class="device-map-inspector" id="deviceMapInspector" aria-hidden="true" aria-labelledby="deviceMapInspectorTitle" inert>
+              <header class="device-map-inspector-header">
+                <span class="device-map-inspector-icon" id="deviceMapInspectorIcon" aria-hidden="true">
+                  <i class="fa-solid fa-location-dot"></i>
+                </span>
+                <div class="device-map-inspector-heading">
+                  <h2 id="deviceMapInspectorTitle">Map details</h2>
+                  <p id="deviceMapInspectorSubtitle">Select a map item to inspect it.</p>
+                </div>
+                <button type="button" class="device-map-inspector-close" id="deviceMapInspectorClose" aria-label="Collapse map details">
+                  <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                </button>
+              </header>
+              <div class="device-map-inspector-body" id="deviceMapInspectorBody"></div>
+            </aside>
             <div class="device-map-empty" id="deviceMapEmpty" hidden>No mesh nodes with valid coordinates match the current filters.</div>
             <section class="device-map-legend device-map-overlay">
               <h3>Map legend</h3>
@@ -171,14 +186,18 @@
                 </div>
               </div>
               <div class="device-map-style-control-host" id="deviceMapStyleControlHost"></div>
-            </section>
-
-            <section class="device-map-unavailable device-map-overlay">
-              <div class="device-map-unavailable-header">
-                <h3>Location unavailable</h3>
-                <span class="device-map-unavailable-count" id="deviceMapUnavailableCount">0</span>
+              <div class="device-map-unavailable-disclosure">
+                <button type="button" class="device-map-unavailable-toggle" id="deviceMapUnavailableToggle" aria-expanded="false" aria-controls="deviceMapUnavailableContent">
+                  <span>Location unavailable</span>
+                  <span class="device-map-unavailable-toggle-end">
+                    <span class="device-map-unavailable-count" id="deviceMapUnavailableCount">0</span>
+                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                  </span>
+                </button>
+                <div class="device-map-unavailable-content" id="deviceMapUnavailableContent" hidden>
+                  <div class="device-map-unavailable-list" id="deviceMapUnavailableList"></div>
+                </div>
               </div>
-              <div class="device-map-unavailable-list" id="deviceMapUnavailableList"></div>
             </section>
           </div>
         </div>

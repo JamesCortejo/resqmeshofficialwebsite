@@ -91,13 +91,126 @@
   backdrop-filter: blur(10px);
 }
 
-.device-map-legend,
-.device-map-unavailable {
+.device-map-inspector {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 440;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(292px, calc(100% - 120px));
+  border-right: 1px solid rgba(220, 227, 234, 0.96);
+  background: #ffffff;
+  box-shadow: 18px 0 40px rgba(23, 33, 43, 0.16);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(-100% - 24px));
+  transition: transform 240ms ease, opacity 180ms ease, visibility 0s linear 240ms;
+  visibility: hidden;
+}
+
+.device-map-inspector.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+  transition-delay: 0s;
+  visibility: visible;
+}
+
+.device-map-inspector-header {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 66px;
+  border-bottom: 1px solid rgba(100, 113, 127, 0.16);
+  padding: 0.7rem 0.75rem;
+}
+
+.device-map-inspector-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #172b3d;
+  color: #ffffff;
+  font-size: 0.92rem;
+}
+
+.device-map-inspector-heading {
+  min-width: 0;
+}
+
+.device-map-inspector-heading h2 {
+  overflow: hidden;
+  color: var(--admin-ink);
+  font: 700 1rem 'Inter', system-ui, -apple-system, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-map-inspector-heading p {
+  overflow: hidden;
+  margin-top: 0.18rem;
+  color: var(--admin-muted);
+  font: 500 0.76rem 'Inter', system-ui, -apple-system, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-map-inspector-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(100, 113, 127, 0.2);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--admin-muted);
+  cursor: pointer;
+}
+
+.device-map-inspector-close:hover {
+  border-color: rgba(231, 75, 50, 0.28);
+  background: var(--admin-soft);
+  color: var(--admin-primary-hover);
+}
+
+.device-map-inspector-close:focus-visible {
+  outline: 3px solid rgba(231, 75, 50, 0.32);
+  outline-offset: 2px;
+}
+
+.device-map-inspector-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.8rem;
+}
+
+.device-map-inspector .device-map-popup-card,
+.device-map-inspector .device-map-route-popup-card {
+  min-width: 0;
+}
+
+.device-map-inspector .device-map-popup-row {
+  align-items: flex-start;
+}
+
+.device-map-inspector .device-map-popup-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.device-map-legend {
   padding: 0.8rem 0.9rem;
 }
 
-.device-map-legend h3,
-.device-map-unavailable h3 {
+.device-map-legend h3 {
   color: var(--admin-ink);
   font: 800 0.82rem 'Inter', system-ui, -apple-system, sans-serif;
   letter-spacing: 0.03em;
@@ -115,6 +228,8 @@
   top: 1rem;
   right: 1rem;
   width: min(214px, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  overflow-y: auto;
 }
 
 .device-map-legend-group {
@@ -230,12 +345,43 @@
 .device-map-signal-key span[data-quality="weak"]::before { background: #d08a18; }
 .device-map-signal-key span[data-quality="poor"]::before { background: #c23d32; }
 
-.device-map-unavailable-header {
+.device-map-unavailable-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.55rem;
+  gap: 0.5rem;
+  width: 100%;
+  border: 0;
+  border-top: 1px solid rgba(100, 113, 127, 0.14);
+  background: transparent;
+  color: var(--admin-ink);
+  cursor: pointer;
+  font: 700 0.78rem 'Inter', system-ui, -apple-system, sans-serif;
+  margin-top: 0.7rem;
+  padding: 0.75rem 0 0.1rem;
+  text-align: left;
+}
+
+.device-map-unavailable-toggle-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.device-map-unavailable-toggle i {
+  color: var(--admin-muted);
+  font-size: 0.68rem;
+  transition: transform 180ms ease;
+}
+
+.device-map-unavailable-toggle[aria-expanded="true"] i {
+  transform: rotate(180deg);
+}
+
+.device-map-unavailable-toggle:focus-visible {
+  border-radius: 6px;
+  outline: 3px solid rgba(231, 75, 50, 0.3);
+  outline-offset: 3px;
 }
 
 .device-map-unavailable-count {
@@ -260,12 +406,8 @@
   padding: 0.6rem 0.7rem;
 }
 
-.device-map-unavailable {
-  left: 1rem;
-  bottom: 3rem;
-  width: min(260px, calc(100% - 2rem));
-  max-height: 180px;
-  overflow: hidden;
+.device-map-unavailable-content {
+  padding-top: 0.55rem;
 }
 
 .device-map-unavailable-item strong {
@@ -282,7 +424,7 @@
 }
 
 .device-map-unavailable-list {
-  max-height: 102px;
+  max-height: 150px;
   overflow-y: auto;
   padding-right: 0.2rem;
 }
@@ -480,10 +622,6 @@
   }
 }
 
-.device-map-popup .maplibregl-popup-content {
-  border-radius: calc(var(--admin-radius-md) + 0.05rem);
-}
-
 .device-map-popup-card {
   display: grid;
   gap: 0.75rem;
@@ -650,6 +788,11 @@
   gap: 0.5rem;
   left: 0.55rem;
   top: 0.55rem;
+  transition: left 240ms ease;
+}
+
+.device-map-canvas-wrap.has-open-inspector .maplibregl-ctrl-top-left {
+  left: calc(var(--device-map-inspector-width, 292px) + 0.75rem);
 }
 
 .device-map-canvas .maplibregl-ctrl-top-left .maplibregl-ctrl {
@@ -777,24 +920,12 @@
   .device-map-online-distress-marker {
     animation: none;
   }
-}
 
-.device-map-canvas .maplibregl-popup-content {
-  max-height: min(440px, 65vh);
-  overflow-y: auto;
-  padding: 0.9rem;
-}
-
-.device-map-canvas .maplibregl-popup-close-button {
-  align-items: center;
-  border-radius: 999px;
-  display: inline-flex;
-  font-size: 1.2rem;
-  height: 32px;
-  justify-content: center;
-  right: 0.3rem;
-  top: 0.3rem;
-  width: 32px;
+  .device-map-inspector,
+  .device-map-unavailable-toggle i,
+  .device-map-canvas .maplibregl-ctrl-top-left {
+    transition: none;
+  }
 }
 @media (max-width: 1080px) {
   .device-map-canvas-wrap,
@@ -817,10 +948,11 @@
     width: 155px;
   }
 
-  .device-map-unavailable {
-    left: 0.75rem;
-    bottom: 3rem;
-    width: calc(100% - 9.5rem);
-    max-height: 150px;
+  .device-map-inspector {
+    width: min(280px, calc(100% - 76px));
+  }
+
+  .device-map-canvas-wrap.has-open-inspector .maplibregl-ctrl-top-left {
+    left: calc(var(--device-map-inspector-width, 280px) + 0.5rem);
   }
 }

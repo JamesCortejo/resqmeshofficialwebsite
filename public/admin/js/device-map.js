@@ -14,6 +14,7 @@
   const ROUTES_CASING_LAYER_ID = 'resqmesh-rescue-routes-casing';
   const ROUTES_LAYER_ID = 'resqmesh-rescue-routes-line';
   const LINK_STALE_THRESHOLD_MS = 10 * 60 * 1000;
+  const INSPECTOR_WIDTH_PX = 292;
   const CUSTOM_BUILDINGS_LAYER_ID = 'resqmesh-3d-buildings';
   const STYLE_DEFINITIONS = Object.freeze({
     streets: { label: 'Streets', resolve: () => maptilersdk.MapStyle.STREETS },
@@ -26,7 +27,7 @@
   let mapTilerApiKey = '';
   let mapProviderWarning = '';
   let mapEventsBound = false;
-  let currentLinkPopups = new Map();
+  let currentMapDetails = new Map();
   let currentRoutesById = new Map();
 
   window.ResQMeshDeviceManagerView.init(context);
@@ -395,6 +396,10 @@
     }
 
     dom.deviceMapUnavailableCount.textContent = String(devices.length);
+    dom.deviceMapUnavailableToggle?.setAttribute(
+      'aria-label',
+      `Location unavailable, ${devices.length} ${devices.length === 1 ? 'node' : 'nodes'}`
+    );
 
     if (!devices.length) {
       dom.deviceMapUnavailableList.innerHTML = '<div class="device-map-unavailable-empty">Every visible mesh node currently has valid coordinates.</div>';
@@ -763,37 +768,23 @@
     return wrapper;
   }
 
-  function addDomMarker({ key, lngLat, element, popupHtml, popupClass = 'device-map-popup', onClick, ariaLabel, zIndex = 300 }) {
+  function addDomMarker({ key, lngLat, element, onClick, ariaLabel, zIndex = 300 }) {
     if (!state.map || !lngLat) {
       return null;
     }
 
     element.style.zIndex = String(zIndex);
-    const popup = popupHtml
-      ? new maptilersdk.Popup({
-          className: popupClass,
-          closeButton: true,
-          closeOnClick: true,
-          maxWidth: '360px',
-          offset: 18
-        }).setHTML(popupHtml)
-      : null;
     const marker = new maptilersdk.Marker({ element, anchor: 'center' }).setLngLat(lngLat);
 
-    if (popup) marker.setPopup(popup);
     if (onClick) element.addEventListener('click', onClick);
-    if (popup || onClick) {
+    if (onClick) {
       element.tabIndex = 0;
       element.setAttribute('role', 'button');
       element.setAttribute('aria-label', ariaLabel || 'Open map marker details');
       element.addEventListener('keydown', (event) => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
-        if (onClick) {
-          onClick(event);
-        } else if (popup && !popup.isOpen()) {
-          marker.togglePopup();
-        }
+        onClick(event);
       });
     }
     marker.addTo(state.map);
@@ -806,23 +797,116 @@
     state.mapMarkers = [];
   }
 
-  function openMarkerPopup(key) {
-    window.setTimeout(() => {
-      const entry = state.mapMarkers.find((candidate) => candidate.key === key);
-      const popup = entry?.marker?.getPopup?.();
-      if (entry && popup && !popup.isOpen()) entry.marker.togglePopup();
-    }, 0);
+  function registerMapDetail(detail) {
+    currentMapDetails.set(detail.key, detail);
+    return detail;
   }
 
-  function openMapPopup(html, lngLat, className = 'device-map-popup') {
-    if (!state.map || !html || !lngLat) return;
-    state.mapPopup?.remove();
-    state.mapPopup = new maptilersdk.Popup({
-      className,
-      closeButton: true,
-      closeOnClick: true,
-      maxWidth: '360px'
-    }).setLngLat(lngLat).setHTML(html).addTo(state.map);
+  function inspectorPadding(isOpen) {
+    const width = dom.deviceMapInspector?.getBoundingClientRect().width || INSPECTOR_WIDTH_PX;
+    return { top: 0, right: 0, bottom: 0, left: isOpen ? Math.round(width + 24) : 0 };
+  }
+
+  function updateInspectorMapOffset(isOpen, lngLat, animate = true) {
+    const wrapper = dom.deviceMapCanvas?.closest('.device-map-canvas-wrap');
+    const inspectorWidth = dom.deviceMapInspector?.getBoundingClientRect().width || INSPECTOR_WIDTH_PX;
+    wrapper?.classList.toggle('has-open-inspector', isOpen);
+    wrapper?.style.setProperty('--device-map-inspector-width', `${Math.round(inspectorWidth)}px`);
+
+    if (!state.map || !state.mapStyleReady) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    state.map.easeTo({
+      ...(isOpen && lngLat ? { center: lngLat } : {}),
+      padding: inspectorPadding(isOpen),
+      zoom: state.map.getZoom(),
+      bearing: state.map.getBearing(),
+      pitch: state.map.getPitch(),
+      duration: animate && !reduceMotion ? 240 : 0
+    });
+  }
+
+  function renderMapInspector(detail, options = {}) {
+    if (!detail || !dom.deviceMapInspector) return;
+    const { animate = true, focusClose = false } = options;
+    const wasOpen = dom.deviceMapInspector.classList.contains('is-open');
+    const selectionChanged = dom.deviceMapInspector.dataset.detailKey !== detail.key;
+
+    dom.deviceMapInspectorIcon.innerHTML = `<i class="fa-solid ${detail.iconClass}" aria-hidden="true"></i>`;
+    dom.deviceMapInspectorTitle.textContent = detail.title;
+    dom.deviceMapInspectorSubtitle.textContent = detail.subtitle;
+    dom.deviceMapInspectorBody.innerHTML = detail.html;
+    dom.deviceMapInspector.dataset.detailKey = detail.key;
+    dom.deviceMapInspector.classList.add('is-open');
+    dom.deviceMapInspector.setAttribute('aria-hidden', 'false');
+    dom.deviceMapInspector.inert = false;
+    if (!wasOpen || selectionChanged) {
+      updateInspectorMapOffset(true, detail.lngLat, animate);
+    }
+
+    if (focusClose) {
+      window.setTimeout(() => dom.deviceMapInspectorClose?.focus(), 0);
+    }
+  }
+
+  function openMapInspector(detailKey, options = {}) {
+    const detail = currentMapDetails.get(detailKey);
+    if (!detail) return;
+
+    const nextRouteDeploymentId = detail.routeDeploymentId ?? null;
+    const routeSelectionChanged = String(state.selectedRouteDeploymentId ?? '')
+      !== String(nextRouteDeploymentId ?? '');
+    state.selectedMapItem = {
+      key: detailKey,
+      openerKey: options.openerKey || detail.markerKey || null
+    };
+
+    if (routeSelectionChanged) {
+      state.selectedRouteDeploymentId = nextRouteDeploymentId;
+      renderMap({ preserveViewport: true });
+      if (options.focusClose) {
+        window.setTimeout(() => dom.deviceMapInspectorClose?.focus(), 0);
+      }
+      return;
+    }
+
+    renderMapInspector(detail, {
+      focusClose: options.focusClose || false
+    });
+  }
+
+  function closeMapInspector(options = {}) {
+    const { restoreFocus = true, rerenderRoute = true } = options;
+    const openerKey = state.selectedMapItem?.openerKey || null;
+    const hadSelectedRoute = state.selectedRouteDeploymentId !== null;
+    state.selectedMapItem = null;
+    state.selectedRouteDeploymentId = null;
+
+    dom.deviceMapInspector?.classList.remove('is-open');
+    dom.deviceMapInspector?.setAttribute('aria-hidden', 'true');
+    if (dom.deviceMapInspector) dom.deviceMapInspector.inert = true;
+    if (dom.deviceMapInspector) delete dom.deviceMapInspector.dataset.detailKey;
+    updateInspectorMapOffset(false, null);
+
+    if (hadSelectedRoute && rerenderRoute) {
+      renderMap({ preserveViewport: true });
+    }
+
+    if (restoreFocus && openerKey) {
+      window.setTimeout(() => {
+        const entry = state.mapMarkers.find((candidate) => candidate.key === openerKey);
+        entry?.marker?.getElement?.().focus();
+      }, 0);
+    }
+  }
+
+  function syncMapInspector() {
+    if (!state.selectedMapItem) return;
+    const detail = currentMapDetails.get(state.selectedMapItem.key);
+    if (!detail) {
+      closeMapInspector({ restoreFocus: false });
+      return;
+    }
+    renderMapInspector(detail, { animate: false });
   }
 
   function createDeviceMarker(device) {
@@ -834,13 +918,28 @@
     });
     element.firstElementChild.dataset.status = status;
 
+    const markerKey = `device:${device.nodeId || device.id}`;
+    const lngLat = numericLngLat(device.latitude, device.longitude);
+    registerMapDetail({
+      key: markerKey,
+      markerKey,
+      iconClass: 'fa-microchip',
+      title: device.nodeName || device.nodeId || 'Mesh node',
+      subtitle: `${device.nodeId || 'Unknown node'} - ${deriveMapStatusLabel(status)}`,
+      html: popupMarkup(device, status),
+      lngLat
+    });
+
     return addDomMarker({
-      key: `device:${device.nodeId || device.id}`,
-      lngLat: numericLngLat(device.latitude, device.longitude),
+      key: markerKey,
+      lngLat,
       element,
-      popupHtml: popupMarkup(device, status),
       ariaLabel: `Open details for ${device.nodeName || device.nodeId}`,
-      zIndex: 400
+      zIndex: 400,
+      onClick: (event) => openMapInspector(markerKey, {
+        openerKey: markerKey,
+        focusClose: event.type === 'keydown'
+      })
     });
   }
 
@@ -892,7 +991,6 @@
 
   function renderConnections(devices) {
     const features = [];
-    currentLinkPopups = new Map();
 
     if (devices.length < 2) {
       setGeoJsonSourceData(LINKS_SOURCE_ID, emptyFeatureCollection());
@@ -904,17 +1002,24 @@
       visibleIds.has(String(link.reportingNodeId)) && visibleIds.has(String(link.neighborNodeId))
     );
 
-    realLinks.forEach((link, index) => {
+    realLinks.forEach((link) => {
         const source = numericLngLat(link.sourceLatitude, link.sourceLongitude);
         const target = numericLngLat(link.targetLatitude, link.targetLongitude);
         if (!source || !target) return;
 
         const visualState = linkVisualState(link);
-        const popupKey = `mesh-link:${index}`;
-        currentLinkPopups.set(popupKey, meshLinkPopupMarkup(link, visualState));
+        const detailKey = `mesh-link:${link.reportingNodeId}:${link.neighborNodeId}`;
+        registerMapDetail({
+          key: detailKey,
+          iconClass: 'fa-link',
+          title: 'Mesh link',
+          subtitle: `${link.reportingNodeId} to ${link.neighborNodeId}`,
+          html: meshLinkPopupMarkup(link, visualState),
+          lngLat: [(source[0] + target[0]) / 2, (source[1] + target[1]) / 2]
+        });
         features.push({
           type: 'Feature',
-          properties: { popupKey, ...visualState },
+          properties: { detailKey, ...visualState },
           geometry: { type: 'LineString', coordinates: [source, target] }
         });
       });
@@ -936,9 +1041,19 @@
       currentRoutesById.set(deploymentId, route);
 
       if (hasRenderableRoute(route)) {
+        const detailKey = `route:${deploymentId}`;
+        registerMapDetail({
+          key: detailKey,
+          routeDeploymentId: route.deploymentId,
+          iconClass: 'fa-route',
+          title: route.teamName || route.teamCode || 'Rescue route',
+          subtitle: route.deploymentCode || 'Active deployment',
+          html: routePopupMarkup(route),
+          lngLat: routeMarkerLngLat(route)
+        });
         features.push({
           type: 'Feature',
-          properties: { deploymentId, selected: isSelected },
+          properties: { deploymentId, detailKey, selected: isSelected },
           geometry: {
             type: 'LineString',
             coordinates: route.coordinates.map(coordinateLngLat).filter(Boolean)
@@ -949,6 +1064,17 @@
       const teamLngLat = routeMarkerLngLat(route);
       if (teamLngLat) {
         const markerKey = `route-team:${deploymentId}`;
+        const detailKey = `route:${deploymentId}`;
+        registerMapDetail({
+          key: detailKey,
+          markerKey,
+          routeDeploymentId: route.deploymentId,
+          iconClass: 'fa-route',
+          title: route.teamName || route.teamCode || 'Rescue route',
+          subtitle: route.deploymentCode || 'Active deployment',
+          html: routePopupMarkup(route),
+          lngLat: teamLngLat
+        });
         addDomMarker({
           key: markerKey,
           lngLat: teamLngLat,
@@ -957,15 +1083,12 @@
             iconClass: 'fa-location-arrow',
             bearing: routeInitialBearing(route)
           }),
-          popupHtml: routePopupMarkup(route),
-          popupClass: 'device-map-popup device-map-route-popup',
           ariaLabel: `Open route for ${route.teamName || route.teamCode || route.deploymentCode}`,
           zIndex: 350,
-          onClick: () => {
-            state.selectedRouteDeploymentId = route.deploymentId;
-            renderMap({ preserveViewport: true });
-            openMarkerPopup(markerKey);
-          }
+          onClick: (event) => openMapInspector(detailKey, {
+            openerKey: markerKey,
+            focusClose: event.type === 'keydown'
+          })
         });
       }
 
@@ -973,6 +1096,17 @@
         const distressLngLat = routeDistressLngLat(route);
         if (distressLngLat) {
           const markerKey = `route-distress:${deploymentId}`;
+          const detailKey = `route-distress:${deploymentId}`;
+          registerMapDetail({
+            key: detailKey,
+            markerKey,
+            routeDeploymentId: route.deploymentId,
+            iconClass: 'fa-triangle-exclamation',
+            title: route.distressCode || 'Online distress',
+            subtitle: route.sourceLabel || 'Active emergency',
+            html: routeDistressPopupMarkup(route),
+            lngLat: distressLngLat
+          });
           addDomMarker({
             key: markerKey,
             lngLat: distressLngLat,
@@ -980,15 +1114,12 @@
               isSelected,
               iconClass: 'fa-triangle-exclamation'
             }),
-            popupHtml: routeDistressPopupMarkup(route),
-            popupClass: 'device-map-popup device-map-route-popup',
             ariaLabel: `Open distress details for ${route.distressCode}`,
             zIndex: 330,
-            onClick: () => {
-              state.selectedRouteDeploymentId = route.deploymentId;
-              renderMap({ preserveViewport: true });
-              openMarkerPopup(markerKey);
-            }
+            onClick: (event) => openMapInspector(detailKey, {
+              openerKey: markerKey,
+              focusClose: event.type === 'keydown'
+            })
           });
         }
       }
@@ -1010,20 +1141,32 @@
         const lngLat = numericLngLat(distress.latitude, distress.longitude);
         if (!lngLat) return;
 
-        addDomMarker({
-          key: `online-distress:${distress.id}`,
-          lngLat,
-          element: createMarkerElement('device-map-online-distress-marker-icon', 'device-map-online-distress-marker', {
-            iconClass: 'fa-triangle-exclamation'
-          }),
-          popupHtml: distressCivilianPopupMarkup(distress, {
+        const markerKey = `online-distress:${distress.id}`;
+        registerMapDetail({
+          key: markerKey,
+          markerKey,
+          iconClass: 'fa-triangle-exclamation',
+          title: distress.distressCode || 'Online distress',
+          subtitle: distress.isDeployed ? 'Team deployed' : 'Awaiting deployment',
+          html: distressCivilianPopupMarkup(distress, {
             isDeployed: distress.isDeployed,
             deploymentCode: distress.deploymentCode,
             teamName: distress.teamName
           }),
-          popupClass: 'device-map-popup device-map-route-popup',
+          lngLat
+        });
+        addDomMarker({
+          key: markerKey,
+          lngLat,
+          element: createMarkerElement('device-map-online-distress-marker-icon', 'device-map-online-distress-marker', {
+            iconClass: 'fa-triangle-exclamation'
+          }),
           ariaLabel: `Open distress details for ${distress.distressCode || 'active distress'}`,
-          zIndex: 320
+          zIndex: 320,
+          onClick: (event) => openMapInspector(markerKey, {
+            openerKey: markerKey,
+            focusClose: event.type === 'keydown'
+          })
         });
       });
   }
@@ -1033,15 +1176,28 @@
       const lngLat = numericLngLat(rescuer.latitude, rescuer.longitude);
       if (!lngLat) return;
 
+      const markerKey = `shared-rescuer:${rescuer.id || rescuer.rescuerCode}`;
+      registerMapDetail({
+        key: markerKey,
+        markerKey,
+        iconClass: 'fa-user-shield',
+        title: rescuer.firstName || rescuer.rescuerCode || 'Shared rescuer',
+        subtitle: rescuer.teamName || rescuer.department || 'Sharing location',
+        html: sharedRescuerPopupMarkup(rescuer),
+        lngLat
+      });
       addDomMarker({
-        key: `shared-rescuer:${rescuer.id || rescuer.rescuerCode}`,
+        key: markerKey,
         lngLat,
         element: createMarkerElement('device-map-shared-rescuer-marker-icon', 'device-map-shared-rescuer-marker', {
           iconClass: 'fa-user-shield'
         }),
-        popupHtml: sharedRescuerPopupMarkup(rescuer),
         ariaLabel: `Open shared location for ${rescuer.firstName || rescuer.rescuerCode || 'rescuer'}`,
-        zIndex: 310
+        zIndex: 310,
+        onClick: (event) => openMapInspector(markerKey, {
+          openerKey: markerKey,
+          focusClose: event.type === 'keydown'
+        })
       });
     });
   }
@@ -1062,14 +1218,12 @@
       if (feature.layer.id === ROUTES_LAYER_ID || feature.layer.id === ROUTES_CASING_LAYER_ID) {
         const route = currentRoutesById.get(String(feature.properties?.deploymentId));
         if (!route) return;
-        state.selectedRouteDeploymentId = route.deploymentId;
-        renderMap({ preserveViewport: true });
-        openMapPopup(routePopupMarkup(route), event.lngLat, 'device-map-popup device-map-route-popup');
+        openMapInspector(String(feature.properties?.detailKey || `route:${route.deploymentId}`));
         return;
       }
 
-      const popupHtml = currentLinkPopups.get(String(feature.properties?.popupKey || ''));
-      if (popupHtml) openMapPopup(popupHtml, event.lngLat);
+      const detailKey = String(feature.properties?.detailKey || '');
+      if (detailKey) openMapInspector(detailKey);
     });
 
     state.map.on('mousemove', (event) => {
@@ -1091,6 +1245,10 @@
     renderUnavailableList(unavailableDevices);
 
     if (state.mapUnavailableReason) {
+      currentMapDetails = new Map();
+      if (state.selectedMapItem) {
+        closeMapInspector({ restoreFocus: false, rerenderRoute: false });
+      }
       setMapEmptyState(true, state.mapUnavailableReason);
       return;
     }
@@ -1110,14 +1268,14 @@
 
     ensureOperationalLayers();
     clearMapMarkers();
-    state.mapPopup?.remove();
-    state.mapPopup = null;
+    currentMapDetails = new Map();
 
     renderConnections(visibleDevices);
     renderOnlineDistressMarkers();
     renderRoutes();
     renderSharedRescuerMarkers();
     visibleDevices.forEach(createDeviceMarker);
+    syncMapInspector();
 
     const bounds = new maptilersdk.LngLatBounds();
     let boundsCount = 0;
@@ -1234,8 +1392,24 @@
   }
 
   window.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && dom.deviceViewModal?.classList.contains('is-open')) {
+    if (event.key !== 'Escape') return;
+
+    if (dom.deviceViewModal?.classList.contains('is-open')) {
       ui.closeDeviceViewModal();
+      return;
+    }
+
+    if (dom.deviceMapInspector?.classList.contains('is-open')) {
+      closeMapInspector();
+    }
+  });
+
+  dom.deviceMapInspectorClose?.addEventListener('click', () => closeMapInspector());
+  dom.deviceMapUnavailableToggle?.addEventListener('click', () => {
+    const isExpanded = dom.deviceMapUnavailableToggle.getAttribute('aria-expanded') === 'true';
+    dom.deviceMapUnavailableToggle.setAttribute('aria-expanded', String(!isExpanded));
+    if (dom.deviceMapUnavailableContent) {
+      dom.deviceMapUnavailableContent.hidden = isExpanded;
     }
   });
 
@@ -1259,7 +1433,20 @@
     }
   });
   document.addEventListener('fullscreenchange', () => {
-    window.requestAnimationFrame(() => state.map?.resize());
+    window.requestAnimationFrame(() => {
+      state.map?.resize();
+      if (state.selectedMapItem) {
+        updateInspectorMapOffset(true, null, false);
+      }
+    });
+  });
+  window.addEventListener('resize', () => {
+    window.requestAnimationFrame(() => {
+      state.map?.resize();
+      if (state.selectedMapItem) {
+        updateInspectorMapOffset(true, null, false);
+      }
+    });
   });
   window.addEventListener('beforeunload', stopLiveRefresh);
 
