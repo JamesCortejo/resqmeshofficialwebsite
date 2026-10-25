@@ -169,6 +169,18 @@ const rateLimiters = Object.freeze({
     windowMs: 15 * 60 * 1000,
     keyGenerator: ipKey
   }),
+  mobileReleaseMetadata: createRateLimiter({
+    name: 'mobile-release-metadata',
+    maxRequests: 120,
+    windowMs: 60 * 60 * 1000,
+    keyGenerator: ipKey
+  }),
+  mobileReleaseDownload: createRateLimiter({
+    name: 'mobile-release-download',
+    maxRequests: 120,
+    windowMs: 60 * 60 * 1000,
+    keyGenerator: ipKey
+  }),
   publicMap: createRateLimiter({
     name: 'public-map',
     maxRequests: 300,

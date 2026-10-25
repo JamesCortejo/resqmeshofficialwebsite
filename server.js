@@ -7,6 +7,7 @@ const downloadRoutes = require("./server/routes/downloadRoutes");
 const adminRoutes = require("./server/routes/adminRoutes");
 const deviceSyncRoutes = require("./server/routes/deviceSyncRoutes");
 const mobileRoutes = require("./server/routes/mobileRoutes");
+const mobileReleaseRoutes = require("./server/routes/mobileReleaseRoutes");
 const { initializeDatabase } = require("./server/database/postgres");
 const {
   startAdminAuditOutboxProcessor,
@@ -64,6 +65,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/download", downloadRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/mobile/releases", mobileReleaseRoutes);
 app.use("/api", deviceSyncRoutes);
 app.use("/", mobileRoutes);
 

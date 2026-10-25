@@ -3,11 +3,12 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../config/env');
 const { verifyRecaptcha } = require('./recaptchaService');
+const { getPublishedRelease } = require('./mobileReleaseService');
 
 const DOWNLOAD_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DOWNLOAD_RATE_LIMIT_MAX = 12;
 const DOWNLOAD_TOKEN_TTL_MS = 2 * 60 * 1000;
-const APK_FILENAME = 'ResQMesh-V1.14.3.apk';
+const LEGACY_APK_FILENAME = 'ResQMesh-V1.14.3.apk';
 const downloadBuckets = new Map();
 
 function getDownloadsRoot() {
@@ -22,10 +23,34 @@ function normalizeFilename(filename) {
   return path.basename(String(filename || '').trim());
 }
 
+function getActiveDownload() {
+  const published = getPublishedRelease();
+  if (published) {
+    return {
+      filename: published.filename,
+      filePath: published.filePath,
+      version: `V${published.versionName}`,
+      sizeBytes: published.sizeBytes,
+      updatedAt: published.publishedAt
+    };
+  }
+
+  const filePath = path.join(getDownloadsRoot(), LEGACY_APK_FILENAME);
+  const stats = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
+  return {
+    filename: LEGACY_APK_FILENAME,
+    filePath,
+    version: getApkVersion(LEGACY_APK_FILENAME),
+    sizeBytes: stats ? stats.size : null,
+    updatedAt: stats ? stats.mtime.toISOString() : null
+  };
+}
+
 function assertAllowedFilename(filename) {
   const normalized = normalizeFilename(filename);
+  const active = getActiveDownload();
 
-  if (normalized !== APK_FILENAME) {
+  if (normalized !== active.filename) {
     const error = new Error('Requested download is unavailable.');
     error.statusCode = 404;
     throw error;
@@ -142,7 +167,10 @@ function verifyDownloadToken(token, ipAddress, filename) {
 
 function resolveDownloadPath(filename) {
   const safeFilename = assertAllowedFilename(filename);
-  const targetPath = path.join(getDownloadsRoot(), safeFilename);
+  const active = getActiveDownload();
+  const targetPath = active.filename === safeFilename
+    ? active.filePath
+    : path.join(getDownloadsRoot(), safeFilename);
 
   if (!fs.existsSync(targetPath)) {
     const error = new Error('Requested download file is not available on this server.');
@@ -168,22 +196,22 @@ function getApkVersion(filename) {
 }
 
 function getDownloadInfo() {
-  const filePath = path.join(getDownloadsRoot(), APK_FILENAME);
-  const exists = fs.existsSync(filePath);
-  const stats = exists ? fs.statSync(filePath) : null;
+  const active = getActiveDownload();
+  const exists = fs.existsSync(active.filePath);
 
   return {
-    filename: APK_FILENAME,
-    version: getApkVersion(APK_FILENAME),
-    sizeBytes: stats ? stats.size : null,
-    sizeLabel: stats ? formatFileSize(stats.size) : 'Upload pending',
-    updatedAt: stats ? stats.mtime.toISOString() : null,
+    filename: active.filename,
+    version: active.version,
+    sizeBytes: exists ? active.sizeBytes : null,
+    sizeLabel: exists ? formatFileSize(active.sizeBytes) : 'Upload pending',
+    updatedAt: exists ? active.updatedAt : null,
     available: exists
   };
 }
 
 async function createProtectedDownload(body, requestMeta = {}) {
-  const filename = assertAllowedFilename(body && body.filename ? body.filename : APK_FILENAME);
+  const active = getActiveDownload();
+  const filename = assertAllowedFilename(body && body.filename ? body.filename : active.filename);
   const ipAddress = normalizeIp(requestMeta.ipAddress);
 
   assertRateLimit(ipAddress);
@@ -202,7 +230,7 @@ async function createProtectedDownload(body, requestMeta = {}) {
 }
 
 module.exports = {
-  APK_FILENAME,
+  APK_FILENAME: LEGACY_APK_FILENAME,
   createProtectedDownload,
   getDownloadInfo,
   resolveDownloadPath,

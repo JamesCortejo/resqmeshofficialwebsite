@@ -1,7 +1,6 @@
 (function initDownloadGuard() {
   const COOLDOWN_MS = 10000;
   const TOKEN_TIMEOUT_MS = 15000;
-  const APK_FILENAME = 'ResQMesh-V1.14.3.apk';
   const buttons = Array.from(document.querySelectorAll('[data-secure-download]'));
   const status = document.getElementById('downloadSecurityStatus');
   const versionTarget = document.querySelector('[data-app-version]');
@@ -137,10 +136,7 @@
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        filename: APK_FILENAME,
-        recaptchaToken
-      })
+      body: JSON.stringify({ recaptchaToken })
     });
 
     const result = await response.json().catch(() => ({}));
